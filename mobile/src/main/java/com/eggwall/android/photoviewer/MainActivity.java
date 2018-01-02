@@ -7,16 +7,15 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
+import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.widget.AppCompatImageView;
 import android.util.Log;
 import android.view.GestureDetector;
-import android.view.Gravity;
 import android.view.MotionEvent;
-import android.view.TouchDelegate;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -26,8 +25,16 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ViewPropertyAnimator;
+import android.view.WindowManager;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
 import android.widget.Toast;
 
+import java.io.File;
+import java.util.Arrays;
+
+import static android.os.Build.VERSION.SDK_INT;
 import static android.view.View.INVISIBLE;
 import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
 import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
@@ -36,16 +43,22 @@ import static android.view.View.SYSTEM_UI_FLAG_LOW_PROFILE;
 import static android.view.View.VISIBLE;
 
 /**
+ * TODO: Put more than one image in.
+ * TODO: Implement a broadcast receiver when a zip is downloaded.
+ * TODO: Unzip a file.
+ * TODO: Allow traversing existing file structure.
+ * TODO: Delete oldest file: LRU cache.
+ * TODO: Taps on different parts of the screen lead to different actions: top for showing nav again,
+ * TODO: Onscreen buttons, remove with alpha transparency
+ *
+ * TODO: Fit and finish: animations all over the place.
+ */
+
+/**
  * Create a Photo viewer by default.  This screen should show an image by default, and allow the
  * user to change them using the navigation bar.
  */
 
-// TODO: Set a gesture handler to swipe left/right for next image.
-// TODO: Put more than one image in.
-// TODO: Implement a broadcast receiver when a zip is downloaded.
-// TODO: Unzip a file.
-// TODO: Allow traversing existing file structure.
-// TODO: Delete oldest file: LRU cache.
 
 public class MainActivity extends AppCompatActivity implements
         NavigationView.OnNavigationItemSelectedListener,
@@ -72,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements
             //check if the broadcast message is for our enqueued download
             long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
 
-            if(referenceId == mRequestId) {
+            if (referenceId == mRequestId) {
                 Toast toast = Toast.makeText(MainActivity.this, "Image Download Complete", Toast
                         .LENGTH_LONG);
                 Log.d("MainActivity", "Image download complete");
@@ -92,10 +105,10 @@ public class MainActivity extends AppCompatActivity implements
         public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
             if (v < -2000) {
                 Log.d("MainActivity", "PREV image");
-                updateImage(-1);
+                updateImage(PREV);
             } else if (v > 2000) {
                 Log.d("MainActivity", "NEXT image");
-                updateImage(+1);
+                updateImage(NEXT);
             }
             Log.d("MainActivity", "Listener detected fling (" + v + " , " + v1 + ").");
             return true;
@@ -121,7 +134,18 @@ public class MainActivity extends AppCompatActivity implements
         }
     };
 
+    public static final int NEXT=1;
+    public static final int PREV=-1;
+    /**
+     * Update the image by providing an offset
+     * @param offset is either {@link #NEXT} or {@link #PREV}
+     */
     private void updateImage(int offset) {
+        if (offset != NEXT && offset != PREV) {
+            Log.e(TAG, "updateImage: Incorrect offset provided: " + offset);
+            System.exit(-1);
+            return;
+        }
         currentDrawable += offset;
         if (currentDrawable < 0) {
             currentDrawable = drawables.length - 1;
@@ -130,9 +154,145 @@ public class MainActivity extends AppCompatActivity implements
             currentDrawable = 0;
         }
         image.setImageResource(drawables[currentDrawable]);
+
+        // Show the correct FAB, and hide it after a while
+        if (offset == NEXT) {
+            showFab(fNext);
+        }
+        if (offset == PREV) {
+            showFab(fPrev);
+        }
+    }
+    FloatingActionButton fNext;
+    FloatingActionButton fPrev;
+    AppCompatImageView image;
+
+    boolean keepScreenOn = true;
+    Handler h = new Handler();
+
+    public static final String TAG = "MainActivity";
+
+    /** The actual directory that corresponds to the external SD card. */
+    private File mPicturesDir;
+
+    /**
+     * Returns the names of all the galleries available to the user.
+     * @return list of all the galleries in the pictures directory.
+     */
+    private String[] getPicturesList() {
+        if (mPicturesDir == null) {
+            mPicturesDir = getPicturesDir();
+        }
+        // What we return when we don't find anything. It is safer to return a zero length array than null.
+        final String[] foundNothing = new String[0];
+
+        // Still nothing? We don't have a valid pictures directory.
+        if (mPicturesDir == null) {
+            return foundNothing;
+        }
+
+        final String[] filenames = mPicturesDir.list();
+        Log.e(TAG, "All directories: " + Arrays.toString(filenames));
+        if (filenames.length <= 0) {
+            Log.e(TAG, "Gallery directory has no files." + mPicturesDir);
+            return foundNothing;
+        }
+        return filenames;
     }
 
-    AppCompatImageView image;
+
+    /** Name of the subdirectory in the main folder containing photos */
+    private final static String PICTURES_DIR = "eggwall";
+
+    /**
+     * Returns the location of the music directory which is
+     * [sdcard]/pictures.
+     * @return the file representing the music directory.
+     */
+    private static File getPicturesDir() {
+        final String state = Environment.getExternalStorageState();
+        if (!Environment.MEDIA_MOUNTED.equals(state)) {
+            // If we don't have an SD card, cannot do anything here.
+            Log.e(TAG, "SD card root directory is not available");
+            return null;
+        }
+
+        final File rootSdLocation;
+        if (SDK_INT >= 8) {
+            rootSdLocation = getPictureDirAfterV8();
+        } else {
+            rootSdLocation = getPicturesDirTillV7();
+        }
+        if (rootSdLocation == null) {
+            // Not a directory? Completely unexpected.
+            Log.e(TAG, "SD card root directory is NOT a directory: " + rootSdLocation);
+            return null;
+        }
+        // Navigate over to the gallery directory.
+        final File galleryDir = new File(rootSdLocation, PICTURES_DIR);
+        if (!galleryDir.isDirectory()) {
+            // The directory doesn't exist, so try creating one.
+            Log.e(TAG, "Gallery directory does not exist." + rootSdLocation);
+            boolean result;
+            try {
+                result = galleryDir.mkdir();
+            } catch (Exception e) {
+                Log.e(TAG, "Could not create a directory " + e);
+                return null;
+            }
+            if (result) {
+                Log.d(TAG, "Created a directory at " + galleryDir.getAbsolutePath());
+            } else {
+                Log.d(TAG, "FAILED to make a directory at " + galleryDir.getAbsolutePath());
+                return null;
+            }
+        }
+        // At this point, we must have a directory, but let's check again to be sure.
+        if (!galleryDir.isDirectory()) {
+            // The directory doesn't exist, so fail now.
+            Log.d(TAG, "I thought I made a directory at " + galleryDir.getAbsolutePath() + " but " +
+                    "I couldn't");
+            return null;
+        }
+
+        return galleryDir;
+    }
+
+    /**
+     * [sdcard]/music in SDK >= 8
+     * @return the [sdcard]/music path in sdk version >= 8
+     */
+    private static File getPictureDirAfterV8() {
+        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+    }
+
+    /**
+     * [sdcard]/music in SDK < 8
+     * @return the [sdcard]/pictures path in sdk version < 8
+     */
+    private static File getPicturesDirTillV7() {
+        return new File(Environment.getExternalStorageDirectory(), "pictures");
+    }
+
+    // View animation methods
+
+    /**
+     * Shows a Floating Action Button (FAB) immediately, and then fades it out in a few seconds.
+     * @param fab
+     */
+    private void showFab(final View fab){
+        // Show it NOW
+        fab.animate().alpha(255).setDuration(150).start();
+
+        Runnable doFade = new Runnable() {
+            @Override
+            public void run() {
+                fab.animate().alpha(0).setDuration(500).start();
+            }
+        };
+        // Hide in in seven seconds from now.
+        h.postDelayed(doFade, 7000);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,17 +303,57 @@ public class MainActivity extends AppCompatActivity implements
         mDrawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         mDrawer.setOnSystemUiVisibilityChangeListener(this);
 
+        if (keepScreenOn) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+
         mToolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(mToolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        final AppBarLayout bar = (AppBarLayout) findViewById(R.id.app_bar);
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                bar.setVisibility(INVISIBLE);
+            }
+        };
+
+
+        final FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                if (bar.getVisibility() == VISIBLE) {
+                    bar.setVisibility(INVISIBLE);
+                } else {
+                    bar.setVisibility(VISIBLE);
+                }
             }
         });
+        showFab(fab);
+
+        fNext = (FloatingActionButton) findViewById(R.id.next);
+        fNext.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                updateImage(NEXT);
+            }
+        });
+        showFab(fNext);
+        fPrev = (FloatingActionButton) findViewById(R.id.prev);
+        fPrev.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                updateImage(PREV);
+            }
+        });
+        showFab(fPrev);
+
+        // Hide the navigation after 7 seconds
+        h.postDelayed(r, 7000);
+//        h.removeCallbacks(r);
+
+
         DownloadManager dMan = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(location));
 
@@ -163,14 +363,17 @@ public class MainActivity extends AppCompatActivity implements
 
         image = (AppCompatImageView) findViewById(R.id.photoview);
         image.setOnTouchListener(mDelegate);
+        updateImage(NEXT);
 
         mDetector = new GestureDetectorCompat(this, mGestureListener);
-        ;
+
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, mDrawer, mToolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+                this, mDrawer, mToolbar, R.string.navigation_drawer_open,
+                R.string.navigation_drawer_close);
         mDrawer.setDrawerListener(toggle);
         toggle.syncState();
 
+        getPicturesList();
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
     }
