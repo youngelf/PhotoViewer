@@ -40,14 +40,13 @@ import static android.view.View.SYSTEM_UI_FLAG_LOW_PROFILE;
 import static android.view.View.VISIBLE;
 
 /**
- * TODO: Put more than one image in.
  * TODO: Implement a broadcast receiver when a zip is downloaded.
  * TODO: Unzip a file.
  * TODO: Allow traversing existing file structure.
  * TODO: Delete oldest file: LRU cache.
  * TODO: Taps on different parts of the screen lead to different actions: top for showing nav again,
  * TODO: Onscreen buttons, remove with alpha transparency
- *
+ * TODO: Make fullscreen better: allow tap on the screen to turn off full-screen.
  * TODO: Fit and finish: animations all over the place.
  */
 
@@ -127,14 +126,20 @@ public class MainActivity extends AppCompatActivity implements
             mDetector.onTouchEvent(motionEvent);
             // Consume the events.  This is required to detect flings, otherwise they get
             // detected as long press events.
+            showSystemUI();
+
+            // If the touch is on the right half, go to the next image, if the touch is on the
+            // left half, go to the left image.
             return true;
         }
     };
 
-    public static final int NEXT=1;
-    public static final int PREV=-1;
+    public static final int NEXT = 1;
+    public static final int PREV = -1;
+
     /**
      * Update the image by providing an offset
+     *
      * @param offset is either {@link #NEXT} or {@link #PREV}
      */
     private void updateImage(int offset) {
@@ -152,6 +157,7 @@ public class MainActivity extends AppCompatActivity implements
         }
         image.setImageResource(drawables[currentDrawable]);
 
+        showSystemUI();
         // Show the correct FAB, and hide it after a while
         if (offset == NEXT) {
             showFab(fNext);
@@ -160,6 +166,7 @@ public class MainActivity extends AppCompatActivity implements
             showFab(fPrev);
         }
     }
+
     FloatingActionButton fNext;
     FloatingActionButton fPrev;
     AppCompatImageView image;
@@ -169,11 +176,14 @@ public class MainActivity extends AppCompatActivity implements
 
     public static final String TAG = "MainActivity";
 
-    /** The actual directory that corresponds to the external SD card. */
+    /**
+     * The actual directory that corresponds to the external SD card.
+     */
     private File mPicturesDir;
 
     /**
      * Returns the names of all the galleries available to the user.
+     *
      * @return list of all the galleries in the pictures directory.
      */
     private String[] getPicturesList() {
@@ -198,12 +208,15 @@ public class MainActivity extends AppCompatActivity implements
     }
 
 
-    /** Name of the subdirectory in the main folder containing photos */
+    /**
+     * Name of the subdirectory in the main folder containing photos
+     */
     private final static String PICTURES_DIR = "eggwall";
 
     /**
      * Returns the location of the music directory which is
      * [sdcard]/pictures.
+     *
      * @return the file representing the music directory.
      */
     private static File getPicturesDir() {
@@ -257,6 +270,7 @@ public class MainActivity extends AppCompatActivity implements
 
     /**
      * [sdcard]/music in SDK >= 8
+     *
      * @return the [sdcard]/music path in sdk version >= 8
      */
     private static File getPictureDirAfterV8() {
@@ -265,6 +279,7 @@ public class MainActivity extends AppCompatActivity implements
 
     /**
      * [sdcard]/music in SDK < 8
+     *
      * @return the [sdcard]/pictures path in sdk version < 8
      */
     private static File getPicturesDirTillV7() {
@@ -275,16 +290,17 @@ public class MainActivity extends AppCompatActivity implements
 
     /**
      * Shows a Floating Action Button (FAB) immediately, and then fades it out in a few seconds.
+     *
      * @param fab
      */
-    private void showFab(final View fab){
+    private void showFab(final View fab) {
         // Show it NOW
         fab.animate().alpha(255).setDuration(150).start();
 
         Runnable doFade = new Runnable() {
             @Override
             public void run() {
-                fab.animate().alpha(0).setDuration(500).start();
+                fab.animate().alpha(0).setDuration(1500).start();
             }
         };
         // Hide in in seven seconds from now.
@@ -336,6 +352,14 @@ public class MainActivity extends AppCompatActivity implements
                 updateImage(NEXT);
             }
         });
+        findViewById(R.id.next_button_invi).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                updateImage(NEXT);
+            }
+        });
+
+
         showFab(fNext);
         fPrev = (FloatingActionButton) findViewById(R.id.prev);
         fPrev.setOnClickListener(new View.OnClickListener() {
@@ -345,6 +369,13 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
         showFab(fPrev);
+
+        findViewById(R.id.prev_button_invi).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                updateImage(PREV);
+            }
+        });
 
         // Hide the navigation after 7 seconds
         h.postDelayed(r, 7000);
@@ -457,15 +488,61 @@ public class MainActivity extends AppCompatActivity implements
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
-            getWindow().getDecorView().setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+            hideSystemUI();
         }
     }
+
+    public static final int SYSUI_INVISIBLE = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+
+    public static final int SYSUI_VISIBLE = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+
+
+    public final Runnable hideSysUi = new Runnable() {
+        @Override
+        public void run() {
+            setSystemUiVisibility(SYSUI_INVISIBLE);
+        }
+    };
+
+    /**
+     * Sets the System Ui Visibility.  Only accepts two values: {@link #SYSUI_INVISIBLE} or
+     * {@link #SYSUI_VISIBLE}
+     *
+     * @param visibility
+     */
+    private void setSystemUiVisibility(int visibility) {
+        if (visibility != SYSUI_VISIBLE && visibility != SYSUI_INVISIBLE) {
+            Log.wtf(TAG, "setSystemUiVisibility only accepts SYSUI_{INVISIBLE,VISIBLE}. " +
+                    "Your value of " + visibility + " was ignored");
+            return;
+        }
+        getWindow().getDecorView().setSystemUiVisibility(visibility);
+    }
+
+    /**
+     * Hide the system UI.
+     */
+    private void hideSystemUI() {
+        getWindow().getDecorView().setSystemUiVisibility(SYSUI_INVISIBLE);
+    }
+
+    /**
+     * Show the system UI.
+     */
+    private void showSystemUI() {
+        getWindow().getDecorView().setSystemUiVisibility(SYSUI_VISIBLE);
+        // And request it to be hidden in five seconds
+        h.removeCallbacks(hideSysUi);
+        h.postDelayed(hideSysUi, 5000);
+    }
+
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
