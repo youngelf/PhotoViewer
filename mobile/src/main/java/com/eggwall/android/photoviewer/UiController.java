@@ -3,13 +3,16 @@ package com.eggwall.android.photoviewer;
 import android.os.Handler;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
 import android.support.v4.view.GestureDetectorCompat;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.AppCompatImageView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -20,28 +23,76 @@ import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
 import static android.view.View.SYSTEM_UI_FLAG_LOW_PROFILE;
 import static android.view.View.VISIBLE;
 
+/* While this class is fine, some cleanup can be done here.
+ *** Remove the gesture listening code now that I have onscreen buttons.
+ *** Make the Action bar play well with the System UI.  Right now they are disconnected.
+ *** Avoid showing the System UI every time, it can get laborious.
+ *** Hide all the elements (all fabs, and all navigation) on the same runnable.
+ *** Show a progress indicator for the gallery.
+*/
+
 /**
  * Orchestrates User Interface actions, and drives the display.
  */
+class UiController implements NavigationView.OnNavigationItemSelectedListener,
+        View.OnSystemUiVisibilityChangeListener {
 
-public class UiController {
-    private final MainActivity mainActivity;
-    public static final String TAG = "UiController";
+    private static final String TAG = "UiController";
 
-    public static final int NEXT = 1;
-    public static final int PREV = -1;
-    GestureDetectorCompat mDetector;
+    private static final int NEXT = 1;
+    private static final int PREV = -1;
+
+    private int mSysUiBaseVisibility = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+            SYSTEM_UI_FLAG_LAYOUT_STABLE;
+
+    private static final int SYSUI_INVISIBLE = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+
+    private static final int SYSUI_VISIBLE = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
 
     // All the images we will display
-    int[] drawables = {
+    private static final int[] DRAWABLES = {
             R.drawable.ic_menu_camera,
             R.drawable.ic_menu_gallery,
             R.drawable.ic_menu_manage,
             R.drawable.ic_menu_send,
             R.drawable.ic_menu_share,
             R.drawable.ic_menu_slideshow};
-    int currentDrawable = 0;
 
+    private final Runnable hideSysUi = new Runnable() {
+        @Override
+        public void run() {
+            setSystemUiVisibility(SYSUI_INVISIBLE);
+        }
+    };
+
+    private final Runnable hideNav = new Runnable() {
+        @Override
+        public void run() {
+            setNavVisibility(false);
+        }
+    };
+
+    private final MainActivity mMainActivity;
+    private final Handler mHandler = new Handler();
+    private final GestureDetector.OnGestureListener mGestureListener = new FlingDetector();
+
+    // References to on-screen elements
+    private FloatingActionButton mNextFab;
+    private FloatingActionButton mPrevFab;
+    private AppCompatImageView mImageView;
+    private Toolbar mToolbar;
+    private DrawerLayout mDrawer;
+
+    private int mLastSystemUiVis = 0;
+    private GestureDetectorCompat mDetector;
+    private int mCurrentDrawable = 0;
 
     private class FlingDetector extends GestureDetector.SimpleOnGestureListener {
         @Override
@@ -65,8 +116,30 @@ public class UiController {
         }
     }
 
+    @SuppressWarnings("StatementWithEmptyBody")
+    @Override
+    public boolean onNavigationItemSelected(MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
 
-    // View animation methods
+        if (id == R.id.nav_camera) {
+            // Handle the camera action
+        } else if (id == R.id.nav_gallery) {
+
+        } else if (id == R.id.nav_slideshow) {
+
+        } else if (id == R.id.nav_manage) {
+
+        } else if (id == R.id.nav_share) {
+
+        } else if (id == R.id.nav_send) {
+
+        }
+
+        DrawerLayout drawer = (DrawerLayout) mMainActivity.findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
+    }
 
     /**
      * Shows a Floating Action Button (FAB) immediately, and then fades it out in a few seconds.
@@ -74,20 +147,18 @@ public class UiController {
      * @param fab
      */
     private void showFab(final View fab) {
-        // Show it NOW
+        // Show it
         fab.animate().alpha(255).setDuration(750).start();
 
-        Runnable doFade = new Runnable() {
+        Runnable fadeAway = new Runnable() {
             @Override
             public void run() {
                 fab.animate().alpha(0).setDuration(1500).start();
             }
         };
         // Hide in in three seconds from now.
-        h.postDelayed(doFade, 3000);
+        mHandler.postDelayed(fadeAway, 3000);
     }
-
-    int mBaseSystemUiVisibility = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | SYSTEM_UI_FLAG_LAYOUT_STABLE;
 
     /**
      * Update the image by providing an offset
@@ -100,56 +171,28 @@ public class UiController {
             System.exit(-1);
             return;
         }
-        currentDrawable += offset;
-        if (currentDrawable < 0) {
-            currentDrawable = drawables.length - 1;
+        mCurrentDrawable += offset;
+        if (mCurrentDrawable < 0) {
+            mCurrentDrawable = DRAWABLES.length - 1;
         }
-        if (currentDrawable >= drawables.length) {
-            currentDrawable = 0;
+        if (mCurrentDrawable >= DRAWABLES.length) {
+            mCurrentDrawable = 0;
         }
-        image.setImageResource(drawables[currentDrawable]);
+        mImageView.setImageResource(DRAWABLES[mCurrentDrawable]);
 
         showSystemUI();
         // Show the correct FAB, and hide it after a while
         if (offset == NEXT) {
-            showFab(fNext);
+            showFab(mNextFab);
         }
         if (offset == PREV) {
-            showFab(fPrev);
+            showFab(mPrevFab);
         }
     }
-
-
-    Runnable mNavHider = new Runnable() {
-        @Override
-        public void run() {
-            setNavVisibility(false);
-        }
-    };
 
     void setBaseSystemUiVisibility(int visibility) {
-        mBaseSystemUiVisibility = visibility;
+        mSysUiBaseVisibility = visibility;
     }
-
-
-    public static final int SYSUI_INVISIBLE = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            | View.SYSTEM_UI_FLAG_FULLSCREEN
-            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-
-    public static final int SYSUI_VISIBLE = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-
-
-    public final Runnable hideSysUi = new Runnable() {
-        @Override
-        public void run() {
-            setSystemUiVisibility(SYSUI_INVISIBLE);
-        }
-    };
 
     /**
      * Sets the System Ui Visibility.  Only accepts two values: {@link #SYSUI_INVISIBLE} or
@@ -163,29 +206,28 @@ public class UiController {
                     "Your value of " + visibility + " was ignored");
             return;
         }
-        mainActivity.getWindow().getDecorView().setSystemUiVisibility(visibility);
+        mMainActivity.getWindow().getDecorView().setSystemUiVisibility(visibility);
     }
 
     /**
      * Hide the system UI.
      */
     private void hideSystemUI() {
-        mainActivity.getWindow().getDecorView().setSystemUiVisibility(SYSUI_INVISIBLE);
+        mMainActivity.getWindow().getDecorView().setSystemUiVisibility(SYSUI_INVISIBLE);
     }
-    DrawerLayout mDrawer;
 
     /**
      * Show the system UI.
      */
     private void showSystemUI() {
-        mainActivity.getWindow().getDecorView().setSystemUiVisibility(SYSUI_VISIBLE);
+        mMainActivity.getWindow().getDecorView().setSystemUiVisibility(SYSUI_VISIBLE);
         // And request it to be hidden in five seconds
-        h.removeCallbacks(hideSysUi);
-        h.postDelayed(hideSysUi, 5000);
+        mHandler.removeCallbacks(hideSysUi);
+        mHandler.postDelayed(hideSysUi, 5000);
     }
 
-    void setNavVisibility(boolean visible) {
-        int newVis = mBaseSystemUiVisibility;
+    private void setNavVisibility(boolean visible) {
+        int newVis = mSysUiBaseVisibility;
         if (!visible) {
             newVis |= SYSTEM_UI_FLAG_LOW_PROFILE | SYSTEM_UI_FLAG_FULLSCREEN;
         }
@@ -196,7 +238,7 @@ public class UiController {
         if (changed || visible) {
             Handler h = mDrawer.getHandler();
             if (h != null) {
-                h.removeCallbacks(mNavHider);
+                h.removeCallbacks(hideNav);
             }
         }
 
@@ -219,27 +261,22 @@ public class UiController {
         }
     };
 
-
-    FloatingActionButton fNext;
-    FloatingActionButton fPrev;
-    AppCompatImageView image;
-
-
-    Handler h = new Handler();
-
-    private GestureDetector.OnGestureListener mGestureListener = new FlingDetector();
-
-    public UiController (MainActivity mainActivity) {
-        this.mainActivity = mainActivity;
+    UiController(MainActivity mainActivity) {
+        this.mMainActivity = mainActivity;
     }
 
-    public void createController () {
+    void onWindowFocusChanged(boolean hasFocus) {
+        if (hasFocus) {
+            hideSystemUI();
+        }
+    }
+
+    void createController() {
         // Make the main view full screen, and listen for System UI visibility changes
-        mDrawer = (DrawerLayout) mainActivity.findViewById(R.id.drawer_layout);
-        mDrawer.setOnSystemUiVisibilityChangeListener(mainActivity);
+        mDrawer = (DrawerLayout) mMainActivity.findViewById(R.id.drawer_layout);
+        mDrawer.setOnSystemUiVisibilityChangeListener(this);
 
-
-        final AppBarLayout bar = (AppBarLayout) mainActivity.findViewById(R.id.app_bar);
+        final AppBarLayout bar = (AppBarLayout) mMainActivity.findViewById(R.id.app_bar);
         Runnable r = new Runnable() {
             @Override
             public void run() {
@@ -248,7 +285,7 @@ public class UiController {
         };
 
 
-        final FloatingActionButton fab = (FloatingActionButton) mainActivity.findViewById(R.id.fab);
+        final FloatingActionButton fab = (FloatingActionButton) mMainActivity.findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -261,69 +298,64 @@ public class UiController {
         });
         showFab(fab);
 
-        fNext = (FloatingActionButton) mainActivity.findViewById(R.id.next);
-        fNext.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                updateImage(NEXT);
-            }
-        });
-        mainActivity.findViewById(R.id.next_button_invi).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                updateImage(NEXT);
-            }
-        });
+        mMainActivity.findViewById(R.id.next);
 
+        setClickListener(R.id.next_button_invi, NEXT);
+        mNextFab = (FloatingActionButton) setClickListener(R.id.next, NEXT);
+        showFab(mNextFab);
 
-        showFab(fNext);
-        fPrev = (FloatingActionButton) mainActivity.findViewById(R.id.prev);
-        fPrev.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                updateImage(PREV);
-            }
-        });
-        showFab(fPrev);
+        setClickListener(R.id.prev_button_invi, PREV);
+        mPrevFab = (FloatingActionButton) setClickListener(R.id.prev, PREV);
+        showFab(mPrevFab);
 
-        mainActivity.findViewById(R.id.prev_button_invi).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                updateImage(PREV);
-            }
-        });
+        mToolbar = (Toolbar) mMainActivity.findViewById(R.id.toolbar);
+        mMainActivity.setSupportActionBar(mToolbar);
 
-        // Hide the navigation after 7 seconds
-        h.postDelayed(r, 7000);
-
-        mToolbar = (Toolbar) mainActivity.findViewById(R.id.toolbar);
-        mainActivity.setSupportActionBar(mToolbar);
-
-
-        image = (AppCompatImageView) mainActivity.findViewById(R.id.photoview);
-        image.setOnTouchListener(mDelegate);
+        mImageView = (AppCompatImageView) mMainActivity.findViewById(R.id.photoview);
+        mImageView.setOnTouchListener(mDelegate);
         updateImage(NEXT);
 
-        mDetector = new GestureDetectorCompat(mainActivity, mGestureListener);
+        mDetector = new GestureDetectorCompat(mMainActivity, mGestureListener);
 
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                mainActivity, mDrawer, mToolbar, R.string.navigation_drawer_open,
+                mMainActivity, mDrawer, mToolbar, R.string.navigation_drawer_open,
                 R.string.navigation_drawer_close);
         mDrawer.setDrawerListener(toggle);
         toggle.syncState();
 
+        // Listen to our own Drawer element selection events.
+        ((NavigationView) mMainActivity.findViewById(R.id.nav_view))
+                .setNavigationItemSelectedListener(this);
+
+        // Hide the navigation after 7 seconds
+        mHandler.postDelayed(r, 7000);
     }
 
-    Toolbar mToolbar;
-
-    public void onWindowFocusChanged(boolean hasFocus) {
-        if (hasFocus) {
-            hideSystemUI();
+    /**
+     *
+     * @param resourceId
+     * @param action
+     * @return
+     */
+    private View setClickListener(int resourceId, final int action) {
+        if (action != NEXT && action != PREV) {
+            Log.w(TAG, "setClickListener called with " + action);
+            return null;
         }
+
+        View v = mMainActivity.findViewById(resourceId);
+        if (v != null) {
+            v.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    updateImage(action);
+                }
+            });
+        }
+        return v;
     }
 
-
-    int mLastSystemUiVis = 0;
+    @Override
     public void onSystemUiVisibilityChange(int visibility) {
         // Detect when we go out of low-profile mode, to also go out
         // of full screen.  We only do this when the low profile mode
@@ -335,6 +367,5 @@ public class UiController {
             setNavVisibility(true);
         }
     }
-
 
 }

@@ -26,8 +26,8 @@
         app:layout_constraintWidth_default="spread"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintRight_toLeftOf="@+id/next_button_invi"
         app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/next_button_invi"
         />
 
     <Button
@@ -36,11 +36,10 @@
         android:layout_width="0dp"
         android:alpha="0"
         app:layout_constraintWidth_default="spread"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toRightOf="@+id/prev_button_invi"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        android:layout_marginRight="8dp"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintLeft_toRightOf="@+id/prev_button_invi"
+        />
 
 </android.support.constraint.ConstraintLayout>

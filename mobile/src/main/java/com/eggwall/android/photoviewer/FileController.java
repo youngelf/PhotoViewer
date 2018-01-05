@@ -11,45 +11,16 @@ import static android.os.Build.VERSION.SDK_INT;
 /**
  * Controls access to files and allows next/previous access to files
  */
-public class FileController {
-    public static final String TAG="FileController";
-
-    /**
-     * The actual directory that corresponds to the external SD card.
-     */
-    private File mPicturesDir;
-
-    /**
-     * Returns the names of all the galleries available to the user.
-     *
-     * @return list of all the galleries in the pictures directory.
-     */
-    String[] getPicturesList() {
-        if (mPicturesDir == null) {
-            mPicturesDir = getPicturesDir();
-        }
-        // What we return when we don't find anything. It is safer to return a zero length array than null.
-        final String[] foundNothing = new String[0];
-
-        // Still nothing? We don't have a valid pictures directory.
-        if (mPicturesDir == null) {
-            return foundNothing;
-        }
-
-        final String[] filenames = mPicturesDir.list();
-        Log.e(TAG, "All directories: " + Arrays.toString(filenames));
-        if (filenames.length <= 0) {
-            Log.e(TAG, "Gallery directory has no files." + mPicturesDir);
-            return foundNothing;
-        }
-        return filenames;
-    }
-
-
+class FileController {
+    private static final String TAG = "FileController";
     /**
      * Name of the subdirectory in the main folder containing photos
      */
     private final static String PICTURES_DIR = "eggwall";
+    /**
+     * The actual directory that corresponds to the external SD card.
+     */
+    private File mPicturesDir;
 
     /**
      * Returns the location of the music directory which is
@@ -125,8 +96,35 @@ public class FileController {
     }
 
     /**
+     * Returns the names of all the galleries available to the user.
+     *
+     * @return list of all the galleries in the pictures directory.
+     */
+    String[] getPicturesList() {
+        if (mPicturesDir == null) {
+            mPicturesDir = getPicturesDir();
+        }
+        // What we return when we don't find anything. It is safer to return a zero length array than null.
+        final String[] foundNothing = new String[0];
+
+        // Still nothing? We don't have a valid pictures directory.
+        if (mPicturesDir == null) {
+            return foundNothing;
+        }
+
+        final String[] filenames = mPicturesDir.list();
+        Log.e(TAG, "All directories: " + Arrays.toString(filenames));
+        if (filenames.length <= 0) {
+            Log.e(TAG, "Gallery directory has no files." + mPicturesDir);
+            return foundNothing;
+        }
+        return filenames;
+    }
+
+    /**
      * Sets the current directory to the name given here. The name is relative to the gallery
      * directory.
+     *
      * @param relativeDirectoryName
      * @return whether setting the directory was a success
      */
@@ -136,18 +134,20 @@ public class FileController {
 
     /**
      * Requests adding a URI as a gallery.
+     *
      * @param location
      * @return
      */
-    boolean addUri (String location) {
+    boolean addUri(String location) {
         return false;
     }
 
     /**
      * Returns an array of all galleries in the default location.
+     *
      * @return
      */
-    String[] getAllGalleries () {
+    String[] getAllGalleries() {
         return null;
     }
 }

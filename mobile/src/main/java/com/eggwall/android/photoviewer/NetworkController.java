@@ -11,22 +11,21 @@ import android.widget.Toast;
 
 /**
  * Makes requests to the network to fetch new content.
- * Created by viki on 1/4/18.
  */
 
-public class NetworkController {
+class NetworkController {
     private static final String TAG = "NetworkController";
-    public static final String location =
-            "http://gallery.eggwall.com/gallery_23_Sept_Just_Home/_DSC8193.jpg";
-
 
     private final DownloadManager downloadManager;
     private final Context ctx;
 
+    static final String location =
+            "http://gallery.eggwall.com/gallery_23_Sept_Just_Home/_DSC8193.jpg";
+
     /**
      * BroadcastReceiver that listens for a download request and updates when the request was done.
      */
-    class Receiver extends BroadcastReceiver {
+    private class Receiver extends BroadcastReceiver {
         final long mRequestId;
 
         public Receiver (long requestId) {
@@ -50,7 +49,7 @@ public class NetworkController {
         }
     }
 
-    public NetworkController(Context ctx) {
+    NetworkController(Context ctx) {
         this.ctx = ctx;
         downloadManager = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
     }
@@ -61,7 +60,7 @@ public class NetworkController {
      * @param location
      * @return
      */
-    public boolean requestURI(String location) {
+    boolean requestURI(String location) {
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(location));
         long requestId = downloadManager.enqueue(request);
 
