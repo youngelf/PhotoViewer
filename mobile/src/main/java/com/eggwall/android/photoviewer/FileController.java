@@ -185,6 +185,9 @@ class FileController {
         // Everything checks out, let's set our current directory here.
         mCurrentGallery = galleryDir;
         mCurrentGalleryList = new ArrayList<String>(Arrays.asList(fileNames));
+        // Position the pointer just before the start (actually the very end), so the next call
+        // to getFile returns the 0th element.
+        mCurrentImageIndex = mCurrentGalleryList.size() - 1;
         return true;
     }
 
@@ -199,12 +202,20 @@ class FileController {
             return UiConstants.INVALID_GALLERY;
         }
         // We have never set a file, and we are moving forward
-        if (mCurrentImageIndex == INVALID_INDEX) {
-            if (next_or_previous == UiConstants.NEXT) {
-                mCurrentImageIndex = 0;
-            } else {
-                mCurrentImageIndex = mCurrentGalleryList.size() - 1;
-            }
+        if (next_or_previous == UiConstants.NEXT) {
+            mCurrentImageIndex++;
+        } else if (next_or_previous == UiConstants.PREV) {
+            mCurrentImageIndex--;
+        }
+        // Range checks
+        final int lastIndex = mCurrentGalleryList.size() - 1;
+        if (mCurrentImageIndex > lastIndex) {
+            // Wrap around to the start.
+            mCurrentImageIndex = 0;
+        }
+        if (mCurrentImageIndex < 0) {
+            // Wrap around to the end.
+            mCurrentImageIndex = lastIndex;
         }
         return new File(mCurrentGallery, mCurrentGalleryList.get(mCurrentImageIndex)).getAbsolutePath();
     }

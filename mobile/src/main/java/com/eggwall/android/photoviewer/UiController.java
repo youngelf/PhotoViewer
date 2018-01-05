@@ -77,6 +77,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     };
 
     private final MainActivity mMainActivity;
+    private final FileController mFileController;
+
     private final Handler mHandler = new Handler();
     private final GestureDetector.OnGestureListener mGestureListener = new FlingDetector();
 
@@ -258,8 +260,9 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
     };
 
-    UiController(MainActivity mainActivity) {
+    UiController(MainActivity mainActivity, FileController fileController) {
         this.mMainActivity = mainActivity;
+        this.mFileController = fileController;
     }
 
     void onWindowFocusChanged(boolean hasFocus) {

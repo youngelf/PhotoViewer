@@ -37,7 +37,9 @@ public class MainActivity extends AppCompatActivity {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
 
-        uiController = new UiController(this);
+        FileController fileController = new FileController();
+
+        uiController = new UiController(this, fileController);
         uiController.createController();
 
         networkController = new NetworkController(this);
@@ -47,13 +49,12 @@ public class MainActivity extends AppCompatActivity {
             networkController.requestURI(NetworkController.location);
         }
 
-        FileController f = new FileController();
-        ArrayList<String> galleriesList = f.getGalleriesList();
+        ArrayList<String> galleriesList = fileController.getGalleriesList();
         if (galleriesList.size() >= 1) {
             // Select the first directory.
-            f.setDirectory(galleriesList.get(0));
+            fileController.setDirectory(galleriesList.get(0));
         }
-        Log.d(TAG, "The next file is: " + f.getFile(UiConstants.NEXT));
+        Log.d(TAG, "The next file is: " + fileController.getFile(UiConstants.NEXT));
     }
 
     @Override
