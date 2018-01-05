@@ -1,11 +1,5 @@
 package com.eggwall.android.photoviewer;
 
-import android.app.DownloadManager;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -26,7 +20,6 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
-import android.widget.Toast;
 
 import java.io.File;
 import java.util.Arrays;
@@ -74,22 +67,6 @@ public class MainActivity extends AppCompatActivity implements
 
     long mRequestId;
 
-    private BroadcastReceiver downloadReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-            //check if the broadcast message is for our enqueued download
-            long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-
-            if (referenceId == mRequestId) {
-                Toast toast = Toast.makeText(MainActivity.this, "Image Download Complete", Toast
-                        .LENGTH_LONG);
-                Log.d("MainActivity", "Image download complete");
-                toast.show();
-            }
-        }
-    };
-
     private class FlingDetector extends GestureDetector.SimpleOnGestureListener {
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
@@ -112,7 +89,6 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    String location = "http://gallery.eggwall.com/gallery_23_Sept_Just_Home/_DSC8193.jpg";
     private GestureDetector.OnGestureListener mGestureListener = new FlingDetector();
 
     int mLastSystemUiVis = 0;
@@ -295,7 +271,7 @@ public class MainActivity extends AppCompatActivity implements
      */
     private void showFab(final View fab) {
         // Show it NOW
-        fab.animate().alpha(255).setDuration(150).start();
+        fab.animate().alpha(255).setDuration(750).start();
 
         Runnable doFade = new Runnable() {
             @Override
@@ -303,8 +279,8 @@ public class MainActivity extends AppCompatActivity implements
                 fab.animate().alpha(0).setDuration(1500).start();
             }
         };
-        // Hide in in seven seconds from now.
-        h.postDelayed(doFade, 7000);
+        // Hide in in three seconds from now.
+        h.postDelayed(doFade, 3000);
     }
 
     @Override
@@ -379,15 +355,13 @@ public class MainActivity extends AppCompatActivity implements
 
         // Hide the navigation after 7 seconds
         h.postDelayed(r, 7000);
-//        h.removeCallbacks(r);
 
-
-        DownloadManager dMan = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(location));
-
-        mRequestId = dMan.enqueue(request);
-        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-        registerReceiver(downloadReceiver, filter);
+        NetworkController n = new NetworkController(this);
+        boolean testing = true;
+        // Confirmed working, so I'm removing it right now to avoid making spurious downloads.
+        if (testing) {
+            n.requestURI(NetworkController.location);
+        }
 
         image = (AppCompatImageView) findViewById(R.id.photoview);
         image.setOnTouchListener(mDelegate);
