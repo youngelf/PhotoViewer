@@ -39,9 +39,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     private static final String TAG = "UiController";
 
-    private static final int NEXT = 1;
-    private static final int PREV = -1;
-
     private int mSysUiBaseVisibility = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
             SYSTEM_UI_FLAG_LAYOUT_STABLE;
 
@@ -105,10 +102,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
             if (v < -2000) {
                 Log.d("MainActivity", "PREV image");
-                updateImage(PREV);
+                updateImage(UiConstants.PREV);
             } else if (v > 2000) {
                 Log.d("MainActivity", "NEXT image");
-                updateImage(NEXT);
+                updateImage(UiConstants.NEXT);
             }
             Log.d("MainActivity", "Listener detected fling (" + v + " , " + v1 + ").");
             return true;
@@ -163,10 +160,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     /**
      * Update the image by providing an offset
      *
-     * @param offset is either {@link #NEXT} or {@link #PREV}
+     * @param offset is either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
      */
     private void updateImage(int offset) {
-        if (offset != NEXT && offset != PREV) {
+        if (offset != UiConstants.NEXT && offset != UiConstants.PREV) {
             Log.e(TAG, "updateImage: Incorrect offset provided: " + offset);
             System.exit(-1);
             return;
@@ -182,10 +179,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         showSystemUI();
         // Show the correct FAB, and hide it after a while
-        if (offset == NEXT) {
+        if (offset == UiConstants.NEXT) {
             showFab(mNextFab);
         }
-        if (offset == PREV) {
+        if (offset == UiConstants.PREV) {
             showFab(mPrevFab);
         }
     }
@@ -300,12 +297,12 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         mMainActivity.findViewById(R.id.next);
 
-        setClickListener(R.id.next_button_invi, NEXT);
-        mNextFab = (FloatingActionButton) setClickListener(R.id.next, NEXT);
+        setClickListener(R.id.next_button_invi, UiConstants.NEXT);
+        mNextFab = (FloatingActionButton) setClickListener(R.id.next, UiConstants.NEXT);
         showFab(mNextFab);
 
-        setClickListener(R.id.prev_button_invi, PREV);
-        mPrevFab = (FloatingActionButton) setClickListener(R.id.prev, PREV);
+        setClickListener(R.id.prev_button_invi, UiConstants.PREV);
+        mPrevFab = (FloatingActionButton) setClickListener(R.id.prev, UiConstants.PREV);
         showFab(mPrevFab);
 
         mToolbar = (Toolbar) mMainActivity.findViewById(R.id.toolbar);
@@ -313,7 +310,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         mImageView = (AppCompatImageView) mMainActivity.findViewById(R.id.photoview);
         mImageView.setOnTouchListener(mDelegate);
-        updateImage(NEXT);
+        updateImage(UiConstants.NEXT);
 
         mDetector = new GestureDetectorCompat(mMainActivity, mGestureListener);
 
@@ -338,7 +335,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * @return
      */
     private View setClickListener(int resourceId, final int action) {
-        if (action != NEXT && action != PREV) {
+        if (action != UiConstants.NEXT && action != UiConstants.PREV) {
             Log.w(TAG, "setClickListener called with " + action);
             return null;
         }

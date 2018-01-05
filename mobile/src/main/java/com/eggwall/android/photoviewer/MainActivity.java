@@ -4,9 +4,12 @@ import android.os.Bundle;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
+
+import java.util.ArrayList;
 
 /*
  * TODO: Unzip a file.
@@ -45,7 +48,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         FileController f = new FileController();
-        f.getPicturesList();
+        ArrayList<String> galleriesList = f.getGalleriesList();
+        if (galleriesList.size() >= 1) {
+            // Select the first directory.
+            f.setDirectory(galleriesList.get(0));
+        }
+        Log.d(TAG, "The next file is: " + f.getFile(UiConstants.NEXT));
     }
 
     @Override
