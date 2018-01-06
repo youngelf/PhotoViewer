@@ -13,6 +13,7 @@ import android.support.v7.widget.AppCompatImageView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
@@ -314,24 +315,43 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         mDrawer.setOnSystemUiVisibilityChangeListener(this);
 
         final AppBarLayout bar = (AppBarLayout) mMainActivity.findViewById(R.id.app_bar);
+        final Toolbar toolbar = (Toolbar) mMainActivity.findViewById(R.id.toolbar);
         Runnable r = new Runnable() {
             @Override
             public void run() {
                 bar.setVisibility(View.GONE);
+                toolbar.setVisibility(View.GONE);
             }
         };
 
         final FloatingActionButton fab = (FloatingActionButton) mMainActivity.findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        View.OnClickListener toolBarListener = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (bar.getVisibility() == VISIBLE) {
+                    toolbar.setVisibility(GONE);
                     bar.setVisibility(GONE);
                 } else {
                     bar.setVisibility(VISIBLE);
+                    toolbar.setVisibility(View.VISIBLE);
                 }
             }
-        });
+        };
+
+        View.OnClickListener drawerToggler = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mDrawer.isDrawerVisible(Gravity.LEFT)) {
+                    mDrawer.closeDrawers();
+                } else {
+                    mDrawer.openDrawer(Gravity.LEFT, true);
+                }
+            }
+        };
+
+        fab.setOnClickListener(drawerToggler);
+        mMainActivity.findViewById(R.id.drawer_button_invi).setOnClickListener(drawerToggler);
+
         showFab(fab);
 
         mMainActivity.findViewById(R.id.next);

@@ -31,7 +31,8 @@
         android:layout_height="wrap_content"
         android:layout_gravity="top|center_horizontal"
         android:layout_margin="@dimen/fab_margin"
-        app:srcCompat="@android:drawable/ic_dialog_email" />
+        android:alpha="120"
+        app:srcCompat="@android:drawable/ic_menu_manage" />
 
     <!-- I don't need this right now, but let's keep this around for now for the settings menu -->
     <android.support.design.widget.FloatingActionButton
@@ -40,6 +41,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="end|center_vertical"
         android:padding = "400dp"
+        android:alpha="120"
         android:layout_margin="@dimen/fab_margin"
         app:srcCompat="@android:drawable/ic_media_next" />
 
@@ -50,6 +52,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="start|center_vertical"
         android:padding = "400dp"
+        android:alpha="120"
         android:layout_margin="@dimen/fab_margin"
         app:srcCompat="@android:drawable/ic_media_previous" />
 
