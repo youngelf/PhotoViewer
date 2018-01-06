@@ -132,10 +132,13 @@ class FileController {
         if (picturesDir == null) {
             return foundNothing;
         }
-
+        Log.d(TAG, "Looking through directory " + picturesDir);
         final String[] filenames = picturesDir.list();
-        ArrayList<String> galleryDirectories = new ArrayList<>(Arrays.asList(filenames));
-
+        ArrayList<String> galleryDirectories = foundNothing;
+        if (filenames == null || filenames.length <= 0) {
+            return foundNothing;
+        }
+        galleryDirectories = new ArrayList<>(Arrays.asList(filenames));
         // Iterate over these to ensure they are directories
         for (String name : filenames) {
             final File galleryDir = new File(picturesDir, name);
