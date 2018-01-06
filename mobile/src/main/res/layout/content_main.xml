@@ -11,7 +11,7 @@
 
     <android.support.v7.widget.AppCompatImageView
         android:layout_width="0dp"
-        android:layout_height="551dp"
+        android:layout_height="match_parent"
         android:id="@+id/photoview"
         android:background="@android:color/black"
         app:layout_constraintStart_toStartOf="parent"
@@ -25,7 +25,6 @@
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
         android:alpha="0"
-        android:background="@color/colorAccent"
         app:layout_constraintWidth_default="spread"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@+id/prev_button_invi"

@@ -56,15 +56,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
 
-    // All the images we will display
-    private static final int[] DRAWABLES = {
-            R.drawable.ic_menu_camera,
-            R.drawable.ic_menu_gallery,
-            R.drawable.ic_menu_manage,
-            R.drawable.ic_menu_send,
-            R.drawable.ic_menu_share,
-            R.drawable.ic_menu_slideshow};
-
     private final Runnable hideSysUi = new Runnable() {
         @Override
         public void run() {
@@ -94,7 +85,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     private int mLastSystemUiVis = 0;
     private GestureDetectorCompat mDetector;
-    private int mCurrentDrawable = 0;
 
     private class FlingDetector extends GestureDetector.SimpleOnGestureListener {
         @Override
@@ -150,7 +140,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      */
     private void showFab(final View fab) {
         // Show it
-        fab.animate().alpha(255).setDuration(750).start();
+        fab.animate().alpha(120).setDuration(750).start();
 
         Runnable fadeAway = new Runnable() {
             @Override
@@ -173,15 +163,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             System.exit(-1);
             return;
         }
-        mCurrentDrawable += offset;
-        if (mCurrentDrawable < 0) {
-            mCurrentDrawable = DRAWABLES.length - 1;
-        }
-        if (mCurrentDrawable >= DRAWABLES.length) {
-            mCurrentDrawable = 0;
-        }
+
         String nextFile = mFileController.getFile(offset);
-//        mImageView.setImageResource(DRAWABLES[mCurrentDrawable]);
 
         // Calculate how big the bitmap is
         BitmapFactory.Options opts = new BitmapFactory.Options();
@@ -194,7 +177,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         opts.inJustDecodeBounds = false;
         mImageView.setImageBitmap(BitmapFactory.decodeFile(nextFile, opts));
 
-        showSystemUI();
+        // It is getting annoying to show the system UI on next/previous.  This should only be shown
+        // when showing the drawer.
+        // showSystemUI();
+
         // Show the correct FAB, and hide it after a while
         if (offset == UiConstants.NEXT) {
             showFab(mNextFab);
@@ -345,6 +331,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                     mDrawer.closeDrawers();
                 } else {
                     mDrawer.openDrawer(Gravity.LEFT, true);
+                    showSystemUI();
                 }
             }
         };
