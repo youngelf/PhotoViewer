@@ -30,7 +30,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|center_horizontal"
-        android:alpha="120"
+        android:alpha="0.5"
         app:srcCompat="@android:drawable/ic_menu_manage" />
 
     <!-- I don't need this right now, but let's keep this around for now for the settings menu -->
@@ -39,7 +39,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end|center_vertical"
-        android:alpha="120"
+        android:alpha="0.5"
         app:srcCompat="@android:drawable/ic_media_next" />
 
     <!-- I don't need this right now, but let's keep this around for now for the settings menu -->
@@ -48,7 +48,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="start|center_vertical"
-        android:alpha="120"
+        android:alpha="0.5"
         app:srcCompat="@android:drawable/ic_media_previous" />
 
 </android.support.design.widget.CoordinatorLayout>

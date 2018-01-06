@@ -1,6 +1,9 @@
 package com.eggwall.android.photoviewer;
 
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.os.Handler;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
@@ -17,6 +20,8 @@ import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+
+import java.io.IOException;
 
 import static android.view.View.GONE;
 import static android.view.View.INVISIBLE;
@@ -140,12 +145,12 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      */
     private void showFab(final View fab) {
         // Show it
-        fab.animate().alpha(120).setDuration(750).start();
+        fab.animate().alpha((float) 0.5).setDuration(350).start();
 
         Runnable fadeAway = new Runnable() {
             @Override
             public void run() {
-                fab.animate().alpha(0).setDuration(1500).start();
+                fab.animate().alpha(0).setDuration(700).start();
             }
         };
         // Hide in in three seconds from now.
@@ -171,15 +176,45 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         opts.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(nextFile, opts);
 
+        ExifInterface exif = null;
+        try {
+            exif = new ExifInterface(nextFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        int orientation = ExifInterface.ORIENTATION_NORMAL;
+        if (exif != null) {
+            orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL);
+        }
+        boolean rotate = false;
+        if (orientation == ExifInterface.ORIENTATION_ROTATE_90 || orientation == ExifInterface
+                .ORIENTATION_ROTATE_270) {
+            // Width and height have to get swapped.
+            rotate = true;
+        }
+
         // This is how big the image is:
         opts.inSampleSize = calculateInSampleSize(
-                opts, mImageView.getWidth(), mImageView.getHeight());
+                opts, mImageView.getWidth(), mImageView.getHeight(), rotate);
         opts.inJustDecodeBounds = false;
-        mImageView.setImageBitmap(BitmapFactory.decodeFile(nextFile, opts));
+        Bitmap sourceBitmap = BitmapFactory.decodeFile(nextFile, opts);
 
-        // It is getting annoying to show the system UI on next/previous.  This should only be shown
-        // when showing the drawer.
-        // showSystemUI();
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                sourceBitmap = getRotated(sourceBitmap, 90);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                sourceBitmap = getRotated(sourceBitmap, 270);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                sourceBitmap = getRotated(sourceBitmap, 180);
+                break;
+            default:
+                Log.wtf(TAG, "Exif interface showed unsupported orientation " + orientation);
+        }
+
+        mImageView.setImageBitmap(sourceBitmap);
 
         // Show the correct FAB, and hide it after a while
         if (offset == UiConstants.NEXT) {
@@ -190,11 +225,28 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
     }
 
+    Bitmap getRotated(Bitmap sourceBitmap, int degrees) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(degrees);
+        Bitmap rotated = Bitmap.createBitmap(
+                sourceBitmap, 0, 0, sourceBitmap.getWidth(), sourceBitmap.getHeight(), matrix,
+                true);
+        return rotated;
+    }
+
     private static int calculateInSampleSize(
-            BitmapFactory.Options options, int reqWidth, int reqHeight) {
+            BitmapFactory.Options options, int reqWidth, int reqHeight, boolean rotate) {
         // Raw height and width of image
-        final int height = options.outHeight;
-        final int width = options.outWidth;
+        final int height;
+        final int width;
+        // Switch height and width for images that are rotated.
+        if (rotate) {
+            height = options.outWidth;
+            width = options.outHeight;
+        } else {
+            height = options.outHeight;
+            width = options.outWidth;
+        }
         int inSampleSize = 1;
 
         if (height > reqHeight || width > reqWidth) {
