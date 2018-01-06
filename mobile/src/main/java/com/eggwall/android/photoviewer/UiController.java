@@ -1,5 +1,6 @@
 package com.eggwall.android.photoviewer;
 
+import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
@@ -16,6 +17,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 
+import static android.view.View.GONE;
 import static android.view.View.INVISIBLE;
 import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
 import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
@@ -177,7 +179,19 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         if (mCurrentDrawable >= DRAWABLES.length) {
             mCurrentDrawable = 0;
         }
-        mImageView.setImageResource(DRAWABLES[mCurrentDrawable]);
+        String nextFile = mFileController.getFile(offset);
+//        mImageView.setImageResource(DRAWABLES[mCurrentDrawable]);
+
+        // Calculate how big the bitmap is
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(nextFile, opts);
+
+        // This is how big the image is:
+        opts.inSampleSize = calculateInSampleSize(
+                opts, mImageView.getWidth(), mImageView.getHeight());
+        opts.inJustDecodeBounds = false;
+        mImageView.setImageBitmap(BitmapFactory.decodeFile(nextFile, opts));
 
         showSystemUI();
         // Show the correct FAB, and hide it after a while
@@ -187,6 +201,29 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         if (offset == UiConstants.PREV) {
             showFab(mPrevFab);
         }
+    }
+
+    private static int calculateInSampleSize(
+            BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        // Raw height and width of image
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while ((halfHeight / inSampleSize) >= reqHeight
+                    && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+
+        return inSampleSize;
     }
 
     void setBaseSystemUiVisibility(int visibility) {
@@ -280,17 +317,16 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                bar.setVisibility(INVISIBLE);
+                bar.setVisibility(View.GONE);
             }
         };
-
 
         final FloatingActionButton fab = (FloatingActionButton) mMainActivity.findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (bar.getVisibility() == VISIBLE) {
-                    bar.setVisibility(INVISIBLE);
+                    bar.setVisibility(GONE);
                 } else {
                     bar.setVisibility(VISIBLE);
                 }
@@ -313,7 +349,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         mImageView = (AppCompatImageView) mMainActivity.findViewById(R.id.photoview);
         mImageView.setOnTouchListener(mDelegate);
-        updateImage(UiConstants.NEXT);
 
         mDetector = new GestureDetectorCompat(mMainActivity, mGestureListener);
 
@@ -329,10 +364,18 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         // Hide the navigation after 7 seconds
         mHandler.postDelayed(r, 7000);
+
+        // Show the next image after 300 milliseconds.
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                updateImage(UiConstants.NEXT);
+            }
+        }, 300);
+
     }
 
     /**
-     *
      * @param resourceId
      * @param action
      * @return

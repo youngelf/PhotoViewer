@@ -191,6 +191,11 @@ class FileController {
         return true;
     }
 
+    /**
+     * Returns the absolute path for the file to read next.
+     * @param next_or_previous
+     * @return
+     */
     String getFile(int next_or_previous) {
         if (next_or_previous != UiConstants.NEXT && next_or_previous != UiConstants.PREV) {
             // We can advance, or we can go back. Nothing else is allowed.

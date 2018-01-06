@@ -38,6 +38,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         FileController fileController = new FileController();
+        ArrayList<String> galleriesList = fileController.getGalleriesList();
+        if (galleriesList.size() >= 1) {
+            // Select the first directory.
+            fileController.setDirectory(galleriesList.get(0));
+        }
+
+        Log.d(TAG, "The next file is: " + fileController.getFile(UiConstants.NEXT));
 
         uiController = new UiController(this, fileController);
         uiController.createController();
@@ -49,12 +56,6 @@ public class MainActivity extends AppCompatActivity {
             networkController.requestURI(NetworkController.location);
         }
 
-        ArrayList<String> galleriesList = fileController.getGalleriesList();
-        if (galleriesList.size() >= 1) {
-            // Select the first directory.
-            fileController.setDirectory(galleriesList.get(0));
-        }
-        Log.d(TAG, "The next file is: " + fileController.getFile(UiConstants.NEXT));
     }
 
     @Override
