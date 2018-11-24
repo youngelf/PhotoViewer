@@ -34,7 +34,7 @@ class FileController {
      */
     private ArrayList<String> mCurrentGalleryList = null;
 
-    public static final int INVALID_INDEX = -1;
+    private static final int INVALID_INDEX = -1;
 
     /**
      * The index of the current file being viewed.
@@ -48,15 +48,6 @@ class FileController {
      */
     private static File getPictureDirAfterV8() {
         return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-    }
-
-    /**
-     * [sdcard]/music in SDK < 8
-     *
-     * @return the [sdcard]/pictures path in sdk version < 8
-     */
-    private static File getPicturesDirTillV7() {
-        return new File(Environment.getExternalStorageDirectory(), "pictures");
     }
 
     /**
@@ -161,7 +152,7 @@ class FileController {
      * Sets the current directory to the name given here. The name is relative to the gallery
      * directory.
      *
-     * @param relativeDirectoryName
+     * @param relativeDirectoryName name to set the directory to.
      * @return whether setting the directory was a success
      */
     boolean setDirectory(String relativeDirectoryName) {
@@ -191,8 +182,9 @@ class FileController {
 
     /**
      * Returns the absolute path for the file to read next.
-     * @param next_or_previous
-     * @return
+     * @param next_or_previous is one of {@link UiConstants#NEXT} to load the next file or
+     *                         {@link UiConstants#PREV} to load the previous file.
+     * @return name of the file to load next.
      */
     String getFile(int next_or_previous) {
         if (next_or_previous != UiConstants.NEXT && next_or_previous != UiConstants.PREV) {
@@ -225,9 +217,10 @@ class FileController {
 
     /**
      * Requests adding a URI as a gallery.
+     * TODO(viki): Currently not implemented.
      *
-     * @param location
-     * @return
+     * @param location URI to add as a gallery
+     * @return true if the gallery is added.
      */
     boolean addUri(String location) {
         return false;
