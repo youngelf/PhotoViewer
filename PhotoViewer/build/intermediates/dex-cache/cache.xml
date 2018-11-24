@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        is-multidex="true"
+        jar="/home/viki/x/LEARN/ANDROID/PhotoViewer/mobile/build/intermediates/incremental-classes/debug/instant-run-bootstrap.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="26.0.1"
+        sha1="d48376007ef0824c7ab0ef1376d82adf875e850d">
+        <dex dex="/home/viki/x/LEARN/ANDROID/PhotoViewer/mobile/build/intermediates/transforms/dex/debug/folders/1000/10000/instant-run-bootstrap_250e63dcb1f4a652b70c40daedb2f2b537beec5c/classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="/home/viki/x/LEARN/ANDROID/PhotoViewer/mobile/build/intermediates/incremental-runtime-classes/debug/instant-run.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="26.0.1"
+        sha1="3be78ebc2706b2e1fe2f12d5726887a92d6c183b">
+        <dex dex="/home/viki/x/LEARN/ANDROID/PhotoViewer/mobile/build/intermediates/transforms/dex/debug/folders/1000/10000/instant-run_e1c26f1ea2bda333579c299689e9b373287be0f7/classes.dex" />
+    </item>
+
+</items>

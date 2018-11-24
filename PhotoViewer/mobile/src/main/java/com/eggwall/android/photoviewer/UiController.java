@@ -1,0 +1,500 @@
+package com.eggwall.android.photoviewer;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
+import android.os.Handler;
+import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
+import android.support.v4.view.GestureDetectorCompat;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.widget.AppCompatImageView;
+import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.view.GestureDetector;
+import android.view.Gravity;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+
+import java.io.IOException;
+
+import static android.view.View.GONE;
+import static android.view.View.INVISIBLE;
+import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
+import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+import static android.view.View.SYSTEM_UI_FLAG_LOW_PROFILE;
+import static android.view.View.VISIBLE;
+
+/* While this class is fine, some cleanup can be done here.
+ *** Remove the gesture listening code now that I have onscreen buttons.
+ *** Make the Action bar play well with the System UI.  Right now they are disconnected.
+ *** Hide all the elements (all fabs, and all navigation) on the same runnable.
+ *** Show a progress indicator for the gallery.
+*/
+
+/**
+ * Orchestrates User Interface actions, and drives the display.
+ */
+class UiController implements NavigationView.OnNavigationItemSelectedListener,
+        View.OnSystemUiVisibilityChangeListener {
+
+    private static final String TAG = "UiController";
+
+    private int mSysUiBaseVisibility = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+            SYSTEM_UI_FLAG_LAYOUT_STABLE;
+
+    private static final int SYSUI_INVISIBLE = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+
+    private static final int SYSUI_VISIBLE = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+
+    private final Runnable hideSysUi = new Runnable() {
+        @Override
+        public void run() {
+            setSystemUiVisibility(SYSUI_INVISIBLE);
+        }
+    };
+
+    private final Runnable hideNav = new Runnable() {
+        @Override
+        public void run() {
+            setNavVisibility(false);
+        }
+    };
+
+    private final MainActivity mMainActivity;
+    private final FileController mFileController;
+
+    private final Handler mHandler = new Handler();
+    private final GestureDetector.OnGestureListener mGestureListener = new FlingDetector();
+
+    // References to on-screen elements
+    private FloatingActionButton mNextFab;
+    private FloatingActionButton mPrevFab;
+    private AppCompatImageView mImageView;
+    private Toolbar mToolbar;
+    private DrawerLayout mDrawer;
+
+    private int mLastSystemUiVis = 0;
+    private GestureDetectorCompat mDetector;
+
+    private class FlingDetector extends GestureDetector.SimpleOnGestureListener {
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            Log.d("MainActivity", "Scroll (" + distanceX + ", " + distanceY + ")");
+            return super.onScroll(e1, e2, distanceX, distanceY);
+        }
+
+        @Override
+        public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
+            if (v < -2000) {
+                Log.d("MainActivity", "PREV image");
+                updateImage(UiConstants.PREV, true);
+            } else if (v > 2000) {
+                Log.d("MainActivity", "NEXT image");
+                updateImage(UiConstants.NEXT, true);
+            }
+            Log.d("MainActivity", "Listener detected fling (" + v + " , " + v1 + ").");
+            return true;
+
+        }
+    }
+
+    private boolean mSlideShowStatus = false;
+    @SuppressWarnings("StatementWithEmptyBody")
+    @Override
+    public boolean onNavigationItemSelected(MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
+
+        if (id == R.id.nav_camera) {
+            // Handle the camera action
+        } else if (id == R.id.nav_gallery) {
+
+        } else if (id == R.id.nav_slideshow) {
+            mSlideShowStatus = setSlideshow(!mSlideShowStatus);
+        } else if (id == R.id.nav_manage) {
+
+        } else if (id == R.id.nav_share) {
+
+        } else if (id == R.id.nav_send) {
+
+        }
+
+        DrawerLayout drawer = (DrawerLayout) mMainActivity.findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
+    }
+
+    /**
+     * Shows a Floating Action Button (FAB) immediately, and then fades it out in a few seconds.
+     *
+     * @param fab
+     */
+    private void showFab(final View fab) {
+        // Show it
+        fab.animate().alpha((float) 0.5).setDuration(350).start();
+
+        Runnable fadeAway = new Runnable() {
+            @Override
+            public void run() {
+                fab.animate().alpha(0).setDuration(700).start();
+            }
+        };
+        // Hide in in three seconds from now.
+        mHandler.postDelayed(fadeAway, 3000);
+    }
+
+    /**
+     * Update the image by providing an offset
+     *
+     * @param offset  is either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
+     * @param showFab
+     */
+    private void updateImage(int offset, boolean showFab) {
+        if (offset != UiConstants.NEXT && offset != UiConstants.PREV) {
+            Log.e(TAG, "updateImage: Incorrect offset provided: " + offset);
+            System.exit(-1);
+            return;
+        }
+
+        String nextFile = mFileController.getFile(offset);
+
+        // Calculate how big the bitmap is
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(nextFile, opts);
+
+        ExifInterface exif = null;
+        try {
+            exif = new ExifInterface(nextFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        int orientation = ExifInterface.ORIENTATION_NORMAL;
+        if (exif != null) {
+            orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL);
+        }
+        boolean rotate = false;
+        if (orientation == ExifInterface.ORIENTATION_ROTATE_90 || orientation == ExifInterface
+                .ORIENTATION_ROTATE_270) {
+            // Width and height have to get swapped.
+            rotate = true;
+        }
+
+        // This is how big the image is:
+        final int width = mImageView.getWidth();
+        final int height = mImageView.getHeight();
+
+        opts.inSampleSize = calculateInSampleSize(opts, width, height, rotate);
+        opts.inJustDecodeBounds = false;
+        Bitmap sourceBitmap = BitmapFactory.decodeFile(nextFile, opts);
+
+        // TODO: Got to figure out how to have the Bitmap rotated in-place.
+        // sourceBitmap = Bitmap.createScaledBitmap(sourceBitmap, width, height, false);
+
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                sourceBitmap = getRotated(sourceBitmap, 90);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                sourceBitmap = getRotated(sourceBitmap, 270);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                sourceBitmap = getRotated(sourceBitmap, 180);
+                break;
+            default:
+                Log.wtf(TAG, "Exif interface showed unsupported orientation " + orientation);
+        }
+
+        mImageView.setImageBitmap(sourceBitmap);
+        if (showFab) {
+            // Show the correct FAB, and hide it after a while
+            if (offset == UiConstants.NEXT) {
+                showFab(mNextFab);
+            }
+            if (offset == UiConstants.PREV) {
+                showFab(mPrevFab);
+            }
+        }
+    }
+
+    private Bitmap getRotated(Bitmap sourceBitmap, int degrees) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(degrees);
+        Bitmap rotated = Bitmap.createBitmap(
+                sourceBitmap, 0, 0, sourceBitmap.getWidth(), sourceBitmap.getHeight(), matrix,
+                true);
+        return rotated;
+    }
+
+    private static int calculateInSampleSize(
+            BitmapFactory.Options options, int reqWidth, int reqHeight, boolean rotate) {
+        // Raw height and width of image
+        final int height;
+        final int width;
+        // Switch height and width for images that are rotated.
+        if (rotate) {
+            height = options.outWidth;
+            width = options.outHeight;
+        } else {
+            height = options.outHeight;
+            width = options.outWidth;
+        }
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while ((halfHeight / inSampleSize) >= reqHeight
+                    && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+
+        return inSampleSize;
+    }
+
+    void setBaseSystemUiVisibility(int visibility) {
+        mSysUiBaseVisibility = visibility;
+    }
+
+    /**
+     * Sets the System Ui Visibility.  Only accepts two values: {@link #SYSUI_INVISIBLE} or
+     * {@link #SYSUI_VISIBLE}
+     *
+     * @param visibility
+     */
+    private void setSystemUiVisibility(int visibility) {
+        if (visibility != SYSUI_VISIBLE && visibility != SYSUI_INVISIBLE) {
+            Log.wtf(TAG, "setSystemUiVisibility only accepts SYSUI_{INVISIBLE,VISIBLE}. " +
+                    "Your value of " + visibility + " was ignored");
+            return;
+        }
+        mMainActivity.getWindow().getDecorView().setSystemUiVisibility(visibility);
+    }
+
+    /**
+     * Hide the system UI.
+     */
+    private void hideSystemUI() {
+        mMainActivity.getWindow().getDecorView().setSystemUiVisibility(SYSUI_INVISIBLE);
+    }
+
+    /**
+     * Show the system UI.
+     */
+    private void showSystemUI() {
+        mMainActivity.getWindow().getDecorView().setSystemUiVisibility(SYSUI_VISIBLE);
+        // And request it to be hidden in five seconds
+        mHandler.removeCallbacks(hideSysUi);
+        mHandler.postDelayed(hideSysUi, 5000);
+    }
+
+    private void setNavVisibility(boolean visible) {
+        int newVis = mSysUiBaseVisibility;
+        if (!visible) {
+            newVis |= SYSTEM_UI_FLAG_LOW_PROFILE | SYSTEM_UI_FLAG_FULLSCREEN;
+        }
+        final boolean changed = newVis == mDrawer.getSystemUiVisibility();
+
+        // Unschedule any pending event to hide navigation if we are
+        // changing the visibility, or making the UI visible.
+        if (changed || visible) {
+            Handler h = mDrawer.getHandler();
+            if (h != null) {
+                h.removeCallbacks(hideNav);
+            }
+        }
+
+        // Set the new desired visibility.
+        mDrawer.setSystemUiVisibility(newVis);
+        mToolbar.setVisibility(visible ? VISIBLE : INVISIBLE);
+    }
+
+    private View.OnTouchListener mDelegate = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            mDetector.onTouchEvent(motionEvent);
+            // Consume the events.  This is required to detect flings, otherwise they get
+            // detected as long press events.
+            showSystemUI();
+
+            // If the touch is on the right half, go to the next image, if the touch is on the
+            // left half, go to the left image.
+            return true;
+        }
+    };
+
+    UiController(MainActivity mainActivity, FileController fileController) {
+        this.mMainActivity = mainActivity;
+        this.mFileController = fileController;
+    }
+
+    void onWindowFocusChanged(boolean hasFocus) {
+        if (hasFocus) {
+            hideSystemUI();
+        }
+    }
+
+    void createController() {
+        // Make the main view full screen, and listen for System UI visibility changes
+        mDrawer = (DrawerLayout) mMainActivity.findViewById(R.id.drawer_layout);
+        mDrawer.setOnSystemUiVisibilityChangeListener(this);
+
+        final AppBarLayout bar = (AppBarLayout) mMainActivity.findViewById(R.id.app_bar);
+        final Toolbar toolbar = (Toolbar) mMainActivity.findViewById(R.id.toolbar);
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                bar.setVisibility(View.GONE);
+                toolbar.setVisibility(View.GONE);
+            }
+        };
+
+        final FloatingActionButton fab = (FloatingActionButton) mMainActivity.findViewById(R.id.fab);
+        View.OnClickListener toolBarListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (bar.getVisibility() == VISIBLE) {
+                    toolbar.setVisibility(GONE);
+                    bar.setVisibility(GONE);
+                } else {
+                    bar.setVisibility(VISIBLE);
+                    toolbar.setVisibility(View.VISIBLE);
+                }
+            }
+        };
+
+        View.OnClickListener drawerToggler = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mDrawer.isDrawerVisible(Gravity.LEFT)) {
+                    mDrawer.closeDrawers();
+                } else {
+                    mDrawer.openDrawer(Gravity.LEFT, true);
+                    showSystemUI();
+                }
+            }
+        };
+
+        fab.setOnClickListener(drawerToggler);
+        mMainActivity.findViewById(R.id.drawer_button_invi).setOnClickListener(drawerToggler);
+
+        showFab(fab);
+
+        mMainActivity.findViewById(R.id.next);
+
+        setClickListener(R.id.next_button_invi, UiConstants.NEXT);
+        mNextFab = (FloatingActionButton) setClickListener(R.id.next, UiConstants.NEXT);
+        showFab(mNextFab);
+
+        setClickListener(R.id.prev_button_invi, UiConstants.PREV);
+        mPrevFab = (FloatingActionButton) setClickListener(R.id.prev, UiConstants.PREV);
+        showFab(mPrevFab);
+
+        mToolbar = (Toolbar) mMainActivity.findViewById(R.id.toolbar);
+        mMainActivity.setSupportActionBar(mToolbar);
+
+        mImageView = (AppCompatImageView) mMainActivity.findViewById(R.id.photoview);
+        mImageView.setOnTouchListener(mDelegate);
+
+        mDetector = new GestureDetectorCompat(mMainActivity, mGestureListener);
+
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                mMainActivity, mDrawer, mToolbar, R.string.navigation_drawer_open,
+                R.string.navigation_drawer_close);
+        mDrawer.setDrawerListener(toggle);
+        toggle.syncState();
+
+        // Listen to our own Drawer element selection events.
+        ((NavigationView) mMainActivity.findViewById(R.id.nav_view))
+                .setNavigationItemSelectedListener(this);
+
+        // Hide the navigation after 7 seconds
+        mHandler.postDelayed(r, 7000);
+    }
+
+    /**
+     * Show the next image after 10,000 milliseconds.
+     */
+    private final Runnable mShowNext = new Runnable() {
+        @Override
+        public void run() {
+            updateImage(UiConstants.NEXT, false);
+            // New image every 10 seconds.
+            mHandler.postDelayed(this, 10000);
+        }
+    };
+
+    /**
+     * Sets the slideshow status, and returns the current status.
+     *
+     * @param start true to start the show, false to stop
+     * @return current status: true if started, false if stopped.
+     */
+    public boolean setSlideshow(boolean start) {
+        if (start) {
+            // Start it in 300 ms from now.
+            mHandler.postDelayed(mShowNext, 300);
+        } else {
+            mHandler.removeCallbacks(mShowNext);
+        }
+        boolean status = start;
+        return status;
+    }
+
+    /**
+     * @param resourceId
+     * @param action
+     * @return
+     */
+    private View setClickListener(int resourceId, final int action) {
+        if (action != UiConstants.NEXT && action != UiConstants.PREV) {
+            Log.w(TAG, "setClickListener called with " + action);
+            return null;
+        }
+
+        View v = mMainActivity.findViewById(resourceId);
+        if (v != null) {
+            v.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    updateImage(action, true);
+                }
+            });
+        }
+        return v;
+    }
+
+    @Override
+    public void onSystemUiVisibilityChange(int visibility) {
+        // Detect when we go out of low-profile mode, to also go out
+        // of full screen.  We only do this when the low profile mode
+        // is changing from its last state, and turning off.
+        int diff = mLastSystemUiVis ^ visibility;
+        mLastSystemUiVis = visibility;
+        if ((diff & SYSTEM_UI_FLAG_LOW_PROFILE) != 0
+                && (visibility & SYSTEM_UI_FLAG_LOW_PROFILE) == 0) {
+            setNavVisibility(true);
+        }
+    }
+
+}
