@@ -39,6 +39,9 @@ import static android.view.View.VISIBLE;
  *** Make the Action bar play well with the System UI.  Right now they are disconnected.
  *** Hide all the elements (all fabs, and all navigation) on the same runnable.
  *** Show a progress indicator for the gallery.
+ *** Read this:
+ *** * https://developer.android.com/topic/performance/graphics/load-bitmap
+ *** * to ensure that the bitmaps don't take too much RAM.
 */
 
 /**
@@ -172,7 +175,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             System.exit(-1);
             return;
         }
-
         String nextFile = mFileController.getFile(offset);
         Log.d(TAG, "updateImage: next file is: " + nextFile);
 
@@ -207,6 +209,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         int width = opts.outWidth;
         int height = opts.outHeight;
 
+        // To try tomorrow: Load a bitmap after scaling by factors of 2 as mentioned in
+        // https://developer.android.com/topic/performance/graphics/load-bitmap#java
+        // Try this even for the case where the image is rotated, because the rotation is a matrix
+        // that is correctly applied anyway.
         float scale = calculateInSampleSize(opts, imageViewWidth, imageViewHeight, rotate);
         opts.inJustDecodeBounds = false;
 //        Bitmap sourceBitmap = BitmapFactory.decodeFile(nextFile, opts);
@@ -324,46 +330,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
 
         return (float) (1.0 / inSampleSize);
-    }
-
-
-    /**
-     * Calculate the sampling rate for the image, since most images have to be downsampled to fit
-     * the on-screen view
-     * @param options The opts object from a previous call to ExifFactory
-     * @param reqWidth the width of the view we will display eventually
-     * @param reqHeight the height of the view we will display eventually
-     * @param rotate If true, then the image is rotated 90 degrees or 270 degrees
-     * @return The sampling rate by which the entire image gets reduced.
-     */
-    private static float calculateInSampleSize2(
-            BitmapFactory.Options options, int reqWidth, int reqHeight, boolean rotate) {
-        // Raw height and width of image
-        final float height;
-        final float width;
-        // Switch height and width for images that are rotated.
-        if (rotate) {
-            height = options.outWidth;
-            width = options.outHeight;
-        } else {
-            height = options.outHeight;
-            width = options.outWidth;
-        }
-        float inSampleSize = 1;
-
-        if (height > reqHeight || width > reqWidth) {
-            float halfHeight = (float) (height / 1.414);
-            float halfWidth = (float) (width / 1.414);
-
-            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
-            // height and width larger than the requested height and width.
-            while ((halfHeight / inSampleSize) >= reqHeight
-                    || (halfWidth / inSampleSize) >= reqWidth) {
-                inSampleSize *= 1.414;
-            }
-        }
-
-        return inSampleSize;
     }
 
     void setBaseSystemUiVisibility(int visibility) {
