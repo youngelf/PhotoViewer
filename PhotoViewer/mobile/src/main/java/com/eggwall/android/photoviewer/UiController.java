@@ -136,7 +136,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         }
 
-        DrawerLayout drawer = (DrawerLayout) mMainActivity.findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = mMainActivity.findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
@@ -202,17 +202,18 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         final int imageViewWidth = mImageView.getWidth();
         final int imageViewHeight = mImageView.getHeight();
 
+        // This calculates the sampling ratio.
 //        opts.inSampleSize = calculateInSampleSize(opts, imageViewWidth, imageViewHeight, rotate);
         int width = opts.outWidth;
         int height = opts.outHeight;
 
         float scale = calculateInSampleSize(opts, imageViewWidth, imageViewHeight, rotate);
-//        opts.inJustDecodeBounds = false;
+        opts.inJustDecodeBounds = false;
 //        Bitmap sourceBitmap = BitmapFactory.decodeFile(nextFile, opts);
 
         Matrix m = null;
         // TODO: Got to figure out how to have the Bitmap rotated in-place.
-        // sourceBitmap = Bitmap.createScaledBitmap(sourceBitmap, width, height, false);
+//        sourceBitmap = Bitmap.createScaledBitmap(sourceBitmap, width, height, false);
         switch (orientation) {
             case ExifInterface.ORIENTATION_NORMAL:
                 // Fall through
@@ -220,18 +221,12 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 m = null;
                 break;
             case ExifInterface.ORIENTATION_ROTATE_90:
-//                sourceBitmap = getRotated(sourceBitmap, 90);
-                m = getRotationMatrix(width, height, 90, scale);
-
-//                mImageView.setRotation(90);
+                m = getRotationMatrix(imageViewWidth, imageViewHeight, 90, scale);
                 break;
             case ExifInterface.ORIENTATION_ROTATE_270:
-//                sourceBitmap = getRotated(sourceBitmap, 270);
-                m = getRotationMatrix(width, height, 270, scale);
-//                mImageView.setRotation(270);
+                m = getRotationMatrix(imageViewWidth, imageViewHeight, 270, scale);
                 break;
             case ExifInterface.ORIENTATION_ROTATE_180:
-  //              sourceBitmap = getRotated(sourceBitmap, 180);
                 m = getRotationMatrix(width, height, 180, scale);
                 break;
             default:
@@ -248,7 +243,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
          } else {
              mImageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
          }
-//        mImageView.setImageBitmap(sourceBitmap);
 
         if (showFab) {
             // Show the correct FAB, and hide it after a while
@@ -267,10 +261,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * @param degrees Degrees to rotate the original image
      * @return A rotated bitmap
      */
-    private Bitmap getRotated(Bitmap sourceBitmap, int degrees) {
+    private Bitmap getRotated(Bitmap sourceBitmap,
+                              int width, int height, int degrees, float scale) {
         Matrix matrix = new Matrix();
-        int width = sourceBitmap.getWidth();
-        int height = sourceBitmap.getHeight();
+        matrix.setScale(scale, scale);
         matrix.postRotate(degrees, width / 2, height / 2);
         Bitmap rotated = Bitmap.createBitmap(
                 sourceBitmap, 0, 0, width, height, matrix, true);
@@ -279,14 +273,16 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     /**
      * Get a rotation matrix.
-     * @param sourceBitmap The original bitmap to rotate.
+     * @param width The resulting view's width.
+     * @param height The resulting view's height.
      * @param degrees Degrees to rotate the original image
      * @return A rotated bitmap
      */
     private Matrix getRotationMatrix(int width, int height, int degrees, float scale) {
         Matrix matrix = new Matrix();
+        matrix.setScale(scale, scale);
         matrix.postRotate(degrees, width / 2, height / 2);
-        matrix.postScale(scale, scale);
+        Log.d(TAG, "getRotationMatrix: " + matrix.toString());
         return matrix;
     }
 
@@ -454,20 +450,26 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     void createController() {
         // Make the main view full screen, and listen for System UI visibility changes
-        mDrawer = (DrawerLayout) mMainActivity.findViewById(R.id.drawer_layout);
+        mDrawer = mMainActivity.findViewById(R.id.drawer_layout);
         mDrawer.setOnSystemUiVisibilityChangeListener(this);
 
-        final AppBarLayout bar = (AppBarLayout) mMainActivity.findViewById(R.id.app_bar);
-        final Toolbar toolbar = (Toolbar) mMainActivity.findViewById(R.id.toolbar);
-        Runnable r = new Runnable() {
+        final AppBarLayout bar = mMainActivity.findViewById(R.id.app_bar);
+        final Toolbar toolbar = mMainActivity.findViewById(R.id.toolbar);
+        Runnable hideBarAndToolbar = new Runnable() {
             @Override
             public void run() {
                 bar.setVisibility(View.GONE);
                 toolbar.setVisibility(View.GONE);
             }
         };
+        final Runnable showFirstImage = new Runnable() {
+            @Override
+            public void run() {
+                updateImage(UiConstants.NEXT, false);
+            }
+        };
 
-        final FloatingActionButton fab = (FloatingActionButton) mMainActivity.findViewById(R.id.fab);
+        final FloatingActionButton fab = mMainActivity.findViewById(R.id.fab);
         View.OnClickListener toolBarListener = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -508,10 +510,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         mPrevFab = (FloatingActionButton) setClickListener(R.id.prev, UiConstants.PREV);
         showFab(mPrevFab);
 
-        mToolbar = (Toolbar) mMainActivity.findViewById(R.id.toolbar);
+        mToolbar = mMainActivity.findViewById(R.id.toolbar);
         mMainActivity.setSupportActionBar(mToolbar);
 
-        mImageView = (AppCompatImageView) mMainActivity.findViewById(R.id.photoview);
+        mImageView = mMainActivity.findViewById(R.id.photoview);
         mImageView.setOnTouchListener(mDelegate);
 
         mDetector = new GestureDetectorCompat(mMainActivity, mGestureListener);
@@ -527,7 +529,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 .setNavigationItemSelectedListener(this);
 
         // Hide the navigation after 7 seconds
-        mHandler.postDelayed(r, 7000);
+        mHandler.postDelayed(hideBarAndToolbar, 7000);
+
+        // UGLY hack to show the first image after everything is hooked up.
+        mHandler.postDelayed(showFirstImage, 500);
     }
 
     /**
