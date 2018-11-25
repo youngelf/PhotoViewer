@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
+import android.net.Uri;
 import android.os.Handler;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
@@ -20,7 +21,9 @@ import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ImageView;
 
+import java.io.File;
 import java.io.IOException;
 
 import static android.view.View.GONE;
@@ -171,9 +174,11 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
 
         String nextFile = mFileController.getFile(offset);
+        Log.d(TAG, "updateImage: next file is: " + nextFile);
 
         // Calculate how big the bitmap is
         BitmapFactory.Options opts = new BitmapFactory.Options();
+        // Just calculate how big the file is to learn the sizes
         opts.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(nextFile, opts);
 
@@ -188,39 +193,63 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,
                     ExifInterface.ORIENTATION_NORMAL);
         }
-        boolean rotate = false;
-        if (orientation == ExifInterface.ORIENTATION_ROTATE_90 || orientation == ExifInterface
-                .ORIENTATION_ROTATE_270) {
-            // Width and height have to get swapped.
-            rotate = true;
-        }
+        // Width and height have to get swapped for rotated images.
+        final boolean rotate =
+                    orientation == ExifInterface.ORIENTATION_ROTATE_90
+                            || orientation == ExifInterface.ORIENTATION_ROTATE_270;
 
         // This is how big the image is:
-        final int width = mImageView.getWidth();
-        final int height = mImageView.getHeight();
+        final int imageViewWidth = mImageView.getWidth();
+        final int imageViewHeight = mImageView.getHeight();
 
-        opts.inSampleSize = calculateInSampleSize(opts, width, height, rotate);
-        opts.inJustDecodeBounds = false;
-        Bitmap sourceBitmap = BitmapFactory.decodeFile(nextFile, opts);
+//        opts.inSampleSize = calculateInSampleSize(opts, imageViewWidth, imageViewHeight, rotate);
+        int width = opts.outWidth;
+        int height = opts.outHeight;
 
+        float scale = calculateInSampleSize(opts, imageViewWidth, imageViewHeight, rotate);
+//        opts.inJustDecodeBounds = false;
+//        Bitmap sourceBitmap = BitmapFactory.decodeFile(nextFile, opts);
+
+        Matrix m = null;
         // TODO: Got to figure out how to have the Bitmap rotated in-place.
         // sourceBitmap = Bitmap.createScaledBitmap(sourceBitmap, width, height, false);
-
         switch (orientation) {
+            case ExifInterface.ORIENTATION_NORMAL:
+                // Fall through
+            case ExifInterface.ORIENTATION_UNDEFINED:
+                m = null;
+                break;
             case ExifInterface.ORIENTATION_ROTATE_90:
-                sourceBitmap = getRotated(sourceBitmap, 90);
+//                sourceBitmap = getRotated(sourceBitmap, 90);
+                m = getRotationMatrix(width, height, 90, scale);
+
+//                mImageView.setRotation(90);
                 break;
             case ExifInterface.ORIENTATION_ROTATE_270:
-                sourceBitmap = getRotated(sourceBitmap, 270);
+//                sourceBitmap = getRotated(sourceBitmap, 270);
+                m = getRotationMatrix(width, height, 270, scale);
+//                mImageView.setRotation(270);
                 break;
             case ExifInterface.ORIENTATION_ROTATE_180:
-                sourceBitmap = getRotated(sourceBitmap, 180);
+  //              sourceBitmap = getRotated(sourceBitmap, 180);
+                m = getRotationMatrix(width, height, 180, scale);
                 break;
             default:
                 Log.wtf(TAG, "Exif interface showed unsupported orientation " + orientation);
         }
 
-        mImageView.setImageBitmap(sourceBitmap);
+
+        // This works to display the image
+         Uri fileUri = Uri.fromFile(new File(nextFile));
+         mImageView.setImageURI(fileUri);
+         if (m != null) {
+             mImageView.setScaleType(ImageView.ScaleType.MATRIX);
+             mImageView.setImageMatrix(m);
+         } else {
+             mImageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+         }
+//        mImageView.setImageBitmap(sourceBitmap);
+
         if (showFab) {
             // Show the correct FAB, and hide it after a while
             if (offset == UiConstants.NEXT) {
@@ -232,20 +261,49 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
     }
 
+    /**
+     * Get a rotated image.
+     * @param sourceBitmap The original bitmap to rotate.
+     * @param degrees Degrees to rotate the original image
+     * @return A rotated bitmap
+     */
     private Bitmap getRotated(Bitmap sourceBitmap, int degrees) {
         Matrix matrix = new Matrix();
-        matrix.postRotate(degrees);
+        int width = sourceBitmap.getWidth();
+        int height = sourceBitmap.getHeight();
+        matrix.postRotate(degrees, width / 2, height / 2);
         Bitmap rotated = Bitmap.createBitmap(
-                sourceBitmap, 0, 0, sourceBitmap.getWidth(), sourceBitmap.getHeight(), matrix,
-                true);
+                sourceBitmap, 0, 0, width, height, matrix, true);
         return rotated;
     }
 
-    private static int calculateInSampleSize(
+    /**
+     * Get a rotation matrix.
+     * @param sourceBitmap The original bitmap to rotate.
+     * @param degrees Degrees to rotate the original image
+     * @return A rotated bitmap
+     */
+    private Matrix getRotationMatrix(int width, int height, int degrees, float scale) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(degrees, width / 2, height / 2);
+        matrix.postScale(scale, scale);
+        return matrix;
+    }
+
+    /**
+     * Calculate the sampling rate for the image, since most images have to be downsampled to fit
+     * the on-screen view
+     * @param options The opts object from a previous call to ExifFactory
+     * @param reqWidth the width of the view we will display eventually
+     * @param reqHeight the height of the view we will display eventually
+     * @param rotate If true, then the image is rotated 90 degrees or 270 degrees
+     * @return The sampling rate by which the entire image gets reduced.
+     */
+    private static float calculateInSampleSize(
             BitmapFactory.Options options, int reqWidth, int reqHeight, boolean rotate) {
         // Raw height and width of image
-        final int height;
-        final int width;
+        final float height;
+        final float width;
         // Switch height and width for images that are rotated.
         if (rotate) {
             height = options.outWidth;
@@ -254,18 +312,58 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             height = options.outHeight;
             width = options.outWidth;
         }
-        int inSampleSize = 1;
+        float inSampleSize = 1;
 
         if (height > reqHeight || width > reqWidth) {
 
-            final int halfHeight = height / 2;
-            final int halfWidth = width / 2;
+            float halfHeight = (float) (height / 1.414);
+            float halfWidth = (float) (width / 1.414);
 
             // Calculate the largest inSampleSize value that is a power of 2 and keeps both
             // height and width larger than the requested height and width.
             while ((halfHeight / inSampleSize) >= reqHeight
-                    && (halfWidth / inSampleSize) >= reqWidth) {
-                inSampleSize *= 2;
+                    || (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 1.414;
+            }
+        }
+
+        return (float) (1.0 / inSampleSize);
+    }
+
+
+    /**
+     * Calculate the sampling rate for the image, since most images have to be downsampled to fit
+     * the on-screen view
+     * @param options The opts object from a previous call to ExifFactory
+     * @param reqWidth the width of the view we will display eventually
+     * @param reqHeight the height of the view we will display eventually
+     * @param rotate If true, then the image is rotated 90 degrees or 270 degrees
+     * @return The sampling rate by which the entire image gets reduced.
+     */
+    private static float calculateInSampleSize2(
+            BitmapFactory.Options options, int reqWidth, int reqHeight, boolean rotate) {
+        // Raw height and width of image
+        final float height;
+        final float width;
+        // Switch height and width for images that are rotated.
+        if (rotate) {
+            height = options.outWidth;
+            width = options.outHeight;
+        } else {
+            height = options.outHeight;
+            width = options.outWidth;
+        }
+        float inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            float halfHeight = (float) (height / 1.414);
+            float halfWidth = (float) (width / 1.414);
+
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while ((halfHeight / inSampleSize) >= reqHeight
+                    || (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 1.414;
             }
         }
 

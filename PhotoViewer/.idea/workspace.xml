@@ -2,7 +2,7 @@
 <project version="4">
   <component name="AndroidLogFilters">
     <option name="TOOL_WINDOW_CUSTOM_FILTER" value="eggwall" />
-    <option name="TOOL_WINDOW_CONFIGURED_FILTER" value="Show only selected application" />
+    <option name="TOOL_WINDOW_CONFIGURED_FILTER" value="No Filters" />
     <option name="TOOL_WINDOW_REGEXP_FILTER" value="false" />
   </component>
   <component name="CMakeSettings">
@@ -32,98 +32,137 @@
     </system>
   </component>
   <component name="FileEditorManager">
-    <leaf>
-      <file leaf-file-name="FileController.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/FileController.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state>
-              <caret lean-forward="true" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="MainActivity.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/MainActivity.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="600">
-              <caret line="57" lean-forward="true" selection-start-line="57" selection-end-line="57" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Activity.java" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/app/Activity.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="258">
-              <caret line="6679" selection-start-line="6679" selection-end-line="6679" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Instrumentation.java" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/app/Instrumentation.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="296">
-              <caret line="224" column="79" selection-start-line="224" selection-start-column="71" selection-end-line="224" selection-end-column="79" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="build.gradle" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/build.gradle">
-          <provider selected="true" editor-type-id="text-editor">
-            <state />
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="build.gradle" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/mobile/build.gradle">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="390">
-              <caret line="26" column="41" selection-start-line="26" selection-start-column="41" selection-end-line="26" selection-end-column="41" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="UiController.java" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/UiController.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="279">
-              <caret line="237" column="45" lean-forward="true" selection-start-line="237" selection-start-column="45" selection-end-line="237" selection-end-column="45" />
-              <folding>
-                <element signature="e#13083#13273#0" expanded="true" />
-                <element signature="e#13272#13273#0" expanded="true" />
-                <element signature="e#13425#13840#0" expanded="true" />
-                <element signature="e#13839#13840#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Runnable.java" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/java/lang/Runnable.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="660">
-              <caret line="67" column="25" selection-start-line="67" selection-start-column="25" selection-end-line="67" selection-end-column="25" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="gradle-wrapper.properties" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties">
-          <provider selected="true" editor-type-id="text-editor">
-            <state />
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="proguard-rules.pro" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/mobile/proguard-rules.pro">
-          <provider selected="true" editor-type-id="text-editor">
-            <state />
-          </provider>
-        </entry>
-      </file>
-    </leaf>
+    <splitter split-orientation="horizontal" split-proportion="0.5">
+      <split-first>
+        <leaf>
+          <file leaf-file-name="FileController.java" pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/FileController.java">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="295">
+                  <caret line="126" selection-start-line="126" selection-end-line="126" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file leaf-file-name="MainActivity.java" pinned="false" current-in-tab="true">
+            <entry file="file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/MainActivity.java">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="90">
+                  <caret line="23" selection-start-line="23" selection-end-line="23" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file leaf-file-name="Activity.java" pinned="false" current-in-tab="false">
+            <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/app/Activity.java">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="258">
+                  <caret line="6679" selection-start-line="6679" selection-end-line="6679" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file leaf-file-name="Instrumentation.java" pinned="false" current-in-tab="false">
+            <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/app/Instrumentation.java">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="296">
+                  <caret line="224" column="79" selection-start-line="224" selection-start-column="71" selection-end-line="224" selection-end-column="79" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file leaf-file-name="build.gradle" pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/build.gradle">
+              <provider selected="true" editor-type-id="text-editor">
+                <state />
+              </provider>
+            </entry>
+          </file>
+          <file leaf-file-name="build.gradle" pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/mobile/build.gradle">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="390">
+                  <caret line="26" column="41" selection-start-line="26" selection-start-column="41" selection-end-line="26" selection-end-column="41" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file leaf-file-name="UiController.java" pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/UiController.java">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="585">
+                  <caret line="257" column="45" selection-start-line="257" selection-start-column="45" selection-end-line="257" selection-end-column="45" />
+                  <folding>
+                    <element signature="e#12373#12374#0" expanded="true" />
+                    <element signature="e#12422#12423#0" expanded="true" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file leaf-file-name="AppCompatImageView.class" pinned="false" current-in-tab="false">
+            <entry file="jar://$USER_HOME$/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/dce78ca844df95fd3aed4cfd288596d6/jars/classes.jar!/android/support/v7/widget/AppCompatImageView.class">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="1425">
+                  <caret line="95" column="5" selection-start-line="95" selection-start-column="5" selection-end-line="95" selection-end-column="5" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file leaf-file-name="Runnable.java" pinned="false" current-in-tab="false">
+            <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/java/lang/Runnable.java">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="660">
+                  <caret line="67" column="25" selection-start-line="67" selection-start-column="25" selection-end-line="67" selection-end-column="25" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file leaf-file-name="proguard-rules.pro" pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/mobile/proguard-rules.pro">
+              <provider selected="true" editor-type-id="text-editor">
+                <state />
+              </provider>
+            </entry>
+          </file>
+        </leaf>
+      </split-first>
+      <split-second>
+        <leaf>
+          <file leaf-file-name="UiController.java" pinned="false" current-in-tab="true">
+            <entry file="file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/UiController.java">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="624">
+                  <caret line="246" selection-start-line="246" selection-end-line="246" />
+                  <folding>
+                    <element signature="e#2619#2749#0" expanded="true" />
+                    <element signature="e#2748#2749#0" expanded="true" />
+                    <element signature="e#2789#2904#0" expanded="true" />
+                    <element signature="e#2903#2904#0" expanded="true" />
+                    <element signature="e#5469#5628#0" expanded="true" />
+                    <element signature="e#5627#5628#0" expanded="true" />
+                    <element signature="e#15989#16502#0" expanded="true" />
+                    <element signature="e#16501#16502#0" expanded="true" />
+                    <element signature="e#17253#17443#0" expanded="true" />
+                    <element signature="e#17442#17443#0" expanded="true" />
+                    <element signature="e#17595#18010#0" expanded="true" />
+                    <element signature="e#18009#18010#0" expanded="true" />
+                    <element signature="e#18058#18421#0" expanded="true" />
+                    <element signature="e#18420#18421#0" expanded="true" />
+                    <element signature="e#19465#19496#0" expanded="true" />
+                    <element signature="e#19514#19546#0" expanded="true" />
+                    <element signature="e#20013#20231#0" expanded="true" />
+                    <element signature="e#20230#20231#0" expanded="true" />
+                    <element signature="e#21185#21367#0" expanded="true" />
+                    <element signature="e#21366#21367#0" expanded="true" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+        </leaf>
+      </split-second>
+    </splitter>
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
@@ -2394,10 +2433,12 @@
         <option value="$PROJECT_DIR$/local.properties" />
         <option value="$PROJECT_DIR$/mobile/build.gradle" />
         <option value="$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/FileController.java" />
+        <option value="$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/UiController.java" />
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds">
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="-17" />
     <option name="y" value="23" />
     <option name="width" value="2560" />
     <option name="height" value="1417" />
@@ -2553,7 +2594,7 @@
       <option name="SKIP_NOOP_APK_INSTALLATIONS" value="true" />
       <option name="FORCE_STOP_RUNNING_APP" value="true" />
       <option name="TARGET_SELECTION_MODE" value="SHOW_DIALOG" />
-      <option name="USE_LAST_SELECTED_DEVICE" value="false" />
+      <option name="USE_LAST_SELECTED_DEVICE" value="true" />
       <option name="PREFERRED_AVD" value="" />
       <option name="SELECTED_CLOUD_MATRIX_CONFIGURATION_ID" value="-1" />
       <option name="SELECTED_CLOUD_MATRIX_PROJECT_ID" value="" />
@@ -2661,7 +2702,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="2560" height="1417" extended-state="0" />
+    <frame x="-1" y="23" width="2560" height="1417" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info anchor="bottom" id="TODO" order="6" />
@@ -2674,11 +2715,12 @@
       <window_info anchor="bottom" id="Run" order="2" />
       <window_info anchor="bottom" id="Version Control" show_stripe_button="false" />
       <window_info anchor="bottom" id="Terminal" />
-      <window_info active="true" anchor="bottom" id="Logcat" visible="true" weight="0.32954547" />
+      <window_info active="true" anchor="bottom" id="Logcat" visible="true" weight="0.20757575" />
       <window_info id="Captures" order="2" weight="0.25" />
       <window_info id="Capture Tool" />
       <window_info id="Designer" />
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24980143" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.12152502" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.24980143" />
       <window_info anchor="bottom" id="Build" weight="0.32954547" />
       <window_info anchor="bottom" id="Inspection Results" weight="0.32954547" />
       <window_info anchor="right" id="Gradle" />
@@ -2689,7 +2731,6 @@
       <window_info anchor="right" id="Device File Explorer" side_tool="true" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
-      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -2703,19 +2744,13 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/FileController.java</url>
-          <line>76</line>
+          <url>file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/UiController.java</url>
+          <line>308</line>
           <properties />
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/FileController.java</url>
-          <line>126</line>
-          <properties />
-          <option name="timeStamp" value="4" />
+          <option name="timeStamp" value="6" />
         </line-breakpoint>
       </breakpoints>
-      <option name="time" value="5" />
+      <option name="time" value="8" />
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
@@ -2779,29 +2814,52 @@
         </state>
       </provider>
     </entry>
+    <entry file="jar://$USER_HOME$/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/dce78ca844df95fd3aed4cfd288596d6/jars/classes.jar!/android/support/v7/widget/AppCompatImageView.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1425">
+          <caret line="95" column="5" selection-start-line="95" selection-start-column="5" selection-end-line="95" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/FileController.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret lean-forward="true" />
+        <state relative-caret-position="295">
+          <caret line="126" selection-start-line="126" selection-end-line="126" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/MainActivity.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="600">
-          <caret line="57" lean-forward="true" selection-start-line="57" selection-end-line="57" />
+        <state relative-caret-position="90">
+          <caret line="23" selection-start-line="23" selection-end-line="23" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/mobile/src/main/java/com/eggwall/android/photoviewer/UiController.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="279">
-          <caret line="237" column="45" lean-forward="true" selection-start-line="237" selection-start-column="45" selection-end-line="237" selection-end-column="45" />
+        <state relative-caret-position="624">
+          <caret line="246" selection-start-line="246" selection-end-line="246" />
           <folding>
-            <element signature="e#13083#13273#0" expanded="true" />
-            <element signature="e#13272#13273#0" expanded="true" />
-            <element signature="e#13425#13840#0" expanded="true" />
-            <element signature="e#13839#13840#0" expanded="true" />
+            <element signature="e#2619#2749#0" expanded="true" />
+            <element signature="e#2748#2749#0" expanded="true" />
+            <element signature="e#2789#2904#0" expanded="true" />
+            <element signature="e#2903#2904#0" expanded="true" />
+            <element signature="e#5469#5628#0" expanded="true" />
+            <element signature="e#5627#5628#0" expanded="true" />
+            <element signature="e#15989#16502#0" expanded="true" />
+            <element signature="e#16501#16502#0" expanded="true" />
+            <element signature="e#17253#17443#0" expanded="true" />
+            <element signature="e#17442#17443#0" expanded="true" />
+            <element signature="e#17595#18010#0" expanded="true" />
+            <element signature="e#18009#18010#0" expanded="true" />
+            <element signature="e#18058#18421#0" expanded="true" />
+            <element signature="e#18420#18421#0" expanded="true" />
+            <element signature="e#19465#19496#0" expanded="true" />
+            <element signature="e#19514#19546#0" expanded="true" />
+            <element signature="e#20013#20231#0" expanded="true" />
+            <element signature="e#20230#20231#0" expanded="true" />
+            <element signature="e#21185#21367#0" expanded="true" />
+            <element signature="e#21366#21367#0" expanded="true" />
           </folding>
         </state>
       </provider>
