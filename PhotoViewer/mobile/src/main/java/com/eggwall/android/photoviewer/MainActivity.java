@@ -2,7 +2,6 @@ package com.eggwall.android.photoviewer;
 
 import android.Manifest;
 import android.content.DialogInterface;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
@@ -88,7 +87,15 @@ public class MainActivity extends AppCompatActivity {
 
         requestReadExternalStoragePermission();
         requestWriteExternalStoragePermission();
-        FileController fileController = new FileController();
+
+        networkController = new NetworkController(this);
+        boolean testing = false;
+        // Confirmed working, so I'm removing it right now to avoid making spurious downloads.
+        if (testing) {
+            networkController.requestURI(NetworkController.location, callback);
+        }
+
+        FileController fileController = new FileController(networkController);
         ArrayList<String> galleriesList = fileController.getGalleriesList();
         if (galleriesList.size() >= 1) {
             // Select the first directory.
@@ -99,14 +106,6 @@ public class MainActivity extends AppCompatActivity {
 
         uiController = new UiController(this, fileController);
         uiController.createController();
-
-        networkController = new NetworkController(this);
-        boolean testing = false;
-        // Confirmed working, so I'm removing it right now to avoid making spurious downloads.
-        if (testing) {
-            networkController.requestURI(NetworkController.location);
-        }
-
     }
 
     @Override

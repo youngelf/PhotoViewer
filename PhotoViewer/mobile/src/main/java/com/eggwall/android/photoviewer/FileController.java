@@ -1,23 +1,33 @@
 package com.eggwall.android.photoviewer;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Environment;
+import android.telecom.Call;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-
-import static android.os.Build.VERSION.SDK_INT;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * Controls access to files and allows next/previous access to files
  */
 class FileController {
     private static final String TAG = "FileController";
+
     /**
      * Name of the subdirectory in the main folder containing photos
+     * TODO: Change this.
      */
     private final static String PICTURES_DIR = "eggwall";
+
     /**
      * The actual directory that corresponds to the external SD card.  But nobody is allowed to
      * read this, this is only for {@link #getPicturesDir()} to reference.
@@ -40,6 +50,12 @@ class FileController {
      * The index of the current file being viewed.
      */
     private int mCurrentImageIndex = INVALID_INDEX;
+
+    private final NetworkController mNetworkController;
+
+    FileController(NetworkController mNetworkController) {
+        this.mNetworkController = mNetworkController;
+    }
 
     /**
      * [sdcard]/music in SDK >= 8
@@ -74,6 +90,7 @@ class FileController {
             return null;
         }
         // Navigate over to the gallery directory.
+        // TODO refactor this along with the same code in Callback.requestCompleted.
         final File galleryDir = new File(rootSdLocation, PICTURES_DIR);
         if (!galleryDir.isDirectory()) {
             // The directory doesn't exist, so try creating one.
@@ -215,15 +232,98 @@ class FileController {
         return new File(mCurrentGallery, mCurrentGalleryList.get(mCurrentImageIndex)).getAbsolutePath();
     }
 
+    class Callback implements NetworkRequestComplete {
+        @Override
+        public void requestCompleted(Context context, Intent intent, String filename) {
+            // Unzip the file here.
+            // TODO: Check for free disk space first.
+            File i = getPictureDirAfterV8();
+            ZipFile p;
+            try {
+                p = new ZipFile(new File(i, filename));
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e(TAG, "Could not open zip file " + filename, e);
+                // TODO: Cleanup here first.
+                return;
+            }
+
+            // Once it is downloaded, try to unzip it.
+
+            // Create a directory to hold it all
+            final File freshGalleryDir = new File (i, "test");
+            boolean result;
+            try {
+                result = freshGalleryDir.mkdir();
+            } catch (Exception e) {
+                Log.e(TAG, "Could not create a directory " + e);
+                return;
+            }
+
+            if (result) {
+                Log.d(TAG, "Created a directory at " + freshGalleryDir.getAbsolutePath());
+            } else {
+                Log.d(TAG, "FAILED to make a directory at " + freshGalleryDir.getAbsolutePath());
+                return;
+            }
+
+            Enumeration<? extends ZipEntry> s = p.entries();
+            while (s.hasMoreElements()) {
+                ZipEntry m = s.nextElement();
+                String name = m.getName();
+                byte[] data = m.getExtra();
+                // Write data to disk.
+                File toWrite = new File(freshGalleryDir, name);
+                boolean success = false;
+                try {
+                    success = toWrite.createNewFile();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if (!success) {
+                    Log.e(TAG, "Could not create a file " + name);
+                    return;
+                }
+                FileOutputStream o = null;
+                try {
+                    o = new FileOutputStream(toWrite);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                if (o == null) {
+                    Log.e(TAG, "Could not open this file to write to it: " + name);
+                    return;
+                }
+                try {
+                    o.write(data);
+                    o.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+            // Write the individual files, and delete
+        }
+    }
+
     /**
      * Requests adding a URI as a gallery.
      * TODO(viki): Currently not implemented.
      *
-     * @param location URI to add as a gallery
-     * @return true if the gallery is added.
+     * @param zipfileLocation URI to add as a gallery
+     * @return true if the gallery download is scheduled.
      */
-    boolean addUri(String location) {
-        return false;
+    boolean addUri(String zipfileLocation) {
+        Callback callback = new Callback();
+
+        boolean status = mNetworkController.requestURI(zipfileLocation, callback);
+        if (!status) {
+            Log.e(TAG, "Could not download file " + zipfileLocation);
+            return false;
+        }
+        // We can't do anything else since we need to wait for the download to complete.
+        Log.d(TAG, "Download for " + zipfileLocation + " queued.");
+        return true;
     }
 
 }

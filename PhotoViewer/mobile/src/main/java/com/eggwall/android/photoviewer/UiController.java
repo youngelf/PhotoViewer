@@ -4,7 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
-import android.net.Uri;
 import android.os.Handler;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
@@ -23,7 +22,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 
-import java.io.File;
 import java.io.IOException;
 
 import static android.view.View.GONE;
@@ -132,7 +130,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         } else if (id == R.id.nav_slideshow) {
             mSlideShowStatus = setSlideshow(!mSlideShowStatus);
         } else if (id == R.id.nav_manage) {
-
+            // Download a zip file from somewhere and unzip it
+            mFileController.addUri("http://gallery.eggwall.com/images.zip");
         } else if (id == R.id.nav_share) {
 
         } else if (id == R.id.nav_send) {
