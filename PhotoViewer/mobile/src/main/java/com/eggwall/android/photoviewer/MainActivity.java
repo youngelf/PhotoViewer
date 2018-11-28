@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
         boolean testing = false;
         // Confirmed working, so I'm removing it right now to avoid making spurious downloads.
         if (testing) {
-            networkController.requestURI(NetworkController.location, callback);
+            networkController.requestURI(NetworkController.location, null);
         }
 
         FileController fileController = new FileController(networkController);

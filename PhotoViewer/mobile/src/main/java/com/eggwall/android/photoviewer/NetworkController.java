@@ -43,11 +43,13 @@ class NetworkController {
         final long mRequestId;
         final String mLocation;
         final String mFilename;
+        final FileController.Callback mCallback;
 
-        public Receiver (long requestId, String location, String filename) {
+        public Receiver(long requestId, String location, String filename, FileController.Callback callWhenComplete) {
             mRequestId = requestId;
             mLocation = location;
             mFilename = filename;
+            mCallback = callWhenComplete;
         }
 
         @Override
@@ -89,6 +91,10 @@ class NetworkController {
             Toast.makeText(ctx, "Image Download Complete", Toast.LENGTH_LONG)
                     .show();
             Log.d(TAG, "Downloaded: " + mLocation);
+
+            if (mCallback != null) {
+                mCallback.requestCompleted(context, intent, mFilename);
+            }
         }
     }
 
@@ -116,7 +122,7 @@ class NetworkController {
         long requestId = downloadManager.enqueue(request);
 
         IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-        Receiver r = new Receiver(requestId, location, filename);
+        Receiver r = new Receiver(requestId, location, filename, callWhenComplete);
         ctx.registerReceiver(r, filter);
 
         return true;
