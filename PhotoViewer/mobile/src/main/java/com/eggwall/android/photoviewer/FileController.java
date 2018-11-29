@@ -16,6 +16,9 @@ import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static java.io.File.separator;
+import static java.io.File.separatorChar;
+
 /**
  * Controls access to files and allows next/previous access to files
  */
@@ -234,7 +237,7 @@ class FileController {
 
     class Callback implements NetworkRequestComplete {
         @Override
-        public void requestCompleted(Context context, Intent intent, String filename) {
+        public void requestCompleted(String filename) {
             // Unzip the file here.
             // TODO: Check for free disk space first.
             File i = getPictureDirAfterV8();
@@ -271,6 +274,22 @@ class FileController {
             while (s.hasMoreElements()) {
                 ZipEntry m = s.nextElement();
                 String name = m.getName();
+                // The name can contain file separators. If so, then take the last part of the
+                // filename, essentially flattening the hierarchy.
+                Log.d(TAG, "Found filename: " + name);
+                int seperatorIdx = name.lastIndexOf(separatorChar);
+                if (seperatorIdx >= 0) {
+                    // Extract just the file name
+                    String lastName = name.substring(seperatorIdx + 1);
+                    // If this was a directory, ignore it.
+                    if (lastName.length() <= 0) {
+                        Log.d(TAG, "Ignoring directory: " + name);
+                        continue;
+                    }
+                    Log.d(TAG, "Using just last part as filename: " + lastName
+                            + " was: " + name);
+                    name = lastName;
+                }
                 byte[] data = m.getExtra();
                 // Write data to disk.
                 File toWrite = new File(freshGalleryDir, name);
@@ -308,7 +327,6 @@ class FileController {
 
     /**
      * Requests adding a URI as a gallery.
-     * TODO(viki): Currently not implemented.
      *
      * @param zipfileLocation URI to add as a gallery
      * @return true if the gallery download is scheduled.

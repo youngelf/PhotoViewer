@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
@@ -53,7 +54,7 @@ class NetworkController {
         }
 
         @Override
-        public void onReceive(Context context, Intent intent) {
+        public void onReceive(final Context context, final Intent intent) {
             // We are never getting called again, so let's just unregister ourselves first.
             context.unregisterReceiver(this);
 
@@ -93,8 +94,28 @@ class NetworkController {
             Log.d(TAG, "Downloaded: " + mLocation);
 
             if (mCallback != null) {
-                mCallback.requestCompleted(context, intent, mFilename);
+                Unzipper u = new Unzipper(mFilename, mCallback);
+                u.execute();
             }
+        }
+    }
+
+    /**
+     * Unzip a file in the background by calling the callback with the filename.
+     */
+    static class Unzipper extends AsyncTask<Void, Void, Void> {
+        private final String filename;
+        private final FileController.Callback callback;
+
+        Unzipper(String filename, FileController.Callback callback) {
+            this.filename = filename;
+            this.callback = callback;
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            callback.requestCompleted(filename);
+            return null;
         }
     }
 

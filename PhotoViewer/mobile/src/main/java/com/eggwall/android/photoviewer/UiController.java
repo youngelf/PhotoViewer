@@ -131,7 +131,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             mSlideShowStatus = setSlideshow(!mSlideShowStatus);
         } else if (id == R.id.nav_manage) {
             // Download a zip file from somewhere and unzip it
-            mFileController.addUri("http://gallery.eggwall.com/images.zip");
+            mFileController.addUri("http://192.168.11.122/images.zip");
         } else if (id == R.id.nav_share) {
 
         } else if (id == R.id.nav_send) {
