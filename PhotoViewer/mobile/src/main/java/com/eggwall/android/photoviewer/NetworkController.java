@@ -2,6 +2,7 @@ package com.eggwall.android.photoviewer;
 
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -9,13 +10,11 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
-import android.os.Handler;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.widget.Toast;
 
 import java.io.FileNotFoundException;
-import java.net.URI;
 
 /**
  * Makes requests to the network to fetch new content.
@@ -71,14 +70,6 @@ class NetworkController {
                     + "Received = " + referenceId);
                 return;
             }
-            try {
-                // This is needed! Maybe my CPU is too busy showing images and I need to pause
-                // the screen, or I need to check periodically and see if the file size is nonzero.
-                // Clearly the file is created, it is just empty.
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             // Query the download manager to confirm the file was correctly downloaded
             Cursor cursor = downloadManager.query(
                     new DownloadManager.Query().setFilterById(mRequestId));
@@ -101,31 +92,51 @@ class NetworkController {
             }
 
             // File downloaded successfully.
-            Toast.makeText(ctx, "Image Download Complete", Toast.LENGTH_LONG)
-                    .show();
+//            Toast.makeText(context, "Image Download Complete", Toast.LENGTH_LONG)
+//                    .show();
             Log.d(TAG, "Downloaded: " + mLocation);
 
             // Get the canonical name the DownloadManager has for it
             int uriIdx = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
             final String dmUri = cursor.getString(uriIdx);
 
+            final Uri u = android.net.Uri.parse(dmUri);
+            final ContentResolver resolver = context.getContentResolver();
+            int retryCount = 0;
+            try {
+                long size = 0;
+                do {
+                    try {
+                        // This is needed! Maybe my CPU is too busy showing images and I need to pause
+                        // the screen, or I need to check periodically and see if the file size is nonzero.
+                        // Clearly the file is created, it is just empty.
+                        Thread.sleep(1000);
+                        Log.d(TAG, "Waiting for size to settle: " + mFilename
+                                + " size=" + size);
+                        retryCount++;
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    ParcelFileDescriptor pfd = resolver.openFileDescriptor(u, "r");
+                    size = pfd.getStatSize();
+                    // Modify this check to look for the expected size of bytes, not just nonzero.
+                } while (size == 0 && retryCount < 100);
+                Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri + " of size " + size);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
             if (mCallback != null) {
-                final Uri u = android.net.Uri.parse(dmUri);
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                            final ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(u, "r");
-                            // Print out information about the pfd
-                            long size = pfd.getStatSize();
-                            Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri + " of size " + size);
-                            Unzipper unzipper = new Unzipper(mCallback, mFilename, pfd);
-                            unzipper.execute();
-                            } catch (FileNotFoundException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }, 3000);
+                try {
+                    final ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(u, "r");
+                    // Print out information about the pfd
+                    long size = pfd.getStatSize();
+                    Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri + " of size " + size);
+                    Unzipper unzipper = new Unzipper(mCallback, mFilename, pfd);
+                    unzipper.execute();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
