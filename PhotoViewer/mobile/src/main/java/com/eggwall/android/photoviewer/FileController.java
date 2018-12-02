@@ -244,10 +244,10 @@ class FileController {
         public void requestCompleted(String filename) {
             // Unzip the file here.
             // TODO: Check for free disk space first.
-            File i = getPictureDirAfterV8();
-            ZipFile p;
+            File pictureDir = getPictureDirAfterV8();
+            ZipFile inputZipped;
             try {
-                p = new ZipFile(new File(i, filename));
+                inputZipped = new ZipFile(new File(pictureDir, filename));
             } catch (IOException e) {
                 e.printStackTrace();
                 Log.e(TAG, "Could not open zip file " + filename, e);
@@ -255,10 +255,8 @@ class FileController {
                 return;
             }
 
-            // Once it is downloaded, try to unzip it.
-
             // Create a directory to hold it all
-            final File freshGalleryDir = new File (i, "test");
+            final File freshGalleryDir = new File (pictureDir, "test");
             boolean result;
             try {
                 result = freshGalleryDir.mkdir();
@@ -274,13 +272,13 @@ class FileController {
                 return;
             }
 
-            Enumeration<? extends ZipEntry> s = p.entries();
+            Enumeration<? extends ZipEntry> iter = inputZipped.entries();
             final int fourMegs = 4 * 1024 * 1024;
             byte[] buffer = new byte[fourMegs];
 
-            while (s.hasMoreElements()) {
-                ZipEntry m = s.nextElement();
-                String name = m.getName();
+            while (iter.hasMoreElements()) {
+                ZipEntry zipFile = iter.nextElement();
+                String name = zipFile.getName();
 
                 // The name can contain file separators. If so, then take the last part of the
                 // filename, essentially flattening the hierarchy.
@@ -300,22 +298,23 @@ class FileController {
                 }
                 // Extract the bytes out to a new file.
                 try {
-                    BufferedInputStream b = new BufferedInputStream(p.getInputStream(m));
+                    BufferedInputStream inputStream =
+                            new BufferedInputStream(inputZipped.getInputStream(zipFile));
                     File toWrite = new File(freshGalleryDir, name);
-                    boolean success = false;
-                    success = toWrite.createNewFile();
-                    if (!success) {
+                    boolean createStatus = toWrite.createNewFile();
+                    if (!createStatus) {
                         Log.e(TAG, "Could not create file " + name);
                         continue;
                     }
-                    BufferedOutputStream o = new BufferedOutputStream(new FileOutputStream(toWrite));
+                    BufferedOutputStream outputStream =
+                            new BufferedOutputStream(new FileOutputStream(toWrite));
                     int numBytes = 0;
-                    while ((numBytes = b.read(buffer)) > 0) {
+                    while ((numBytes = inputStream.read(buffer)) > 0) {
                         Log.d(TAG, "Wrote " + numBytes + " bytes to " + name);
-                        o.write(buffer, 0, numBytes);
+                        outputStream.write(buffer, 0, numBytes);
                     }
-                    o.close();
-                    b.close();
+                    outputStream.close();
+                    inputStream.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
