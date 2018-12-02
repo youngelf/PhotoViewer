@@ -6,10 +6,14 @@ import android.os.Environment;
 import android.telecom.Call;
 import android.util.Log;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -271,17 +275,21 @@ class FileController {
             }
 
             Enumeration<? extends ZipEntry> s = p.entries();
+            final int fourMegs = 4 * 1024 * 1024;
+            byte[] buffer = new byte[fourMegs];
+
             while (s.hasMoreElements()) {
                 ZipEntry m = s.nextElement();
                 String name = m.getName();
+
                 // The name can contain file separators. If so, then take the last part of the
                 // filename, essentially flattening the hierarchy.
                 Log.d(TAG, "Found filename: " + name);
-                int seperatorIdx = name.lastIndexOf(separatorChar);
-                if (seperatorIdx >= 0) {
+                int separatorIdx = name.lastIndexOf(separatorChar);
+                if (separatorIdx >= 0) {
                     // Extract just the file name
-                    String lastName = name.substring(seperatorIdx + 1);
-                    // If this was a directory, ignore it.
+                    String lastName = name.substring(separatorIdx + 1);
+                    // If this was a directory (trailing slash), ignore it.
                     if (lastName.length() <= 0) {
                         Log.d(TAG, "Ignoring directory: " + name);
                         continue;
@@ -290,38 +298,29 @@ class FileController {
                             + " was: " + name);
                     name = lastName;
                 }
-                byte[] data = m.getExtra();
-                // Write data to disk.
-                File toWrite = new File(freshGalleryDir, name);
-                boolean success = false;
+                // Extract the bytes out to a new file.
                 try {
+                    BufferedInputStream b = new BufferedInputStream(p.getInputStream(m));
+                    File toWrite = new File(freshGalleryDir, name);
+                    boolean success = false;
                     success = toWrite.createNewFile();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                if (!success) {
-                    Log.e(TAG, "Could not create a file " + name);
-                    return;
-                }
-                FileOutputStream o = null;
-                try {
-                    o = new FileOutputStream(toWrite);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                if (o == null) {
-                    Log.e(TAG, "Could not open this file to write to it: " + name);
-                    return;
-                }
-                try {
-                    o.write(data);
+                    if (!success) {
+                        Log.e(TAG, "Could not create file " + name);
+                        continue;
+                    }
+                    BufferedOutputStream o = new BufferedOutputStream(new FileOutputStream(toWrite));
+                    int numBytes = 0;
+                    while ((numBytes = b.read(buffer)) > 0) {
+                        Log.d(TAG, "Wrote " + numBytes + " bytes to " + name);
+                        o.write(buffer, 0, numBytes);
+                    }
                     o.close();
+                    b.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
             }
-            // Write the individual files, and delete
+            // Now delete the original zip file.
         }
     }
 
