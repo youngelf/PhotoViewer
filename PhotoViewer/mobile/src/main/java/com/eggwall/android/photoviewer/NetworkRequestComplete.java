@@ -1,10 +1,10 @@
 package com.eggwall.android.photoviewer;
 
+import android.os.ParcelFileDescriptor;
+
 public interface NetworkRequestComplete {
     /**
      * Called when a network request has been completed.
-     * @param context
-     * @param intent
      */
-    void requestCompleted(String filename);
+    void requestCompleted(String filename, ParcelFileDescriptor Uri);
 }

@@ -1,8 +1,10 @@
 package com.eggwall.android.photoviewer;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Environment;
+import android.os.ParcelFileDescriptor;
 import android.telecom.Call;
 import android.util.Log;
 
@@ -241,8 +243,10 @@ class FileController {
 
     class Callback implements NetworkRequestComplete {
         @Override
-        public void requestCompleted(String filename) {
+        public void requestCompleted(String filename, ParcelFileDescriptor Uri) {
             // Unzip the file here.
+            // Try opening the URI via a ParcelFileDescriptor
+
             // TODO: Check for free disk space first.
             File pictureDir = getPictureDirAfterV8();
             ZipFile inputZipped;

@@ -9,8 +9,13 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.widget.Toast;
+
+import java.io.FileNotFoundException;
+import java.net.URI;
 
 /**
  * Makes requests to the network to fetch new content.
@@ -66,24 +71,31 @@ class NetworkController {
                     + "Received = " + referenceId);
                 return;
             }
-
+            try {
+                // This is needed! Maybe my CPU is too busy showing images and I need to pause
+                // the screen, or I need to check periodically and see if the file size is nonzero.
+                // Clearly the file is created, it is just empty.
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             // Query the download manager to confirm the file was correctly downloaded
-            Cursor c = downloadManager.query(
+            Cursor cursor = downloadManager.query(
                     new DownloadManager.Query().setFilterById(mRequestId));
 
             // Ensure at least one result.
-            if (c == null || !c.moveToFirst()) {
+            if (cursor == null || !cursor.moveToFirst()) {
                 Log.e(TAG, "DownloadManager does not know about file: " + mLocation);
                 return;
             }
 
             // Ensure exactly one result, and log otherwise.
-            if (c.getCount() != 1) {
+            if (cursor.getCount() != 1) {
                 Log.e(TAG, "DownloadManager returned two entries for file: " + mLocation);
             }
 
-            int statusIndex = c.getColumnIndex(DownloadManager.COLUMN_STATUS);
-            if (c.getInt(statusIndex) != DownloadManager.STATUS_SUCCESSFUL) {
+            int statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
+            if (cursor.getInt(statusIdx) != DownloadManager.STATUS_SUCCESSFUL) {
                 Log.e(TAG, "Failed to download file: " + mLocation);
                 return;
             }
@@ -93,9 +105,27 @@ class NetworkController {
                     .show();
             Log.d(TAG, "Downloaded: " + mLocation);
 
+            // Get the canonical name the DownloadManager has for it
+            int uriIdx = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
+            final String dmUri = cursor.getString(uriIdx);
+
             if (mCallback != null) {
-                Unzipper u = new Unzipper(mFilename, mCallback);
-                u.execute();
+                final Uri u = android.net.Uri.parse(dmUri);
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                            final ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(u, "r");
+                            // Print out information about the pfd
+                            long size = pfd.getStatSize();
+                            Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri + " of size " + size);
+                            Unzipper unzipper = new Unzipper(mCallback, mFilename, pfd);
+                            unzipper.execute();
+                            } catch (FileNotFoundException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }, 3000);
             }
         }
     }
@@ -105,16 +135,19 @@ class NetworkController {
      */
     static class Unzipper extends AsyncTask<Void, Void, Void> {
         private final String filename;
+        private final ParcelFileDescriptor uri;
+
         private final FileController.Callback callback;
 
-        Unzipper(String filename, FileController.Callback callback) {
+        Unzipper(FileController.Callback callback, String filename, ParcelFileDescriptor uri) {
             this.filename = filename;
             this.callback = callback;
+            this.uri = uri;
         }
 
         @Override
         protected Void doInBackground(Void... voids) {
-            callback.requestCompleted(filename);
+            callback.requestCompleted(filename, uri);
             return null;
         }
     }
