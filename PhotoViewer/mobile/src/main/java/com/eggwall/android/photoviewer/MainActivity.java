@@ -89,11 +89,6 @@ public class MainActivity extends AppCompatActivity {
         requestWriteExternalStoragePermission();
 
         networkController = new NetworkController(this);
-        boolean testing = false;
-        // Confirmed working, so I'm removing it right now to avoid making spurious downloads.
-        if (testing) {
-            networkController.requestURI(NetworkController.location, null);
-        }
 
         FileController fileController = new FileController(networkController);
         ArrayList<String> galleriesList = fileController.getGalleriesList();

@@ -12,7 +12,6 @@ import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.FileNotFoundException;
 
@@ -25,9 +24,6 @@ class NetworkController {
 
     private final DownloadManager downloadManager;
     private final Context ctx;
-
-    static final String location =
-            "http://gallery.eggwall.com/gallery_23_Sept_Just_Home/_DSC8193.jpg";
 
     private int fileID = 1;
 
@@ -107,17 +103,21 @@ class NetworkController {
                 long size = 0;
                 do {
                     try {
-                        // This is needed! Maybe my CPU is too busy showing images and I need to pause
-                        // the screen, or I need to check periodically and see if the file size is nonzero.
-                        // Clearly the file is created, it is just empty.
+                        // Poll every second till the file is non-empty.
+                        //
+                        // This is needed! Maybe my CPU is too busy showing images and I need to
+                        // pause the screen, or I need to check periodically and see if the
+                        // file size is nonzero. Clearly the file is created, it is just empty.
                         Thread.sleep(1000);
-                        Log.d(TAG, "Waiting for size to settle: " + mFilename
-                                + " size=" + size);
                         retryCount++;
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     ParcelFileDescriptor pfd = resolver.openFileDescriptor(u, "r");
+                    if (pfd == null) {
+                        Log.d(TAG, "ParcelFileDescriptor null!");
+                        return;
+                    }
                     size = pfd.getStatSize();
                     // Modify this check to look for the expected size of bytes, not just nonzero.
                 } while (size == 0 && retryCount < 100);
@@ -126,17 +126,23 @@ class NetworkController {
                 e.printStackTrace();
             }
 
-            if (mCallback != null) {
-                try {
-                    final ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(u, "r");
-                    // Print out information about the pfd
-                    long size = pfd.getStatSize();
-                    Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri + " of size " + size);
-                    Unzipper unzipper = new Unzipper(mCallback, mFilename, pfd);
-                    unzipper.execute();
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
+            // Retry count could have been 100, so I need to check file-size again.
+            try {
+                final ParcelFileDescriptor pfd = resolver.openFileDescriptor(u, "r");
+                if (pfd == null) {
+                    Log.d(TAG, "ParcelFileDescriptor null!");
+                    return;
                 }
+                // Print out information about the pfd
+                long size = pfd.getStatSize();
+                Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri
+                        + " of size " + size);
+                if (mCallback != null) {
+                    // Asynchronously, unzip the file and extract its contents.
+                    (new Unzipper(mCallback, mFilename, pfd)).execute();
+                }
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -146,19 +152,20 @@ class NetworkController {
      */
     static class Unzipper extends AsyncTask<Void, Void, Void> {
         private final String filename;
-        private final ParcelFileDescriptor uri;
+        private final ParcelFileDescriptor fileDescriptor;
 
         private final FileController.Callback callback;
 
-        Unzipper(FileController.Callback callback, String filename, ParcelFileDescriptor uri) {
+        Unzipper(FileController.Callback callback, String filename,
+                 ParcelFileDescriptor fileDescriptor) {
             this.filename = filename;
             this.callback = callback;
-            this.uri = uri;
+            this.fileDescriptor = fileDescriptor;
         }
 
         @Override
         protected Void doInBackground(Void... voids) {
-            callback.requestCompleted(filename, uri);
+            callback.requestCompleted(filename, fileDescriptor);
             return null;
         }
     }

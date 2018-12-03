@@ -1,28 +1,20 @@
 package com.eggwall.android.photoviewer;
 
-import android.content.ContentResolver;
-import android.content.Context;
-import android.content.Intent;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
-import android.telecom.Call;
 import android.util.Log;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static java.io.File.separator;
 import static java.io.File.separatorChar;
 
 /**
