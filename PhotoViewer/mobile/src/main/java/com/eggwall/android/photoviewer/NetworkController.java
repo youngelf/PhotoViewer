@@ -183,6 +183,8 @@ class NetworkController {
      * @return
      */
     boolean requestURI(String location, FileController.Callback callWhenComplete) {
+        // Let's not trust the file name provided to us, and let's write this as an ID that we
+        // control.
         String filename = "x" + fileID + ".zip";
         fileID++;
 
