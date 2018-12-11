@@ -6,7 +6,7 @@ import android.arch.persistence.room.PrimaryKey;
 import android.os.SystemClock;
 
 // A single Album entry.
-@Entity(tableName = "albums")
+@Entity(tableName = "album")
 public class Album {
     /**
      * An opaque ID that uniquely defines this entry for all time.
@@ -37,4 +37,49 @@ public class Album {
      */
     @ColumnInfo(name = "download_time")
     private long downloadTimeMs;
+
+    public int getId() {
+        return id;
+    }
+
+    public String getRemoteLocation() {
+        return remoteLocation;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public long getLastViewedTimeMs() {
+        return lastViewedTimeMs;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setRemoteLocation(String remoteLocation) {
+        this.remoteLocation = remoteLocation;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setLastViewedTimeMs(long lastViewedTimeMs) {
+        this.lastViewedTimeMs = lastViewedTimeMs;
+    }
+
+    public long getDownloadTimeMs() {
+        return downloadTimeMs;
+    }
+
+    public void setDownloadTimeMs(long downloadTimeMs) {
+        this.downloadTimeMs = downloadTimeMs;
+    }
+
+    @Override
+    public String toString() {
+        return "Album: " + name + ", id: " + id + ", from " + remoteLocation;
+    }
 }

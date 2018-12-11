@@ -1,7 +1,9 @@
 package com.eggwall.android.photoviewer;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
@@ -13,7 +15,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
 
+import com.eggwall.android.photoviewer.data.Album;
+import com.eggwall.android.photoviewer.data.AlbumDao;
+import com.eggwall.android.photoviewer.data.AlbumDatabase;
+
 import java.util.ArrayList;
+import java.util.List;
 
 /*
  * TODO: Unzip a file.
@@ -101,6 +108,33 @@ public class MainActivity extends AppCompatActivity {
 
         uiController = new UiController(this, fileController);
         uiController.createController();
+
+
+        // Let's try out the database code
+        DbTester s = new DbTester(this);
+        s.execute();
+    }
+
+    static class DbTester extends AsyncTask<Void, Void, Void> {
+        private final Context context;
+
+        DbTester(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            AlbumDatabase db = AlbumDatabase.getDatabase(context);
+            AlbumDao d = db.albumDao();
+            Album s = new Album();
+//            s.setId(1);
+//            s.setName("Pismo");
+//            s.setRemoteLocation("http://nothing.com");
+            List<Album> p = d.getAll();
+            s = p.get(0);
+            Log.d(TAG, "Test album from previous insert = " + s);
+            return null;
+        }
     }
 
     @Override

@@ -4,7 +4,9 @@ import android.arch.persistence.db.SupportSQLiteOpenHelper;
 import android.arch.persistence.room.Database;
 import android.arch.persistence.room.DatabaseConfiguration;
 import android.arch.persistence.room.InvalidationTracker;
+import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
+import android.content.Context;
 import android.support.annotation.NonNull;
 
 /**
@@ -15,7 +17,23 @@ import android.support.annotation.NonNull;
  * and a way for the LRU cache to purge out old entries.
  */
 @Database(entities = {Album.class}, version = 1)
-public class AlbumDatabase extends RoomDatabase {
+public abstract class AlbumDatabase extends RoomDatabase {
+    public abstract AlbumDao albumDao();
+
+    private static volatile AlbumDatabase INSTANCE;
+
+    public static AlbumDatabase getDatabase(final Context context) {
+        if (INSTANCE == null) {
+            synchronized (AlbumDatabase.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
+                            AlbumDatabase.class, "photoframe")
+                            .build();
+                }
+            }
+        }
+        return INSTANCE;
+    }
 
     public AlbumDatabase() {
         // Create a database if none exists.
