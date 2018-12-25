@@ -1,8 +1,13 @@
 package com.eggwall.android.photoviewer;
 
+import android.content.Context;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.util.Base64;
 import android.util.Log;
+import android.util.Pair;
+
+import com.eggwall.android.photoviewer.data.AlbumDatabase;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -14,6 +19,11 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 
 import static java.io.File.separatorChar;
 
@@ -28,6 +38,12 @@ class FileController {
      * TODO: Change this.
      */
     private final static String PICTURES_DIR = "eggwall";
+    public static final String AES_CBC_PKCS5_PADDING = "AES/CBC/PKCS5PADDING";
+
+    /**
+     * An instance of the database where I will include information about the files and albums.
+     */
+    private AlbumDatabase db;
 
     /**
      * The actual directory that corresponds to the external SD card.  But nobody is allowed to
@@ -54,8 +70,13 @@ class FileController {
 
     private final NetworkController mNetworkController;
 
-    FileController(NetworkController mNetworkController) {
-        this.mNetworkController = mNetworkController;
+    /**
+     * Creates a new file controller and all the other objects it needs.
+     * @param context
+     */
+    FileController(Context context) {
+        this.mNetworkController = new NetworkController(context);
+        this.db = AlbumDatabase.getDatabase(context);
     }
 
     /**
@@ -338,4 +359,54 @@ class FileController {
         return true;
     }
 
+
+    /**
+     * Decrypt a zip file, and then ask {@link #addUri(String)} to unzip it. No initialization
+     * vector.
+     * @param cipherText
+     * @return
+     */
+    public static byte[] decrypt(byte[] cipherText, byte[] iv, SecretKey key) throws Exception {
+        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
+        IvParameterSpec ivspec = new IvParameterSpec(iv);
+        cipher.init(Cipher.DECRYPT_MODE, key, ivspec);
+        byte[] plainText = cipher.doFinal(cipherText);
+        Log.d(TAG, "plainText: " + bToS(plainText) + ", cipherText: " + bToS(cipherText));
+        return plainText;
+    }
+
+    /**
+     * Test routine to encrypt a string
+     * @param plainText
+     * @return
+     */
+    public static Pair<byte[],byte[]> encrypt(byte[] plainText, SecretKey key) throws Exception {
+        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        byte[] cipherText = cipher.doFinal(plainText);
+        key.getEncoded();
+        byte[] iv = cipher.getIV();
+        Log.d(TAG, "plainText: " + bToS(plainText) + ", cipherText: " + bToS(cipherText));
+        Log.d(TAG, "IV: " + bToS(iv));
+        Pair<byte[], byte[] > m = new Pair<>(cipherText, iv);
+        return m;
+    }
+
+    /**
+     * Base64 encoding of input byte
+     * @param in
+     * @return
+     */
+    public static String bToS(byte[] in) {
+        return Base64.encodeToString(in, Base64.DEFAULT);
+    }
+
+    /**
+     * decode a string into its byte.
+     * @param in
+     * @return
+     */
+    public static byte[] STob(String in) {
+        return Base64.decode(in, Base64.DEFAULT);
+    }
 }

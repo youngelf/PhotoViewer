@@ -13,12 +13,21 @@ public class Album {
      */
     @PrimaryKey
     private int id;
+
     /**
      * Remote location where this download was requested from. This remote location might
      * not exist as the provider could delete the file.
      */
     @ColumnInfo(name = "remote_location")
     private String remoteLocation;
+
+    /**
+     * Local location where this download is unpacked to. The local location should exist for
+     * this entry to be in the database.
+     */
+    @ColumnInfo(name = "local_location")
+    private String localLocation;
+
     /**
      * Name of the unpacked location within /sdcard/Pictures/Eggwall/ for us to be able
      * to pick up this album.
@@ -81,5 +90,13 @@ public class Album {
     @Override
     public String toString() {
         return "Album: " + name + ", id: " + id + ", from " + remoteLocation;
+    }
+
+    public String getLocalLocation() {
+        return localLocation;
+    }
+
+    public void setLocalLocation(String localLocation) {
+        this.localLocation = localLocation;
     }
 }
