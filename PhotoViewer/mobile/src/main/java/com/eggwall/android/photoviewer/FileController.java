@@ -3,16 +3,13 @@ package com.eggwall.android.photoviewer;
 import android.content.Context;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
-import android.util.Base64;
 import android.util.Log;
-import android.util.Pair;
 
 import com.eggwall.android.photoviewer.data.AlbumDatabase;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,20 +18,12 @@ import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-
 import static java.io.File.separatorChar;
 
 /**
  * Controls access to files and allows next/previous access to files
  */
 class FileController {
-    private static final String TAG = "FileController";
 
     /**
      * Name of the subdirectory in the main folder containing photos
@@ -42,6 +31,7 @@ class FileController {
      */
     private final static String PICTURES_DIR = "eggwall";
     public static final String AES_CBC_PKCS5_PADDING = "AES/CBC/PKCS5PADDING";
+    private static final String TAG = "FileController";
 
     /**
      * An instance of the database where I will include information about the files and albums.
@@ -362,128 +352,4 @@ class FileController {
         return true;
     }
 
-
-    /**
-     * Decrypt a zip file, and then ask {@link #addUri(String)} to unzip it. No initialization
-     * vector.
-     * @param cipherText
-     * @return
-     */
-    public static byte[] decrypt(byte[] cipherText, byte[] iv, SecretKey key) throws Exception {
-        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
-        IvParameterSpec ivspec = new IvParameterSpec(iv);
-        cipher.init(Cipher.DECRYPT_MODE, key, ivspec);
-        byte[] plainText = cipher.doFinal(cipherText);
-        Log.d(TAG, "plainText: " + bToS(plainText) + ", cipherText: " + bToS(cipherText));
-        return plainText;
-    }
-
-    /**
-     * Test routine to encrypt a string
-     * @param plainText
-     * @return
-     */
-    public static Pair<byte[],byte[]> encrypt(byte[] plainText, SecretKey key) throws Exception {
-        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
-        cipher.init(Cipher.ENCRYPT_MODE, key);
-        byte[] cipherText = cipher.doFinal(plainText);
-        key.getEncoded();
-        byte[] iv = cipher.getIV();
-        Log.d(TAG, "plainText: " + bToS(plainText) + ", cipherText: " + bToS(cipherText));
-        Log.d(TAG, "IV: " + bToS(iv));
-        Pair<byte[], byte[] > m = new Pair<>(cipherText, iv);
-        return m;
-    }
-
-    /**
-     * Decrypt a file, and then ask {@link #addUri(String)} to unzip it. No initialization
-     * vector.
-     * @param
-     * @return
-     */
-    public static boolean decrypt(String cipherPath, byte[] iv, SecretKey key, String plainPath) throws Exception {
-        // Open the input file
-        File cipherFile = new File(cipherPath);
-
-
-        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
-        IvParameterSpec ivspec = new IvParameterSpec(iv);
-        cipher.init(Cipher.DECRYPT_MODE, key, ivspec);
-        FileInputStream fis = new FileInputStream(cipherFile);
-        BufferedInputStream bis = new BufferedInputStream(fis);
-        CipherInputStream cis = new CipherInputStream(bis, cipher);
-
-        // Create a file to write to.
-        File toWrite = new File(plainPath);
-        final int fourMegs = 4 * 1024 * 1024;
-        byte[] buffer = new byte[fourMegs];
-        boolean couldCreate = toWrite.createNewFile();
-        if (!couldCreate) {
-            Log.d(TAG, "Could not create file " + plainPath);
-            return false;
-        }
-        BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(toWrite));
-        int numBytes;
-        while ((numBytes = cis.read(buffer)) > 0) {
-            out.write(buffer, 0, numBytes);
-        }
-        out.close();
-        Log.d(TAG, "Wrote plainText: " + plainPath);
-        return true;
-    }
-
-    /**
-     * Decrypt a file, and then ask {@link #addUri(String)} to unzip it. No initialization
-     * vector.
-     * @param
-     * @return
-     */
-    public static byte[]  encrypt(String plainPath, SecretKey key, String cipherPath) throws Exception {
-        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
-        cipher.init(Cipher.ENCRYPT_MODE, key);
-        byte[] iv = cipher.getIV();
-        File f = new File(plainPath);
-        FileInputStream fis = new FileInputStream(f);
-
-        File toWrite = new File(cipherPath);
-        final int fourMegs = 4 * 1024 * 1024;
-        byte[] buffer = new byte[fourMegs];
-
-        boolean couldCreate = toWrite.createNewFile();
-        if (!couldCreate) {
-            Log.d(TAG, "Could not create the new file " + cipherPath);
-            return null;
-        }
-        BufferedInputStream bis = new BufferedInputStream(fis);
-        FileOutputStream fos = new FileOutputStream(toWrite);
-        BufferedOutputStream bos = new BufferedOutputStream(fos);
-        CipherOutputStream cos = new CipherOutputStream(bos, cipher);
-
-        int numBytes;
-        while ((numBytes = bis.read(buffer)) > 0) {
-            Log.d(TAG, "encrypt read " + numBytes + " bytes.");
-            cos.write(buffer, 0, numBytes);
-        }
-        cos.close();
-        Log.d(TAG, "Wrote plainText: " + cipherPath);
-        return iv;
-    }
-
-    /**
-     * Base64 encoding of input byte
-     * @param in
-     * @return
-     */
-    public static String bToS(byte[] in) {
-        return Base64.encodeToString(in, Base64.DEFAULT);
-    }
-
-    /**
-     * decode a string into its byte.
-     * @param in
-     * @return
-     */
-    public static byte[] STob(String in) {
-        return Base64.decode(in, Base64.DEFAULT);
-    }
 }

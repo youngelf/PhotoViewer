@@ -22,16 +22,23 @@ import com.eggwall.android.photoviewer.data.AlbumDao;
 import com.eggwall.android.photoviewer.data.AlbumDatabase;
 import com.google.common.base.Charsets;
 
-import java.io.File;
 import java.util.ArrayList;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 
 /*
- * TODO: Unzip a file.
- * TODO: Allow traversing existing file structure.
  * TODO: Delete oldest file: LRU cache.
+ * TODO: Read keys and RSS-like locations from a bar code.
+ * TODO: Store keys and associated information in the database.
+ * TODO: Periodically poll the RSS feed for new content.
+ * TODO:    GCM cloud messaging to avoid polling.
+ * TODO: Some unique ID to separate two feeds from one another.
+ * TODO: A UI to show all the albums (today only one is shown)
+ * TODO: Showing slideshow state, and allowing slideshow to stop.
+ * TODO: Settings activity to change slideshow duration, auto-start newest, download frequency, etc
+ * TODO: Desktop application to create these image files.
+ * TODO: pinch-zoom on an image.
+ * TODO: Diagnostics in the app to find what's wrong.
  */
 
 /**
@@ -122,31 +129,29 @@ decryptFileTest();
 
     /**
      * Simple method to test encryption and decryption and show a result to the user.
-     * @return
+     * @return true if the test passed
      */
     boolean decryptTextTest() {
-        // Let's experiment with a given key.
+        // Let's experiment with a given Base64 encoded key.
         String keyHardcode="SOh7N8bl1R5ZoJrGLzhzjA==";
 
         // And let's try out encrypting and decrypting
         try {
-            SecretKey skey = new SecretKeySpec(FileController.STob(keyHardcode), "AES");
+            SecretKey skey = CryptoRoutines.keyFromString(keyHardcode);
 
-            // We could generate it like this.
-            // SecretKey skey = KeyGenerator.getInstance("AES").generateKey();
-            String key = FileController.bToS(skey.getEncoded());
+            String key = CryptoRoutines.bToS(skey.getEncoded());
             Log.d(TAG, "I generated this crazy long key: " + key);
             String expected = "This is a long message";
             byte[] testMessage = expected.getBytes(Charsets.UTF_8);
-            Pair<byte[],byte[]> m = FileController.encrypt(testMessage, skey);
+            Pair<byte[],byte[]> m = CryptoRoutines.encrypt(testMessage, skey);
 
             byte[] cipherText = m.first;
             byte[] iv = m.second;
             // Let's print that out, and see what we can do with it.
-            Log.d(TAG, "I got cipherText " + FileController.bToS(cipherText));
+            Log.d(TAG, "I got cipherText " + CryptoRoutines.bToS(cipherText));
 
             // And decrypt
-            byte[] plainText = FileController.decrypt(cipherText, iv, skey);
+            byte[] plainText = CryptoRoutines.decrypt(cipherText, iv, skey);
             // And let's print that out.
             String observed = new String(plainText, Charsets.UTF_8);
             Log.d(TAG, "I got this message back: " + observed);
@@ -166,51 +171,7 @@ decryptFileTest();
 
     /**
      * Simple method to test encryption and decryption of a stream and show a result to the user.
-     * @return
-     */
-    boolean decryptStreamTest() {
-        // Let's experiment with a given key.
-        String keyHardcode="SOh7N8bl1R5ZoJrGLzhzjA==";
-
-        // And let's try out encrypting and decrypting
-        try {
-            SecretKey skey = new SecretKeySpec(FileController.STob(keyHardcode), "AES");
-
-            // We could generate it like this.
-            // SecretKey skey = KeyGenerator.getInstance("AES").generateKey();
-            String key = FileController.bToS(skey.getEncoded());
-            Log.d(TAG, "I generated this crazy long key: " + key);
-            String expected = "This is a long message";
-            byte[] testMessage = expected.getBytes(Charsets.UTF_8);
-            Pair<byte[],byte[]> m = FileController.encrypt(testMessage, skey);
-
-            byte[] cipherText = m.first;
-            byte[] iv = m.second;
-            // Let's print that out, and see what we can do with it.
-            Log.d(TAG, "I got cipherText " + FileController.bToS(cipherText));
-
-            // And decrypt
-            byte[] plainText = FileController.decrypt(cipherText, iv, skey);
-            // And let's print that out.
-            String observed = new String(plainText, Charsets.UTF_8);
-            Log.d(TAG, "I got this message back: " + observed);
-
-            if (expected.matches(observed)) {
-                Log.d(TAG, "Test PASSED");
-                return true;
-            } else {
-                Log.d(TAG, "Test Failed!");
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    /**
-     * Simple method to test encryption and decryption of a stream and show a result to the user.
-     * @return
+     * @return true if the test passed
      */
     boolean decryptFileTest() {
         // Let's experiment with a given key.
@@ -219,11 +180,9 @@ decryptFileTest();
 
         // And let's try out encrypting and decrypting
         try {
-            SecretKey skey = new SecretKeySpec(FileController.STob(keyHardcode), "AES");
+            SecretKey skey = CryptoRoutines.keyFromString(keyHardcode);
 
-            // We could generate it like this.
-            // SecretKey skey = KeyGenerator.getInstance("AES").generateKey();
-            String key = FileController.bToS(skey.getEncoded());
+            String key = CryptoRoutines.bToS(skey.getEncoded());
             Log.d(TAG, "I generated this crazy long key: " + key);
             String expected = "This is a long message";
             String plainPath = Environment.getExternalStorageDirectory().getPath().concat("/")
@@ -235,17 +194,17 @@ decryptFileTest();
 //                Log.d(TAG, "Old cipher file deleted.");
 //            }
 
-            byte[] iv = FileController.encrypt(plainPath, skey, cipherPath);
+            byte[] iv = CryptoRoutines.encrypt(plainPath, skey, cipherPath);
             if (iv == null) {
                 Log.d(TAG, "Encryption failed");
                 return false;
             }
-            Log.d(TAG, "Encryption succeeded. IV = " + FileController.bToS(iv));
+            Log.d(TAG, "Encryption succeeded. IV = " + CryptoRoutines.bToS(iv));
 
             // Try to decrypt.
             String testPlainPath = Environment.getExternalStorageDirectory().getPath().concat("/")
                     .concat("test.txt");
-            boolean result = FileController.decrypt(cipherPath, iv, skey, testPlainPath);
+            boolean result = CryptoRoutines.decrypt(cipherPath, iv, skey, testPlainPath);
             if (!result) {
                 Log.d(TAG, "Decryption failed for  " + testPlainPath);
                 return false;
