@@ -1,8 +1,11 @@
 package com.eggwall.android.photoviewer;
 
+import android.os.Environment;
 import android.util.Base64;
 import android.util.Log;
 import android.util.Pair;
+
+import com.google.common.base.Charsets;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -116,7 +119,8 @@ class CryptoRoutines {
      * @return the byte array containing the initialization vector.
      * @throws Exception
      */
-    public static byte[] encrypt(String plainPath, SecretKey key, String cipherPath) throws Exception {
+    public static byte[] encrypt(String plainPath, SecretKey key, String cipherPath)
+            throws Exception {
         Cipher cipher = Cipher.getInstance(FileController.AES_CBC_PKCS5_PADDING);
         cipher.init(Cipher.ENCRYPT_MODE, key);
         byte[] iv = cipher.getIV();
@@ -186,5 +190,97 @@ class CryptoRoutines {
      */
     public static SecretKey keyFromString(String in) {
         return new SecretKeySpec(STob(in), "AES");
+    }
+
+
+    /**
+     * Simple method to test encryption and decryption and show a result to the user.
+     * @return true if the test passed
+     */
+    public static boolean decryptTextTest() {
+        // Let's experiment with a given Base64 encoded key.
+        String keyHardcode="SOh7N8bl1R5ZoJrGLzhzjA==";
+
+        // And let's try out encrypting and decrypting
+        try {
+            SecretKey skey = keyFromString(keyHardcode);
+
+            String key = bToS(skey.getEncoded());
+            Log.d(TAG, "I generated this crazy long key: " + key);
+            String expected = "This is a long message";
+            byte[] testMessage = expected.getBytes(Charsets.UTF_8);
+            Pair<byte[],byte[]> m = encrypt(testMessage, skey);
+
+            byte[] cipherText = m.first;
+            byte[] iv = m.second;
+            // Let's print that out, and see what we can do with it.
+            Log.d(TAG, "I got cipherText " + bToS(cipherText));
+
+            // And decrypt
+            byte[] plainText = decrypt(cipherText, iv, skey);
+            // And let's print that out.
+            String observed = new String(plainText, Charsets.UTF_8);
+            Log.d(TAG, "I got this message back: " + observed);
+
+            if (expected.matches(observed)) {
+                Log.d(TAG, "Test PASSED");
+                return true;
+            } else {
+                Log.d(TAG, "Test Failed!");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Simple method to test encryption and decryption of a stream and show a result to the user.
+     * @return true if the test passed
+     */
+    public static boolean decryptFileTest() {
+        // Let's experiment with a given key.
+        String keyHardcode="SOh7N8bl1R5ZoJrGLzhzjA==";
+
+
+        // And let's try out encrypting and decrypting
+        try {
+            SecretKey skey = keyFromString(keyHardcode);
+
+            String key = bToS(skey.getEncoded());
+            Log.d(TAG, "I generated this crazy long key: " + key);
+            String expected = "This is a long message";
+            String plainPath = Environment.getExternalStorageDirectory().getPath().concat("/")
+                    .concat("plain.txt");
+            String cipherPath = Environment.getExternalStorageDirectory().getPath().concat("/")
+                    .concat("cipher.txt");
+            // First, delete the file.
+//            if ((new File(cipherPath)).delete()) {
+//                Log.d(TAG, "Old cipher file deleted.");
+//            }
+
+            byte[] iv = encrypt(plainPath, skey, cipherPath);
+            if (iv == null) {
+                Log.d(TAG, "Encryption failed");
+                return false;
+            }
+            Log.d(TAG, "Encryption succeeded. IV = " + bToS(iv));
+
+            // Try to decrypt.
+            String testPlainPath = Environment.getExternalStorageDirectory().getPath().concat("/")
+                    .concat("test.txt");
+            boolean result = decrypt(cipherPath, iv, skey, testPlainPath);
+            if (!result) {
+                Log.d(TAG, "Decryption failed for  " + testPlainPath);
+                return false;
+            }
+            // TODO: Check here to see if the file has some text in there.
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        // And now delete the file.
+        return false;
     }
 }
