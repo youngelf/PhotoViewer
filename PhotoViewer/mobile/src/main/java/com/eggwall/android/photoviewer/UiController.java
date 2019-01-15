@@ -129,6 +129,9 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         } else if (id == R.id.nav_slideshow) {
             mSlideShowStatus = setSlideshow(!mSlideShowStatus);
+
+            // Set the state of item to show if the slideshow is playing or paused
+            item.setIcon(mSlideShowStatus ? R.drawable.ic_pause : R.drawable.ic_play);
         } else if (id == R.id.nav_manage) {
             // Download a zip file from somewhere and unzip it
             mFileController.addUri("http://192.168.11.122/images.zip");

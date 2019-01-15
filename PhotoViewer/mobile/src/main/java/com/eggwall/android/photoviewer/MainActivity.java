@@ -3,6 +3,7 @@ package com.eggwall.android.photoviewer;
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
      * we'll get in onRequestPermissionResult.
      */
     public static final int REQUEST_WRITE_EXTERNAL_STORAGE = 80;
+
     /**
      * Unique code given to the Write External Storage permission request to match the result that
      * we'll get in onRequestPermissionResult.
@@ -60,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
 
     // TODO: The common_google_play_services stuff here is bad, and needs to be removed and real
     // wording introduced.
-    
+
     // Temporarily, all permissions on creation
     private void requestWriteExternalStoragePermission() {
         // Should we show an explanation?
@@ -110,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
                     REQUEST_READ_EXTERNAL_STORAGE);
         }
     }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -137,6 +140,10 @@ public class MainActivity extends AppCompatActivity {
         // Let's try out the database code
         DbTester s = new DbTester(this);
         s.execute();
+
+        Intent i = getIntent();
+        Log.d(TAG, "Action = " + i.getAction());
+        Log.d(TAG, "Data = " + i.getData());
 
         CryptoRoutines.decryptTextTest();
         CryptoRoutines.decryptFileTest();
