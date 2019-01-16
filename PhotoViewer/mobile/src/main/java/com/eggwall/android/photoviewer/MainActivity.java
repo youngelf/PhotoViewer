@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
@@ -21,6 +22,7 @@ import com.eggwall.android.photoviewer.data.AlbumDao;
 import com.eggwall.android.photoviewer.data.AlbumDatabase;
 
 import java.util.ArrayList;
+import java.util.Set;
 
 /*
  * TODO: Delete oldest file: LRU cache.
@@ -141,12 +143,52 @@ public class MainActivity extends AppCompatActivity {
         DbTester s = new DbTester(this);
         s.execute();
 
-        Intent i = getIntent();
-        Log.d(TAG, "Action = " + i.getAction());
-        Log.d(TAG, "Data = " + i.getData());
+        Uri toDownload = getDownloadInfo(getIntent());
+        if (toDownload != null) {
+            Log.d(TAG, "I'm going to download this URL now: " + toDownload);
+            // Now download that URL and switch over to that screen.
+        }
 
         CryptoRoutines.decryptTextTest();
         CryptoRoutines.decryptFileTest();
+    }
+
+    /**
+     * Get the URL to download from the intent this application was started from.
+     * @param i
+     * @return
+     */
+    Uri getDownloadInfo(Intent i) {
+        String action = i.getAction();
+        Log.d(TAG, "Action = " + action);
+        // Data = photoviewer://eggwall/test?q=this
+        Log.d(TAG, "Data = " + i.getData());
+
+        String KEY_NAME = "src";
+        Uri toReturn = null;
+        // Unpack the actual URL from that data string
+        Uri uri = i.getData();
+        if (uri == null) {
+            return toReturn;
+        }
+
+        String scheme = uri.getScheme();
+        Log.d(TAG, "Scheme = " + scheme);
+        String path = uri.getPath();
+        Log.d(TAG, "Path = " + path);
+        String PHOTOVIEWER = "photoviewer";
+        if (action.equals(Intent.ACTION_VIEW)
+                && scheme != null
+                && scheme.equals(PHOTOVIEWER)
+                && path != null) {
+            // Something we can act on
+            Set<String> names = uri.getQueryParameterNames();
+            if (names.contains(KEY_NAME)) {
+                String encoded = uri.getQueryParameter(KEY_NAME);
+                toReturn = Uri.parse(Uri.decode(encoded));
+            }
+        }
+        return toReturn;
     }
 
     static class DbTester extends AsyncTask<Void, Void, Void> {
