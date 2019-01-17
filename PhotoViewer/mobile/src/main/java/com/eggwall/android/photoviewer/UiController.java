@@ -50,9 +50,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     private static final String TAG = "UiController";
 
-    private int mSysUiBaseVisibility = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-            SYSTEM_UI_FLAG_LAYOUT_STABLE;
-
+    /** Magic View. constant that says no system UI at all. */
     private static final int SYSUI_INVISIBLE = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -60,10 +58,12 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             | View.SYSTEM_UI_FLAG_FULLSCREEN
             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
 
+    /** Magic View. constant that says show the system UI. */
     private static final int SYSUI_VISIBLE = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
 
+    /** Runnable to hide the System UI. */
     private final Runnable hideSysUi = new Runnable() {
         @Override
         public void run() {
@@ -71,6 +71,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
     };
 
+    /** Runnable to hide the navigation bar (Action Bar) */
     private final Runnable hideNav = new Runnable() {
         @Override
         public void run() {
@@ -78,10 +79,15 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
     };
 
+    /** The Activity that we are controlling and that created us. */
     private final MainActivity mMainActivity;
-    private final FileController mFileController;
+
+    /** The orchestrator that will show next image or previous image based on button presses. */
+    private final MainController mainController;
 
     private final Handler mHandler = new Handler();
+
+    // Required for handling swipe gestures.
     private final GestureDetector.OnGestureListener mGestureListener = new FlingDetector();
 
     // References to on-screen elements
@@ -90,6 +96,16 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     private AppCompatImageView mImageView;
     private Toolbar mToolbar;
     private DrawerLayout mDrawer;
+
+    /**
+     * Current system UI visibility. Stored because we get UI visibility changes in different
+     * methods and we need to keep track of the prior visibility.
+     */
+    private int mSysUiVisibility = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+            SYSTEM_UI_FLAG_LAYOUT_STABLE;
+
+    /** True if the slide show is currently on auto-play mode. */
+    private boolean mSlideShowStatus = false;
 
     private int mLastSystemUiVis = 0;
     private GestureDetectorCompat mDetector;
@@ -105,10 +121,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
             if (v < -2000) {
                 Log.d("MainActivity", "PREV image");
-                updateImage(UiConstants.PREV, true);
+                mainController.updateImage(UiConstants.PREV, true);
             } else if (v > 2000) {
                 Log.d("MainActivity", "NEXT image");
-                updateImage(UiConstants.NEXT, true);
+                mainController.updateImage(UiConstants.NEXT, true);
             }
             Log.d("MainActivity", "Listener detected fling (" + v + " , " + v1 + ").");
             return true;
@@ -116,7 +132,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
     }
 
-    private boolean mSlideShowStatus = false;
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
@@ -133,16 +148,16 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             // Set the state of item to show if the slideshow is playing or paused
             item.setIcon(mSlideShowStatus ? R.drawable.ic_pause : R.drawable.ic_play);
         } else if (id == R.id.nav_manage) {
-            // Download a zip file from somewhere and unzip it
-            mFileController.addUri("http://192.168.11.122/images.zip");
+            // Download a zip file from somewhere and unzip it.
+            // TODO: make this pop out a dialog instead.
+            // mFileController.addUri("http://192.168.11.122/images.zip");
         } else if (id == R.id.nav_share) {
 
         } else if (id == R.id.nav_send) {
 
         }
 
-        DrawerLayout drawer = mMainActivity.findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
+        mDrawer.closeDrawer(GravityCompat.START);
         return true;
     }
 
@@ -168,21 +183,11 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     /**
      * Update the image by providing an offset
      *
+     * @param nextFile The path of the next file to display.
      * @param offset  is either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
-     * @param showFab
+     * @param showFab True if the Floating Action Bar should be shown, false if it should be hidden.
      */
-    private void updateImage(int offset, boolean showFab) {
-        if (offset != UiConstants.NEXT && offset != UiConstants.PREV) {
-            Log.e(TAG, "updateImage: Incorrect offset provided: " + offset);
-            System.exit(-1);
-            return;
-        }
-
-        boolean selfSampling = true;
-
-        String nextFile = mFileController.getFile(offset);
-        Log.d(TAG, "updateImage: next file is: " + nextFile);
-
+     void updateImage(String nextFile, int offset, boolean showFab) {
         // Calculate how big the bitmap is
         BitmapFactory.Options opts = new BitmapFactory.Options();
         // Just calculate how big the file is to learn the sizes
@@ -312,7 +317,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     }
 
     void setBaseSystemUiVisibility(int visibility) {
-        mSysUiBaseVisibility = visibility;
+        mSysUiVisibility = visibility;
     }
 
     /**
@@ -347,8 +352,12 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         mHandler.postDelayed(hideSysUi, 5000);
     }
 
+    /**
+     * Set the navigation bar visibility to the value here.
+     * @param visible true if the navigation bar is to be shown.
+     */
     private void setNavVisibility(boolean visible) {
-        int newVis = mSysUiBaseVisibility;
+        int newVis = mSysUiVisibility;
         if (!visible) {
             newVis |= SYSTEM_UI_FLAG_LOW_PROFILE | SYSTEM_UI_FLAG_FULLSCREEN;
         }
@@ -382,14 +391,20 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
     };
 
-    UiController(MainActivity mainActivity, FileController fileController) {
+    UiController(MainActivity mainActivity, MainController mainController) {
         this.mMainActivity = mainActivity;
-        this.mFileController = fileController;
+        this.mainController = mainController;
     }
 
+    /**
+     * Handler for window focus changes.
+     * @param hasFocus
+     */
     void onWindowFocusChanged(boolean hasFocus) {
         if (hasFocus) {
             hideSystemUI();
+        } else {
+            showSystemUI();
         }
     }
 
@@ -410,7 +425,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         final Runnable showFirstImage = new Runnable() {
             @Override
             public void run() {
-                updateImage(UiConstants.NEXT, false);
+                mainController.updateImage(UiConstants.NEXT, false);
             }
         };
 
@@ -486,7 +501,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     private final Runnable mShowNext = new Runnable() {
         @Override
         public void run() {
-            updateImage(UiConstants.NEXT, false);
+            mainController.updateImage(UiConstants.NEXT, false);
             // New image every 10 seconds.
             mHandler.postDelayed(this, 10000);
         }
@@ -525,7 +540,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             v.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    updateImage(action, true);
+                    mainController.updateImage(action, true);
                 }
             });
         }

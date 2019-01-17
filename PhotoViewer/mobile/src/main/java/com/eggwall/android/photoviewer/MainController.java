@@ -62,7 +62,7 @@ public class MainController {
         // three of them be entirely separate.
         fileC = new FileController(mainActivity);
 
-        uiC = new UiController(mainActivity, fileC);
+        uiC = new UiController(mainActivity, this);
         uiC.createController();
 
         created = true;
@@ -106,5 +106,22 @@ public class MainController {
 
     }
 
+    /**
+     * Update the image by providing an offset
+     *
+     * @param offset  is either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
+     * @param showFab
+     */
+    void updateImage(int offset, boolean showFab) {
+        if (offset != UiConstants.NEXT && offset != UiConstants.PREV) {
+            Log.e(TAG, "updateImage: Incorrect offset provided: " + offset);
+            System.exit(-1);
+            return;
+        }
 
+        String nextFile = fileC.getFile(offset);
+        Log.d(TAG, "updateImage: next file is: " + nextFile);
+
+        uiC.updateImage(nextFile, offset, showFab);
+    }
 }
