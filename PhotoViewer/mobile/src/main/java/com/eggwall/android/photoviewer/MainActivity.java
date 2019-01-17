@@ -21,7 +21,6 @@ import com.eggwall.android.photoviewer.data.Album;
 import com.eggwall.android.photoviewer.data.AlbumDao;
 import com.eggwall.android.photoviewer.data.AlbumDatabase;
 
-import java.util.ArrayList;
 import java.util.Set;
 
 /*
@@ -47,7 +46,8 @@ public class MainActivity extends AppCompatActivity {
     boolean keepScreenOn = true;
     public static final String TAG = "MainActivity";
 
-    UiController uiController;
+    // One side benefit of calling it Main Controller that the object itself is the MC.
+    MainController mc;
 
     // TODO: Need to write the onRequestPermissionResult work.
     /**
@@ -127,17 +127,10 @@ public class MainActivity extends AppCompatActivity {
         requestReadExternalStoragePermission();
         requestWriteExternalStoragePermission();
 
-        FileController fileController = new FileController(this);
-        ArrayList<String> galleriesList = fileController.getGalleriesList();
-        if (galleriesList.size() >= 1) {
-            // Select the first directory.
-            fileController.setDirectory(galleriesList.get(0));
-        }
+        mc = new MainController();
+        mc.create(this);
 
-        Log.d(TAG, "The next file is: " + fileController.getFile(UiConstants.NEXT));
-
-        uiController = new UiController(this, fileController);
-        uiController.createController();
+        mc.showInitial();
 
         // Let's try out the database code
         DbTester s = new DbTester(this);
@@ -249,7 +242,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        uiController.onWindowFocusChanged(hasFocus);
+        mc.onWindowFocusChanged(hasFocus);
     }
 
 }
