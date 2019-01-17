@@ -3,7 +3,6 @@ package com.eggwall.android.photoviewer;
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -20,8 +19,6 @@ import android.view.WindowManager;
 import com.eggwall.android.photoviewer.data.Album;
 import com.eggwall.android.photoviewer.data.AlbumDao;
 import com.eggwall.android.photoviewer.data.AlbumDatabase;
-
-import java.util.Set;
 
 /*
  * TODO: Delete oldest file: LRU cache.
@@ -44,7 +41,7 @@ import java.util.Set;
  */
 public class MainActivity extends AppCompatActivity {
     boolean keepScreenOn = true;
-    public static final String TAG = "MainActivity";
+    private static final String TAG = "MainActivity";
 
     // One side benefit of calling it Main Controller that the object itself is the MC.
     MainController mc;
@@ -129,59 +126,22 @@ public class MainActivity extends AppCompatActivity {
 
         mc = new MainController();
         mc.create(this);
-
         mc.showInitial();
 
+
+        // This stuff needs to move to the MC as well.
         // Let's try out the database code
         DbTester s = new DbTester(this);
         s.execute();
 
-        Uri toDownload = getDownloadInfo(getIntent());
-        if (toDownload != null) {
+        Uri toDownload = NetworkRoutines.getDownloadInfo(getIntent());
+        if (toDownload != Uri.EMPTY) {
             Log.d(TAG, "I'm going to download this URL now: " + toDownload);
             // Now download that URL and switch over to that screen.
         }
 
         CryptoRoutines.decryptTextTest();
         CryptoRoutines.decryptFileTest();
-    }
-
-    /**
-     * Get the URL to download from the intent this application was started from.
-     * @param i
-     * @return
-     */
-    Uri getDownloadInfo(Intent i) {
-        String action = i.getAction();
-        Log.d(TAG, "Action = " + action);
-        // Data = photoviewer://eggwall/test?q=this
-        Log.d(TAG, "Data = " + i.getData());
-
-        String KEY_NAME = "src";
-        Uri toReturn = null;
-        // Unpack the actual URL from that data string
-        Uri uri = i.getData();
-        if (uri == null) {
-            return toReturn;
-        }
-
-        String scheme = uri.getScheme();
-        Log.d(TAG, "Scheme = " + scheme);
-        String path = uri.getPath();
-        Log.d(TAG, "Path = " + path);
-        String PHOTOVIEWER = "photoviewer";
-        if (action.equals(Intent.ACTION_VIEW)
-                && scheme != null
-                && scheme.equals(PHOTOVIEWER)
-                && path != null) {
-            // Something we can act on
-            Set<String> names = uri.getQueryParameterNames();
-            if (names.contains(KEY_NAME)) {
-                String encoded = uri.getQueryParameter(KEY_NAME);
-                toReturn = Uri.parse(Uri.decode(encoded));
-            }
-        }
-        return toReturn;
     }
 
     static class DbTester extends AsyncTask<Void, Void, Void> {

@@ -14,6 +14,7 @@ package com.eggwall.android.photoviewer;
 // Ideally, the interfaces that the others provide are crisp enough that we can understand the
 // functionality here on its own merit.
 
+import android.net.Uri;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -27,9 +28,26 @@ public class MainController {
 
     private boolean created = false;
 
+    /** Object responsible for downloading files, and telling you what is available. */
     private FileController fileC = null;
+
+    /** Object responsible for controlling the User Interface, refreshing them, etc. */
     private UiController uiC = null;
 
+
+    /**
+     * Verify that the object was created before use.
+     * @return true if created, false otherwise.
+     * @param expectedValue
+     */
+    private boolean assertCheckIs(boolean expectedValue) {
+        if (created != expectedValue) {
+            // During development, crash pretty hard.
+            Log.wtf(TAG, "Assertion failed! Expected create = " + expectedValue, new Error());
+            return false;
+        }
+        return true;
+    }
 
     /**
      * Creates and initializes a {@link MainController}. Before this method is called, no other
@@ -78,17 +96,15 @@ public class MainController {
         uiC.onWindowFocusChanged(hasFocus);
     }
 
+    // Methods that we need
+
     /**
-     * Verify that the object was created before use.
-     * @return true if created, false otherwise.
-     * @param expectedValue
+     * Downloads a URI, unzips, unpacks, and then displays it.
+     * @param in
      */
-    private boolean assertCheckIs(boolean expectedValue) {
-        if (created != expectedValue) {
-            // During development, crash pretty hard.
-            Log.wtf(TAG, "Assertion failed! Expected create = " + expectedValue, new Error());
-            return false;
-        }
-        return true;
+    void downloadLocation(Uri in) {
+
     }
+
+
 }
