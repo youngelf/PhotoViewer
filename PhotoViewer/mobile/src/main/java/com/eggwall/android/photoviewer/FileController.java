@@ -24,13 +24,11 @@ import static java.io.File.separatorChar;
  * Controls access to files and allows next/previous access to files
  */
 class FileController {
-
     /**
      * Name of the subdirectory in the main folder containing photos
      * TODO: Change this.
      */
     private final static String PICTURES_DIR = "eggwall";
-    public static final String AES_CBC_PKCS5_PADDING = "AES/CBC/PKCS5PADDING";
     private static final String TAG = "FileController";
 
     /**
@@ -61,14 +59,11 @@ class FileController {
      */
     private int mCurrentImageIndex = INVALID_INDEX;
 
-    private final NetworkController mNetworkController;
-
     /**
      * Creates a new file controller and all the other objects it needs.
      * @param context
      */
     FileController(Context context) {
-        this.mNetworkController = new NetworkController(context);
         this.db = AlbumDatabase.getDatabase(context);
     }
 
@@ -127,8 +122,8 @@ class FileController {
         // At this point, we must have a directory, but let's check again to be sure.
         if (!galleryDir.isDirectory()) {
             // The directory doesn't exist, so fail now.
-            Log.d(TAG, "I thought I made a directory at " + galleryDir.getAbsolutePath() + " but " +
-                    "I couldn't");
+            Log.d(TAG, "I thought I made a directory at " + galleryDir.getAbsolutePath()
+                    + " but " + "I couldn't");
             return null;
         }
         mPicturesDir = galleryDir;
@@ -247,7 +242,20 @@ class FileController {
         return new File(mCurrentGallery, mCurrentGalleryList.get(mCurrentImageIndex)).getAbsolutePath();
     }
 
-    class Callback implements NetworkRequestComplete {
+    /**
+     * Handles the completion of a download. This class needs to unzip a file, perhaps decrypt
+     * it, etc. As a result, this is the responsibility of the {@link FileController}. This class
+     * needs to be static to ensure that no {@link Context} objects are leaking because these
+     * callbacks are retained by the {@link android.app.DownloadManager} which is external to this
+     * process.
+     *
+     * A constructor could be added to encode information it needs from the parent
+     * {@link FileController} object.
+     *
+     * To create an object, call {@link FileController#createNewCallback()} rather than directly
+     * calling the constructor.
+     */
+    static class Callback implements NetworkRequestComplete {
         @Override
         public void requestCompleted(String filename, ParcelFileDescriptor Uri) {
             // Unzip the file here.
@@ -331,25 +339,18 @@ class FileController {
             }
             // Now delete the original zip file.
         }
+
+        /** Hidden to force all creation through {@link FileController#createNewCallback()} */
+        private Callback() {
+            // Do nothing right now.
+        }
     }
 
     /**
-     * Requests adding a URI as a gallery.
-     *
-     * @param zipfileLocation URI to add as a gallery
-     * @return true if the gallery download is scheduled.
+     * Creates a new {@link Callback} object including any member-specified information.
+     * @return
      */
-    boolean addUri(String zipfileLocation) {
-        Callback callback = new Callback();
-
-        boolean status = mNetworkController.requestURI(zipfileLocation, callback);
-        if (!status) {
-            Log.e(TAG, "Could not download file " + zipfileLocation);
-            return false;
-        }
-        // We can't do anything else since we need to wait for the download to complete.
-        Log.d(TAG, "Download for " + zipfileLocation + " queued.");
-        return true;
+    Callback createNewCallback() {
+        return new Callback();
     }
-
 }

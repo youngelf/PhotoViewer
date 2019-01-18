@@ -43,9 +43,6 @@ public class MainActivity extends AppCompatActivity {
     boolean keepScreenOn = true;
     private static final String TAG = "MainActivity";
 
-    // One side benefit of calling it Main Controller that the object itself is the MC.
-    MainController mc;
-
     // TODO: Need to write the onRequestPermissionResult work.
     /**
      * Unique code given to the Write External Storage permission request to match the result that
@@ -58,6 +55,10 @@ public class MainActivity extends AppCompatActivity {
      * we'll get in onRequestPermissionResult.
      */
     public final int REQUEST_READ_EXTERNAL_STORAGE = 81;
+
+    // One side benefit of calling it Main Controller that the object itself is the MC.
+    /** The object that orchestrates the other controllers. */
+    private MainController mc;
 
     // TODO: The common_google_play_services stuff here is bad, and needs to be removed and real
     // wording introduced.
@@ -125,8 +126,15 @@ public class MainActivity extends AppCompatActivity {
         requestWriteExternalStoragePermission();
 
         mc = new MainController();
-        mc.create(this);
-        mc.showInitial();
+        if (!mc.create(this)) {
+            Log.e(TAG, "Could not construct a Main Controller", new Error());
+            // Nothing is going to work without a MainController.
+            System.exit(-1);
+        }
+
+        if (!mc.showInitial()) {
+            Log.e(TAG, "Could not show the first screen", new Error());
+        }
 
 
         // This stuff needs to move to the MC as well.

@@ -34,6 +34,8 @@ public class MainController {
     /** Object responsible for controlling the User Interface, refreshing them, etc. */
     private UiController uiC = null;
 
+    /** Downloads files from the network and knows how to unzip them. */
+    private NetworkController networkC;
 
     /**
      * Verify that the object was created before use.
@@ -64,6 +66,8 @@ public class MainController {
 
         uiC = new UiController(mainActivity, this);
         uiC.createController();
+
+        networkC = new NetworkController(mainActivity);
 
         created = true;
         return created;
@@ -102,8 +106,27 @@ public class MainController {
      * Downloads a URI, unzips, unpacks, and then displays it.
      * @param in
      */
-    void downloadLocation(Uri in) {
+    void addDownload(Uri in) {
 
+    }
+
+    /**
+     * Requests adding a URI as a gallery.
+     *
+     * @param zipfileLocation URI to add as a gallery
+     * @return true if the gallery download is scheduled.
+     */
+    boolean download(String zipfileLocation) {
+        // Once a download is finished, we need to handle the file. The filecontroller handles
+        // that.
+        boolean status = networkC.requestURI(zipfileLocation, fileC.createNewCallback());
+        if (!status) {
+            Log.e(TAG, "Could not download file " + zipfileLocation);
+            return false;
+        }
+        // We can't do anything else since we need to wait for the download to complete.
+        Log.d(TAG, "Download for " + zipfileLocation + " queued.");
+        return true;
     }
 
     /**

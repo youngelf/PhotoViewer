@@ -25,6 +25,9 @@ import javax.crypto.spec.SecretKeySpec;
 class CryptoRoutines {
     private static final String TAG = "CryptoRoutines";
 
+    /** AES Encryption with Block Cipher and PKCS5 padding */
+    static final String AES_CBC_PKCS5_PADDING = "AES/CBC/PKCS5PADDING";
+
     /**
      * Decrypt a byte array using AES with CBC, PKC5_PADDING.
      *
@@ -35,7 +38,7 @@ class CryptoRoutines {
      * @throws Exception
      */
     public static byte[] decrypt(byte[] cipherText, byte[] iv, SecretKey key) throws Exception {
-        Cipher cipher = Cipher.getInstance(FileController.AES_CBC_PKCS5_PADDING);
+        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
         IvParameterSpec ivspec = new IvParameterSpec(iv);
         cipher.init(Cipher.DECRYPT_MODE, key, ivspec);
         byte[] plainText = cipher.doFinal(cipherText);
@@ -55,7 +58,7 @@ class CryptoRoutines {
      * @throws Exception
      */
     public static Pair<byte[],byte[]> encrypt(byte[] plainText, SecretKey key) throws Exception {
-        Cipher cipher = Cipher.getInstance(FileController.AES_CBC_PKCS5_PADDING);
+        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
         cipher.init(Cipher.ENCRYPT_MODE, key);
         byte[] cipherText = cipher.doFinal(plainText);
         key.getEncoded();
@@ -83,7 +86,7 @@ class CryptoRoutines {
         File cipherFile = new File(cipherPath);
 
 
-        Cipher cipher = Cipher.getInstance(FileController.AES_CBC_PKCS5_PADDING);
+        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
         IvParameterSpec ivspec = new IvParameterSpec(iv);
         cipher.init(Cipher.DECRYPT_MODE, key, ivspec);
         FileInputStream fis = new FileInputStream(cipherFile);
@@ -121,7 +124,7 @@ class CryptoRoutines {
      */
     public static byte[] encrypt(String plainPath, SecretKey key, String cipherPath)
             throws Exception {
-        Cipher cipher = Cipher.getInstance(FileController.AES_CBC_PKCS5_PADDING);
+        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
         cipher.init(Cipher.ENCRYPT_MODE, key);
         byte[] iv = cipher.getIV();
         File f = new File(plainPath);
