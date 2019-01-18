@@ -239,7 +239,8 @@ class FileController {
             // Wrap around to the end.
             mCurrentImageIndex = lastIndex;
         }
-        return new File(mCurrentGallery, mCurrentGalleryList.get(mCurrentImageIndex)).getAbsolutePath();
+        return new File(mCurrentGallery, mCurrentGalleryList.get(mCurrentImageIndex))
+                .getAbsolutePath();
     }
 
     /**
@@ -284,9 +285,9 @@ class FileController {
             }
 
             if (result) {
-                Log.d(TAG, "Created a directory at " + freshGalleryDir.getAbsolutePath());
+                Log.d(TAG, "Created directory: " + freshGalleryDir.getAbsolutePath());
             } else {
-                Log.d(TAG, "FAILED to make a directory at " + freshGalleryDir.getAbsolutePath());
+                Log.d(TAG, "FAILED to make directory: " + freshGalleryDir.getAbsolutePath());
                 return;
             }
 

@@ -18,7 +18,6 @@ import java.io.FileNotFoundException;
 /**
  * Makes requests to the network to fetch new content.
  */
-
 class NetworkController {
     private static final String TAG = "NetworkController";
 
@@ -88,8 +87,6 @@ class NetworkController {
             }
 
             // File downloaded successfully.
-//            Toast.makeText(context, "Image Download Complete", Toast.LENGTH_LONG)
-//                    .show();
             Log.d(TAG, "Downloaded: " + mLocation);
 
             // Get the canonical name the DownloadManager has for it
