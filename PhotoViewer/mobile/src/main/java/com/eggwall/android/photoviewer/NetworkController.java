@@ -42,11 +42,11 @@ class NetworkController {
      */
     private class Receiver extends BroadcastReceiver {
         final long mRequestId;
-        final String mLocation;
+        final Uri mLocation;
         final String mFilename;
         final FileController.Callback mCallback;
 
-        public Receiver(long requestId, String location, String filename, FileController.Callback callWhenComplete) {
+        public Receiver(long requestId, Uri location, String filename, FileController.Callback callWhenComplete) {
             mRequestId = requestId;
             mLocation = location;
             mFilename = filename;
@@ -182,14 +182,14 @@ class NetworkController {
      * @param callWhenComplete
      * @return
      */
-    boolean requestURI(String location, FileController.Callback callWhenComplete) {
+    boolean requestURI(Uri location, FileController.Callback callWhenComplete) {
         // Let's not trust the file name provided to us, and let's write this as an ID that we
         // control.
         String filename = "x" + fileID + ".zip";
         fileID++;
 
         DownloadManager.Request request = new DownloadManager
-                .Request(Uri.parse(location))
+                .Request(location)
                 .setTitle("PhotoViewer: " + location)
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
                 .setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, filename);

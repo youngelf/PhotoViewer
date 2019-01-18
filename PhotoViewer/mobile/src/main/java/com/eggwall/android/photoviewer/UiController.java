@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
+import android.net.Uri;
 import android.os.Handler;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
@@ -150,7 +151,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         } else if (id == R.id.nav_manage) {
             // Download a zip file from somewhere and unzip it.
             // TODO: make this pop out a dialog instead.
-            // mFileController.addUri("http://192.168.11.122/images.zip");
+            mainController.download(Uri.parse("http://192.168.11.122/images.zip"));
         } else if (id == R.id.nav_share) {
 
         } else if (id == R.id.nav_send) {

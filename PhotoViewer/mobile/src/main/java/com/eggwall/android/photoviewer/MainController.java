@@ -100,23 +100,13 @@ public class MainController {
         uiC.onWindowFocusChanged(hasFocus);
     }
 
-    // Methods that we need
-
-    /**
-     * Downloads a URI, unzips, unpacks, and then displays it.
-     * @param in
-     */
-    void addDownload(Uri in) {
-
-    }
-
     /**
      * Requests adding a URI as a gallery.
      *
-     * @param zipfileLocation URI to add as a gallery
+     * @param zipfileLocation URL to add as a gallery
      * @return true if the gallery download is scheduled.
      */
-    boolean download(String zipfileLocation) {
+    boolean download(Uri zipfileLocation) {
         // Once a download is finished, we need to handle the file. The filecontroller handles
         // that.
         boolean status = networkC.requestURI(zipfileLocation, fileC.createNewCallback());
