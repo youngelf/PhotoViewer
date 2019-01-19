@@ -108,8 +108,8 @@ public class MainController {
      */
     boolean download(Uri zipfileLocation) {
         // Once a download is finished, we need to handle the file. The filecontroller handles
-        // that.
-        boolean status = networkC.requestURI(zipfileLocation, fileC.createNewCallback());
+        // that via a new unzipper object.
+        boolean status = networkC.requestURI(zipfileLocation, fileC.createUnzipper());
         if (!status) {
             Log.e(TAG, "Could not download file " + zipfileLocation);
             return false;

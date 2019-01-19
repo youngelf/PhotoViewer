@@ -43,13 +43,13 @@ class NetworkController {
         final long mRequestId;
         final Uri mLocation;
         final String mFilename;
-        final FileController.Callback mCallback;
+        final FileController.Unzipper mUnzipper;
 
-        public Receiver(long requestId, Uri location, String filename, FileController.Callback callWhenComplete) {
+        public Receiver(long requestId, Uri location, String filename, FileController.Unzipper callWhenComplete) {
             mRequestId = requestId;
             mLocation = location;
             mFilename = filename;
-            mCallback = callWhenComplete;
+            mUnzipper = callWhenComplete;
         }
 
         @Override
@@ -134,9 +134,9 @@ class NetworkController {
                 long size = pfd.getStatSize();
                 Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri
                         + " of size " + size);
-                if (mCallback != null) {
-                    // Asynchronously, unzip the file and extract its contents.
-                    (new Unzipper(mCallback, mFilename, pfd)).execute();
+                if (mUnzipper != null) {
+                    // Asynchronously, handle the file.
+                    (new FileTask(mUnzipper, mFilename, pfd)).execute();
                 }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -145,24 +145,25 @@ class NetworkController {
     }
 
     /**
-     * Unzip a file in the background by calling the callback with the filename.
+     * Handle the file in the background by calling the task with the filename. This needs
+     * to be handled in the background because the foreground thread is used for UI and file
+     * handling is CPU intensive.
      */
-    static class Unzipper extends AsyncTask<Void, Void, Void> {
+    static class FileTask extends AsyncTask<Void, Void, Void> {
         private final String filename;
         private final ParcelFileDescriptor fileDescriptor;
 
-        private final FileController.Callback callback;
+        private final DownloadHandler task;
 
-        Unzipper(FileController.Callback callback, String filename,
-                 ParcelFileDescriptor fileDescriptor) {
+        FileTask(DownloadHandler task, String filename, ParcelFileDescriptor fileDescriptor) {
             this.filename = filename;
-            this.callback = callback;
+            this.task = task;
             this.fileDescriptor = fileDescriptor;
         }
 
         @Override
         protected Void doInBackground(Void... voids) {
-            callback.requestCompleted(filename, fileDescriptor);
+            task.handleFile(filename, fileDescriptor);
             return null;
         }
     }
@@ -179,7 +180,7 @@ class NetworkController {
      * @param callWhenComplete
      * @return
      */
-    boolean requestURI(Uri location, FileController.Callback callWhenComplete) {
+    boolean requestURI(Uri location, FileController.Unzipper callWhenComplete) {
         // Let's not trust the file name provided to us, and let's write this as an ID that we
         // control.
         String filename = "x" + fileID + ".zip";

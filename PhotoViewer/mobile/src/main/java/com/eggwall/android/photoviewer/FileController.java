@@ -100,7 +100,7 @@ class FileController {
             return null;
         }
         // Navigate over to the gallery directory.
-        // TODO refactor this along with the same code in Callback.requestCompleted.
+        // TODO refactor this along with the same code in Unzipper.handleFile.
         final File galleryDir = new File(rootSdLocation, PICTURES_DIR);
         if (!galleryDir.isDirectory()) {
             // The directory doesn't exist, so try creating one.
@@ -136,7 +136,8 @@ class FileController {
      * @return list of all the galleries in the pictures directory.
      */
     ArrayList<String> getGalleriesList() {
-        // What we return when we don't find anything. It is safer to return a zero length array than null.
+        // What we return when we don't find anything.
+        // It is safer to return a zero length array than null.
         final ArrayList<String> foundNothing = new ArrayList<String>(0);
 
         File picturesDir = getPicturesDir();
@@ -253,12 +254,19 @@ class FileController {
      * A constructor could be added to encode information it needs from the parent
      * {@link FileController} object.
      *
-     * To create an object, call {@link FileController#createNewCallback()} rather than directly
+     * To create an object, call {@link FileController#createUnzipper()} rather than directly
      * calling the constructor.
+     *
+     * The critical method here is {@link #handleFile(String, ParcelFileDescriptor)}.
      */
-    static class Callback implements NetworkRequestComplete {
+    static class Unzipper implements DownloadHandler {
+        /**
+         * This method needs to be called on a non-UI thread. It does long-running file processing.
+         * @param filename name of the file that was downloaded
+         * @param Uri a location of the file after it was downloaded.
+         */
         @Override
-        public void requestCompleted(String filename, ParcelFileDescriptor Uri) {
+        public void handleFile(String filename, ParcelFileDescriptor Uri) {
             // Unzip the file here.
             // Try opening the URI via a ParcelFileDescriptor
 
@@ -341,17 +349,17 @@ class FileController {
             // Now delete the original zip file.
         }
 
-        /** Hidden to force all creation through {@link FileController#createNewCallback()} */
-        private Callback() {
+        /** Hidden to force all creation through {@link FileController#createUnzipper()} */
+        private Unzipper() {
             // Do nothing right now.
         }
     }
 
     /**
-     * Creates a new {@link Callback} object including any member-specified information.
+     * Creates a new {@link Unzipper} object including any member-specified information.
      * @return
      */
-    Callback createNewCallback() {
-        return new Callback();
+    Unzipper createUnzipper() {
+        return new Unzipper();
     }
 }
