@@ -20,8 +20,66 @@ class NetworkRoutines {
     /** The domain in the custom URI. Not currently checking it. */
     public static final String DOMAIN = "eggwall";
 
-    /** The key for the URL in the CGI params. */
-    public static final String KEY_NAME = "src";
+    /** CGI param key: URL where the package is available. */
+    public static final String KEY_LOCATION = "src";
+
+    /** CGI param key: is this file encrypted with {@link CryptoRoutines#AES_CBC_PKCS5_PADDING} */
+    public static final String KEY_ENCRYPTED = "encrypted";
+
+    /** CGI param key: is this a zip archive? */
+    public static final String KEY_ZIPPED = "zipped";
+
+    /** CGI param key: the unpacked size of the archive. */
+    public static final String KEY_SIZE = "size";
+
+    /**  CGI param key: Human readable album name */
+    public static final String KEY_ALBUMNAME = "name";
+
+    /**
+     * All the information that is provided by a URL
+     */
+    static class DownloadInfo {
+        /**
+         * Where to download the image package from
+         */
+        public final Uri location;
+        /**
+         * True if the image package is encrypted with {@link CryptoRoutines#AES_CBC_PKCS5_PADDING}
+         */
+        public final boolean isEncrypted;
+        /**
+         * Final size of the entire package when it is extracted.
+         */
+        public final int extractedSize;
+        /**
+         * True if the image package is a zip. This is the only format that is supported.
+         */
+        public final boolean isZipped;
+        /**
+         * Human-readable name of the album. This can contain spaces, and be longer than 8
+         * characters and so is not suitable as a storage location.
+         */
+        public final String name;
+
+        DownloadInfo(Uri location, boolean isEncrypted,
+                     int extractedSize, boolean isZipped, String name) {
+            this.location = location;
+            this.isEncrypted = isEncrypted;
+            this.extractedSize = extractedSize;
+            this.isZipped = isZipped;
+            this.name = name;
+
+            Log.d(TAG, "Created album: location = " + location
+                    + " isEncrypted = " + isEncrypted
+                    + " size = " + extractedSize
+                    + " isZipped = " + isZipped
+                    + " name = " + name
+            );
+        }
+    }
+
+    public final static DownloadInfo EMPTY =
+            new DownloadInfo(Uri.EMPTY, false, 0, false, "EMPTY");
 
     /**
      * Get the URL to download from the intent this application was started from.
@@ -33,16 +91,15 @@ class NetworkRoutines {
      *               {@link Activity#getIntent()}
      * @return the URL if one is parsed, {@link Uri#EMPTY} otherwise.
      */
-    static Uri getDownloadInfo(Intent intent) {
+    static DownloadInfo getDownloadInfo(Intent intent) {
         String action = intent.getAction();
-        Uri toReturn = Uri.EMPTY;
 
         // Unpack the actual URL from that data string
         Uri uri = intent.getData();
         // That could be empty because the starting intent could have no data associated. This
         // happens when the user launched into it from All apps, or through commandline.
         if (uri == null) {
-            return toReturn;
+            return EMPTY;
         }
 
         String scheme = uri.getScheme();
@@ -55,15 +112,65 @@ class NetworkRoutines {
                 && scheme != null
                 && scheme.equals(SCHEME)
                 && path != null) {
-            // If so, look for all the CGI params. We expect a special KEY_NAME to be available.
-            Set<String> names = uri.getQueryParameterNames();
-            if (names.contains(KEY_NAME)) {
-                String encoded = uri.getQueryParameter(KEY_NAME);
-                // If it is available, then try to decode the parameter (since it is a URL itself)
-                // and then try to parse it as a URL.
-                toReturn = Uri.parse(Uri.decode(encoded));
+            return getDownloadInfo(uri);
+        }
+
+        return EMPTY;
+    }
+
+    static DownloadInfo getDownloadInfo(Uri uri) {
+        // All the components of the DownloadInfo object.
+        // Assume URI is not specified.
+        Uri uriR = Uri.EMPTY;
+        // Assume not encrypted.
+        boolean isEncryptedR = false;
+        boolean isZippedR = false;
+        int extractedSizeR = 0;
+        String albumNameR = "unspecified";
+
+        // That could be empty because the starting intent could have no data associated. This
+        // happens when the user launched into it from All apps, or through commandline.
+        if (uri == null) {
+            return EMPTY;
+        }
+
+        Set<String> names = uri.getQueryParameterNames();
+        if (names.contains(KEY_LOCATION)) {
+            String encoded = uri.getQueryParameter(KEY_LOCATION);
+            // If it is available, then try to decode the parameter (since it is a URL itself)
+            // and then try to parse it as a URL.
+            uriR = Uri.parse(Uri.decode(encoded));
+        }
+        if (names.contains(KEY_ZIPPED)) {
+            String encoded = uri.getQueryParameter(KEY_ZIPPED);
+            // We expect the value to be 'Y' or 'y'.
+            if (encoded != null) {
+                isZippedR = encoded.equalsIgnoreCase("y");
             }
         }
-        return toReturn;
+        if (names.contains(KEY_ENCRYPTED)) {
+            String encoded = uri.getQueryParameter(KEY_ENCRYPTED);
+            // We expect the value to be 'Y' or 'y'.
+            if (encoded != null) {
+                isEncryptedR = encoded.equalsIgnoreCase("y");
+            }
+        }
+        if (names.contains(KEY_SIZE)) {
+            String encoded = uri.getQueryParameter(KEY_SIZE);
+            // We expect the value to be 'Y' or 'y'.
+            if (encoded != null) {
+                extractedSizeR = Integer.parseInt(encoded);
+            }
+        }
+        if (names.contains(KEY_ALBUMNAME)) {
+            String encoded = uri.getQueryParameter(KEY_ALBUMNAME);
+            // If it is available, then try to decode the parameter (since it is a string)
+            albumNameR = Uri.decode(encoded);
+        }
+
+        return new DownloadInfo(uriR, isEncryptedR, extractedSizeR, isZippedR, albumNameR);
     }
+
+
+
 }

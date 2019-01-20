@@ -103,19 +103,24 @@ public class MainController {
     /**
      * Requests adding a URI as a gallery.
      *
-     * @param zipfileLocation URL to add as a gallery
+     * @param album to add as a gallery
      * @return true if the gallery download is scheduled.
      */
-    boolean download(Uri zipfileLocation) {
+    boolean download(NetworkRoutines.DownloadInfo album) {
         // Once a download is finished, we need to handle the file. The filecontroller handles
         // that via a new unzipper object.
-        boolean status = networkC.requestURI(zipfileLocation, fileC.createUnzipper());
+        FileController.Unzipper unzipper = fileC.createUnzipper(album);
+        if (unzipper == null) {
+            Log.d(TAG, "Got a null unzipper");
+            return false;
+        }
+        boolean status = networkC.requestURI(album.location, unzipper);
         if (!status) {
-            Log.e(TAG, "Could not download file " + zipfileLocation);
+            Log.e(TAG, "Could not download file " + album.location);
             return false;
         }
         // We can't do anything else since we need to wait for the download to complete.
-        Log.d(TAG, "Download for " + zipfileLocation + " queued.");
+        Log.d(TAG, "Download for " + album.location + " queued.");
         return true;
     }
 

@@ -254,12 +254,14 @@ class FileController {
      * A constructor could be added to encode information it needs from the parent
      * {@link FileController} object.
      *
-     * To create an object, call {@link FileController#createUnzipper()} rather than directly
-     * calling the constructor.
+     * To create an object, call {@link FileController#createUnzipper(NetworkRoutines.DownloadInfo)}
+     * rather than directly calling the constructor.
      *
      * The critical method here is {@link #handleFile(String, ParcelFileDescriptor)}.
      */
     static class Unzipper implements DownloadHandler {
+        private final NetworkRoutines.DownloadInfo album;
+
         /**
          * This method needs to be called on a non-UI thread. It does long-running file processing.
          * @param filename name of the file that was downloaded
@@ -283,7 +285,7 @@ class FileController {
             }
 
             // Create a directory to hold it all
-            final File freshGalleryDir = new File (pictureDir, "test");
+            final File freshGalleryDir = new File (pictureDir, album.name);
             boolean result;
             try {
                 result = freshGalleryDir.mkdir();
@@ -349,17 +351,33 @@ class FileController {
             // Now delete the original zip file.
         }
 
-        /** Hidden to force all creation through {@link FileController#createUnzipper()} */
-        private Unzipper() {
-            // Do nothing right now.
+        /** Hidden to force all creation through
+         * {@link FileController#createUnzipper(NetworkRoutines.DownloadInfo)}
+         * @param album The album that this unzipper was created with.
+         */
+        private Unzipper(NetworkRoutines.DownloadInfo album) {
+            this.album = album;
         }
     }
 
+    // TODO: Create an interface where operations can be threaded one after another. Decrypt
+    // and unzip, for example. Initially just doing it with a parameter might be plenty.
+
     /**
      * Creates a new {@link Unzipper} object including any member-specified information.
-     * @return
+     * @param album the name the album should be called.
+     * @return an object that can unzip this album and extract its contents for later retrieval.
      */
-    Unzipper createUnzipper() {
-        return new Unzipper();
+    Unzipper createUnzipper(NetworkRoutines.DownloadInfo album) {
+        // Check to see if we can hold the eventual file size
+        File pictureDir = getPictureDirAfterV8();
+        long available = pictureDir.getFreeSpace();
+        if (available < album.extractedSize) {
+            Log.d(TAG, "Out of disk space, cannot unzip: Expected: "
+                    + album.extractedSize
+                    + " Available: " + available);
+            return null;
+        }
+        return new Unzipper(album);
     }
 }

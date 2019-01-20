@@ -151,7 +151,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         } else if (id == R.id.nav_manage) {
             // Download a zip file from somewhere and unzip it.
             // TODO: make this pop out a dialog instead.
-            mainController.download(Uri.parse("http://192.168.11.122/images.zip"));
+            NetworkRoutines.DownloadInfo test = new NetworkRoutines.DownloadInfo(
+                            Uri.parse("http://192.168.11.122/images.zip"),
+            false, 4000000, false, "test");
+            mainController.download(test);
         } else if (id == R.id.nav_share) {
 
         } else if (id == R.id.nav_send) {

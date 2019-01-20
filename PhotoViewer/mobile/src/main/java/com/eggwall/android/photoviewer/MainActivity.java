@@ -142,10 +142,11 @@ public class MainActivity extends AppCompatActivity {
         DbTester s = new DbTester(this);
         s.execute();
 
-        Uri toDownload = NetworkRoutines.getDownloadInfo(getIntent());
-        if (toDownload != Uri.EMPTY) {
-            Log.d(TAG, "I'm going to download this URL now: " + toDownload);
+        NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(getIntent());
+        if (album != NetworkRoutines.EMPTY) {
+            Log.d(TAG, "I'm going to download this URL now: " + album);
             // Now download that URL and switch over to that screen.
+            mc.download(album);
         }
 
         CryptoRoutines.decryptTextTest();
