@@ -16,7 +16,8 @@ package com.eggwall.android.photoviewer;
 
 import android.os.AsyncTask;
 import android.util.Log;
-import android.widget.Toast;
+
+import com.eggwall.android.photoviewer.data.Album;
 
 import java.util.ArrayList;
 
@@ -63,7 +64,7 @@ public class MainController {
         // The order is important right now. The UI controller is aware of the File controller.
         // Clearly this is a bad idea, and I need to remove this dependency over time, and have all
         // three of them be entirely separate.
-        fileC = new FileController(mainActivity);
+        fileC = new FileController(mainActivity, this);
 
         uiC = new UiController(mainActivity, this);
         uiC.createController();
@@ -90,6 +91,16 @@ public class MainController {
         Log.d(TAG, "The next file is: " + fileC.getFile(UiConstants.NEXT));
         return true;
     }
+
+    /**
+     * Display this album if it exists, false if it doesn't.
+     * @param album
+     * @return
+     */
+    boolean showAlbum(Album album) {
+        fileC.setDirectory(album.getLocalLocation());
+        return true;
+    };
 
     /**
      * Allow window focus changes to be handled in an activity containing the UI.

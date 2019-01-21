@@ -1,9 +1,9 @@
 package com.eggwall.android.photoviewer;
 
 import android.content.Context;
-import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
 import android.util.Log;
 
 import com.eggwall.android.photoviewer.data.Album;
@@ -61,6 +61,7 @@ class FileController {
 
     private static final int INVALID_INDEX = -1;
 
+    private final MainController mc;
     /**
      * The index of the current file being viewed.
      */
@@ -69,9 +70,11 @@ class FileController {
     /**
      * Creates a new file controller and all the other objects it needs.
      * @param context
+     * @param mainController
      */
-    FileController(Context context) {
+    FileController(Context context, MainController mainController) {
         this.db = AlbumDatabase.getDatabase(context);
+        this.mc = mainController;
     }
 
     /**
@@ -269,6 +272,8 @@ class FileController {
     static class Unzipper implements DownloadHandler {
         private final NetworkRoutines.DownloadInfo dlInfo;
         private final Album album;
+        final AlbumDao dao;
+        private final MainController mc;
 
         /**
          * This method needs to be called on a non-UI thread. It does long-running file processing.
@@ -315,7 +320,7 @@ class FileController {
             }
 
             // Create a directory to hold it all
-            final File freshGalleryDir = new File (pictureDir, album.getLocalLocation());
+            final File freshGalleryDir = new File (album.getLocalLocation());
             boolean result;
             try {
                 result = freshGalleryDir.mkdir();
@@ -386,17 +391,29 @@ class FileController {
                 }
             }
 
+            // Has been downloaded right now.
+            album.setDownloadTimeMs(SystemClock.elapsedRealtime());
+
             // Here I should modify the database to tell the file has been correctly pulled.
+            dao.update(album);
+
+            // Ideally here I should display this image, but there is no good way to do that.
+            mc.showAlbum(album);
         }
 
         /** Hidden to force all creation through
          * {@link FileController#createUnzipper(NetworkRoutines.DownloadInfo)}
          * @param dlInfo The dlInfo that this unzipper was created with.
          * @param album
+         * @param dao
+         * @param mc
          */
-        private Unzipper(NetworkRoutines.DownloadInfo dlInfo, Album album) {
+        private Unzipper(NetworkRoutines.DownloadInfo dlInfo, Album album,
+                         AlbumDao dao, MainController mc) {
             this.dlInfo = dlInfo;
             this.album = album;
+            this.dao = dao;
+            this.mc = mc;
         }
     }
 
@@ -430,7 +447,10 @@ class FileController {
         long id = db.albumDao().insert(album);
         // Now set that as the canonical ID for this
         album.setId(id);
-        album.setLocalLocation("album_" + String.format(Locale.US, "%03d", id));
-        return new Unzipper(dlInfo, album);
+
+        String topLevel = getPictureDirAfterV8().getAbsolutePath().concat(File.pathSeparator);
+        String galleryDir = "album_" + String.format(Locale.US, "%03d", id);
+        album.setLocalLocation(topLevel.concat(galleryDir));
+        return new Unzipper(dlInfo, album, db.albumDao(), mc);
     }
 }
