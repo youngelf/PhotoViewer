@@ -15,11 +15,11 @@ package com.eggwall.android.photoviewer;
 // functionality here on its own merit.
 
 import android.os.AsyncTask;
+import android.os.Looper;
 import android.util.Log;
 
 import com.eggwall.android.photoviewer.data.Album;
 
-import java.io.File;
 import java.util.ArrayList;
 
 /**
@@ -29,6 +29,16 @@ import java.util.ArrayList;
 public class MainController {
     private static final String TAG = "MainController";
 
+    /**
+     * Has this object been properly created?
+     *
+     * This is needed because there are many critical objects that need to be created,
+     * {@link #fileC}, {@link #uiC}, and these are relatively heavy-weight objects to be created.
+     *
+     * As a result, I mark the object not constructed, and check fo existence using
+     * {@link #creationCheck()} in every public and private method before the method
+     * does anything.
+     */
     private boolean created = false;
 
     /** Object responsible for downloading files, and telling you what is available. */
@@ -41,17 +51,43 @@ public class MainController {
     private NetworkController networkC;
 
     /**
-     * Verify that the object was created before use.
-     * @return true if created, false otherwise.
-     * @param expectedValue
+     * Checks if the current thread is the main thread or not.
+     * @return
      */
-    private boolean assertCheckIs(boolean expectedValue) {
-        if (created != expectedValue) {
-            // During development, crash pretty hard.
-            Log.wtf(TAG, "Assertion failed! Expected create = " + expectedValue, new Error());
-            return false;
+    public static void checkMainThread() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            // This is the main thread. Do nothing.
+            return;
         }
-        return true;
+        Log.w(TAG, "Error. NOT main thread!", new Error());
+    }
+
+    /**
+     * Confirm the current thread is NOT the main thread or not.
+     * @return
+     */
+    public static void checkBackgroundThread() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            // This is the main thread. Do nothing.
+            return;
+        }
+        Log.w(TAG, "Error. NOT background thread!", new Error());
+    }
+
+    /**
+     * Verify that the object was created before use.
+     * @return false if created, true if everything is ok.
+     */
+    private void creationCheck() {
+        if (created) {
+            // Everything is ok. I was correctly created.
+            return;
+        }
+
+        // During development, crash pretty hard.
+        Log.wtf(TAG, "MainController used before calling create()", new Error());
+        // Nothing is going to work correctly in this situation. Just say 'No'.
+        System.exit(-1);
     }
 
     /**
@@ -60,11 +96,18 @@ public class MainController {
      * @return
      */
     boolean create(MainActivity mainActivity) {
-        if (!assertCheckIs(false)) { return false; }
+        if (created) {
+            // This is also a problem. The MainController object is being reused!
+            Log.wtf(TAG, "MainController.create called twice!", new Error());
 
-        // The order is important right now. The UI controller is aware of the File controller.
-        // Clearly this is a bad idea, and I need to remove this dependency over time, and have all
-        // three of them be entirely separate.
+            // We expect random failures since there are callbacks with stale controllers.
+            // Just say 'No'.
+            System.exit(-1);
+            return false;
+        }
+
+        // The order should NOT matter, but I haven't tried out a different order of creation of
+        // objects.
         fileC = new FileController(mainActivity, this);
 
         uiC = new UiController(mainActivity, this);
@@ -72,8 +115,9 @@ public class MainController {
 
         networkC = new NetworkController(mainActivity);
 
+        // Now this object can be used.
         created = true;
-        return created;
+        return true;
     }
 
     /**
@@ -81,7 +125,7 @@ public class MainController {
      * @return
      */
     boolean showInitial() {
-        if (!assertCheckIs(true)) { return false; }
+        creationCheck();
 
         // File handling on the main thread. This is a bad idea.
         ArrayList<String> galleriesList = fileC.getGalleriesList();
@@ -100,6 +144,8 @@ public class MainController {
      * @return
      */
     boolean showAlbum(Album album) {
+        creationCheck();
+
         fileC.setDirectory(album);
         return true;
     };
@@ -109,7 +155,7 @@ public class MainController {
      * @param hasFocus
      */
     void onWindowFocusChanged(boolean hasFocus) {
-        if (!assertCheckIs(true)) { return; }
+        creationCheck();
 
         uiC.onWindowFocusChanged(hasFocus);
     }
@@ -120,6 +166,8 @@ public class MainController {
      * @param album to add as a gallery
      */
     void download(final NetworkRoutines.DownloadInfo album) {
+        creationCheck();
+
         // Needs to be done in the background.
         (new DownloadTask(album, fileC, networkC)).execute();
     }
@@ -175,6 +223,8 @@ public class MainController {
      * @param showFab
      */
     void updateImage(int offset, boolean showFab) {
+        creationCheck();
+
         if (offset != UiConstants.NEXT && offset != UiConstants.PREV) {
             Log.e(TAG, "updateImage: Incorrect offset provided: " + offset);
             System.exit(-1);
@@ -184,6 +234,7 @@ public class MainController {
         String nextFile = fileC.getFile(offset);
         Log.d(TAG, "updateImage: next file is: " + nextFile);
 
+        // Now switch to a foreground thread to update the UI.
         uiC.updateImage(nextFile, offset, showFab);
     }
 }

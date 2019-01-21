@@ -41,7 +41,7 @@ import static android.view.View.VISIBLE;
  *** Read this:
  *** * https://developer.android.com/topic/performance/graphics/load-bitmap
  *** * to ensure that the bitmaps don't take too much RAM.
-*/
+ */
 
 /**
  * Orchestrates User Interface actions, and drives the display.
@@ -152,7 +152,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             // Download a zip file from somewhere and unzip it.
             // TODO: make this pop out a dialog instead.
             NetworkRoutines.DownloadInfo test = new NetworkRoutines.DownloadInfo(
-                            Uri.parse("http://192.168.11.122/images.zip"),
+                    Uri.parse("http://192.168.11.122/images.zip"),
                     "/sdcard/Pictures/test.zip", false,
                     null, 4000000, false, "test");
             mainController.download(test);
@@ -192,7 +192,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * @param offset  is either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
      * @param showFab True if the Floating Action Bar should be shown, false if it should be hidden.
      */
-     void updateImage(String nextFile, int offset, boolean showFab) {
+    void updateImage(String nextFile, int offset, boolean showFab) {
         // Calculate how big the bitmap is
         BitmapFactory.Options opts = new BitmapFactory.Options();
         // Just calculate how big the file is to learn the sizes
@@ -213,8 +213,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         // Width and height have to get swapped for rotated images.
         final boolean isPortrait =
-                    orientation == ExifInterface.ORIENTATION_ROTATE_90
-                            || orientation == ExifInterface.ORIENTATION_ROTATE_270;
+                orientation == ExifInterface.ORIENTATION_ROTATE_90
+                        || orientation == ExifInterface.ORIENTATION_ROTATE_270;
 
         // This is how big the image is:
         final int imageViewWidth = mImageView.getWidth();
@@ -250,8 +250,15 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 Log.wtf(TAG, "Exif interface showed unsupported orientation " + orientation);
         }
 
-        mImageView.setImageBitmap(sourceBitmap);
-        mImageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        final Bitmap bMap = sourceBitmap;
+        // UI changes happen here.
+        mImageView.post(new Runnable() {
+            @Override
+            public void run() {
+                mImageView.setImageBitmap(bMap);
+                mImageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            }
+        });
 
         if (showFab) {
             // Show the correct FAB, and hide it after a while

@@ -216,7 +216,17 @@ class FileController {
         return true;
     }
 
+    /**
+     * Show this album now. I need to rename this soon.
+     *
+     * This needs to be called on a background thread, since it processes files.
+     *
+     * @param al the album to show
+     * @return true if the album was switched.
+     */
     boolean setDirectory(Album al) {
+        MainController.checkBackgroundThread();
+
         // Check that the given directory exists and has images
         final File galleryDir = new File(al.getLocalLocation());
         if (!galleryDir.isDirectory()) {
@@ -235,14 +245,25 @@ class FileController {
         // Everything checks out, let's set our current directory here.
         mCurrentGallery = galleryDir;
         mCurrentGalleryList = new ArrayList<>(Arrays.asList(fileNames));
+        for (String file : mCurrentGalleryList) {
+            Log.d(TAG, "Found file: " + file);
+        }
+
         // Position the pointer just before the start (actually the very end), so the next call
         // to getFile returns the 0th element.
         mCurrentImageIndex = mCurrentGalleryList.size();
+        Log.d(TAG, "mCurrentImageIndex = " + mCurrentImageIndex);
+
+        // Now I need to ask the main controller to advance to next.
+        mc.updateImage(UiConstants.NEXT, false);
         return true;
     }
 
     /**
      * Returns the absolute path for the file to read next.
+     *
+     * This should be called from a background thread since it reads disk.
+     *
      * @param next_or_previous is one of {@link UiConstants#NEXT} to load the next file or
      *                         {@link UiConstants#PREV} to load the previous file.
      * @return name of the file to load next.
@@ -447,9 +468,6 @@ class FileController {
             this.mPicturesDir = mPicturesDir;
         }
     }
-
-    // TODO: Create an interface where operations can be threaded one after another. Decrypt
-    // and unzip, for example. Initially just doing it with a parameter might be plenty.
 
     /**
      * Creates a new {@link Unzipper} object including any member-specified information.
