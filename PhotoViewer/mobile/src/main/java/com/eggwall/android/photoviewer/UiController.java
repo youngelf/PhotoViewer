@@ -153,7 +153,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             // TODO: make this pop out a dialog instead.
             NetworkRoutines.DownloadInfo test = new NetworkRoutines.DownloadInfo(
                             Uri.parse("http://192.168.11.122/images.zip"),
-            false, null, 4000000, false, "test");
+                    "/sdcard/Pictures/test.zip", false,
+                    null, 4000000, false, "test");
             mainController.download(test);
         } else if (id == R.id.nav_share) {
 

@@ -19,6 +19,7 @@ import android.util.Log;
 
 import com.eggwall.android.photoviewer.data.Album;
 
+import java.io.File;
 import java.util.ArrayList;
 
 /**
@@ -82,6 +83,7 @@ public class MainController {
     boolean showInitial() {
         if (!assertCheckIs(true)) { return false; }
 
+        // File handling on the main thread. This is a bad idea.
         ArrayList<String> galleriesList = fileC.getGalleriesList();
         if (galleriesList.size() >= 1) {
             // Select the first directory.
@@ -93,12 +95,12 @@ public class MainController {
     }
 
     /**
-     * Display this album if it exists, false if it doesn't.
+     * Display this dlInfo if it exists, false if it doesn't.
      * @param album
      * @return
      */
     boolean showAlbum(Album album) {
-        fileC.setDirectory(album.getLocalLocation());
+        fileC.setDirectory(album);
         return true;
     };
 
@@ -123,13 +125,13 @@ public class MainController {
     }
 
     static class DownloadTask extends AsyncTask<Void, Void, Void> {
-        final NetworkRoutines.DownloadInfo album;
+        NetworkRoutines.DownloadInfo dlInfo;
         final FileController fc;
         final NetworkController nc;
         boolean didSucceed = false;
 
-        DownloadTask(NetworkRoutines.DownloadInfo album, FileController fc, NetworkController nc) {
-            this.album = album;
+        DownloadTask(NetworkRoutines.DownloadInfo dlInfo, FileController fc, NetworkController nc) {
+            this.dlInfo = dlInfo;
             this.fc = fc;
             this.nc = nc;
         }
@@ -138,20 +140,24 @@ public class MainController {
         protected Void doInBackground(Void... voids) {
             // Once a download is finished, we need to handle the file. The filecontroller handles
             // that via a new unzipper object.
-            FileController.Unzipper unzipper = fc.createUnzipper(album);
+            FileController.Unzipper unzipper = fc.createUnzipper(dlInfo);
+
             if (unzipper == null) {
                 Log.d(TAG, "Got a null unzipper");
                 didSucceed = false;
                 return null;
             }
-            boolean status = nc.requestURI(album.location, unzipper);
+
+            // Creating the unzipper changes dlInfo, so let's use its reference instead.
+            dlInfo = unzipper.dlInfo;
+            boolean status = nc.requestURI(unzipper);
             if (!status) {
-                Log.e(TAG, "Could not download file " + album.location);
+                Log.e(TAG, "Could not download file " + dlInfo.location);
                 didSucceed = false;
                 return null;
             }
             // We can't do anything else since we need to wait for the download to complete.
-            Log.d(TAG, "Download for " + album.location + " queued.");
+            Log.d(TAG, "Download for " + dlInfo.location + " queued.");
             didSucceed = true;
             return null;
         }

@@ -35,7 +35,7 @@ class NetworkRoutines {
     /** CGI param key: the unpacked size of the archive. */
     public static final String KEY_SIZE = "size";
 
-    /**  CGI param key: Human readable album name */
+    /**  CGI param key: Human readable dlInfo name */
     public static final String KEY_ALBUMNAME = "name";
 
     /**
@@ -46,10 +46,18 @@ class NetworkRoutines {
          * Where to download the image package from
          */
         public final Uri location;
+
+        /**
+         * Where to download the image package to, relative to
+         * {@link android.os.Environment#DIRECTORY_PICTURES}
+         */
+        public String pathOnDisk;
+
         /**
          * True if the image package is encrypted with {@link CryptoRoutines#AES_CBC_PKCS5_PADDING}
          */
         public final boolean isEncrypted;
+
         /**
          * If encrypted, the initialization vector.
          */
@@ -59,26 +67,29 @@ class NetworkRoutines {
          * Final size of the entire package when it is extracted.
          */
         public final int extractedSize;
+
         /**
          * True if the image package is a zip. This is the only format that is supported.
          */
         public final boolean isZipped;
+
         /**
-         * Human-readable name of the album. This can contain spaces, and be longer than 8
+         * Human-readable name of the dlInfo. This can contain spaces, and be longer than 8
          * characters and so is not suitable as a storage location.
          */
         public final String name;
 
-        DownloadInfo(Uri location, boolean isEncrypted, byte[] initializationVector,
+        DownloadInfo(Uri location, String pathOnDisk, boolean isEncrypted, byte[] initializationVector,
                      int extractedSize, boolean isZipped, String name) {
             this.location = location;
+            this.pathOnDisk = pathOnDisk;
             this.isEncrypted = isEncrypted;
             this.initializationVector = initializationVector;
             this.extractedSize = extractedSize;
             this.isZipped = isZipped;
             this.name = name;
 
-            Log.d(TAG, "Created album: location = " + location
+            Log.d(TAG, "Created dlInfo: location = " + location
                     + " isEncrypted = " + isEncrypted
                     + " initializationVector = " + (initializationVector != null
                             ? initializationVector : "null")
@@ -90,7 +101,7 @@ class NetworkRoutines {
     }
 
     public final static DownloadInfo EMPTY =
-            new DownloadInfo(Uri.EMPTY, false, null, 0, false, "EMPTY");
+            new DownloadInfo(Uri.EMPTY, "", false, null, 0, false, "EMPTY");
 
     /**
      * Get the URL to download from the intent this application was started from.
@@ -187,7 +198,7 @@ class NetworkRoutines {
             albumNameR = Uri.decode(encoded);
         }
 
-        return new DownloadInfo(uriR, isEncryptedR, initVectorR,
+        return new DownloadInfo(uriR, null, isEncryptedR, initVectorR,
                 extractedSizeR, isZippedR, albumNameR);
     }
 

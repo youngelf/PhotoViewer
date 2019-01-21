@@ -33,7 +33,7 @@ class NetworkController {
      * DownloadManager will try to retry downloads, and a download might finish after the process
      * is dead, or after a reboot. This means that we will never get the onReceive and we
      * might either be keeping our process in memory longer than we need, or we will fail to
-     * unzip an album after it has been downloaded.
+     * unzip an dlInfo after it has been downloaded.
      *
      * The only solution is to write the location and download request id to disk, and
      * check if a download has been finished when the process first starts up. This needs
@@ -176,25 +176,24 @@ class NetworkController {
     /**
      * Download whatever is at this location, unzipping if required, to the default gallery
      * directory.
-     * @param location
-     * @param callWhenComplete
+     * @param unzipper
      * @return
      */
-    boolean requestURI(Uri location, FileController.Unzipper callWhenComplete) {
+    boolean requestURI(FileController.Unzipper unzipper) {
+        NetworkRoutines.DownloadInfo dlInfo = unzipper.dlInfo;
         // Let's not trust the file name provided to us, and let's write this as an ID that we
         // control.
-        String filename = "x" + fileID + ".zip";
-        fileID++;
-
         DownloadManager.Request request = new DownloadManager
-                .Request(location)
-                .setTitle("PhotoViewer: " + location)
+                .Request(dlInfo.location)
+                .setTitle("PhotoViewer: " + dlInfo.location)
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
-                .setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, filename);
+                .setDestinationInExternalPublicDir(
+                        Environment.DIRECTORY_PICTURES, dlInfo.pathOnDisk);
+
         long requestId = downloadManager.enqueue(request);
 
         IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-        Receiver r = new Receiver(requestId, location, filename, callWhenComplete);
+        Receiver r = new Receiver(requestId, dlInfo.location, dlInfo.pathOnDisk, unzipper);
         ctx.registerReceiver(r, filter);
 
         return true;

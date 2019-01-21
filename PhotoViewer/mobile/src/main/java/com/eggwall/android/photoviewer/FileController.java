@@ -78,21 +78,12 @@ class FileController {
     }
 
     /**
-     * [sdcard]/music in SDK >= 8
-     *
-     * @return the [sdcard]/music path in sdk version >= 8
-     */
-    private static File getPictureDirAfterV8() {
-        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-    }
-
-    /**
      * Returns the location of the music directory which is
      * [sdcard]/pictures.
      *
      * @return the file representing the music directory.
      */
-    private File getPicturesDir() {
+    public File getPicturesDir() {
         if (mPicturesDir != null) {
             return mPicturesDir;
         }
@@ -103,7 +94,8 @@ class FileController {
             return null;
         }
 
-        final File rootSdLocation = getPictureDirAfterV8();
+        final File rootSdLocation =
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         if (rootSdLocation == null) {
             // Not a directory? Completely unexpected.
             Log.e(TAG, "SD card root directory is NOT a directory and is NULL");
@@ -138,6 +130,10 @@ class FileController {
         }
         mPicturesDir = galleryDir;
         return mPicturesDir;
+    }
+
+    public String getSubPath(String subpath) {
+        return PICTURES_DIR.concat("/").concat(subpath);
     }
 
     /**
@@ -200,18 +196,45 @@ class FileController {
         final File galleryDir = new File(picturesDir, relativeDirectoryName);
         if (!galleryDir.isDirectory()) {
             // The directory doesn't exist, so this is invalid.
+            Log.d(TAG, "setDirectory: non-existent dir: " + galleryDir.getAbsolutePath());
             return false;
         }
         final String[] fileNames = galleryDir.list();
         if (fileNames.length <= 0) {
             // Empty directory.
+            Log.d(TAG, "setDirectory: empty dir: " + galleryDir.getAbsolutePath());
             return false;
         }
         // TODO: I should check that the files that exist here are actually image files.
 
         // Everything checks out, let's set our current directory here.
         mCurrentGallery = galleryDir;
-        mCurrentGalleryList = new ArrayList<String>(Arrays.asList(fileNames));
+        mCurrentGalleryList = new ArrayList<>(Arrays.asList(fileNames));
+        // Position the pointer just before the start (actually the very end), so the next call
+        // to getFile returns the 0th element.
+        mCurrentImageIndex = mCurrentGalleryList.size();
+        return true;
+    }
+
+    boolean setDirectory(Album al) {
+        // Check that the given directory exists and has images
+        final File galleryDir = new File(al.getLocalLocation());
+        if (!galleryDir.isDirectory()) {
+            // The directory doesn't exist, so this is invalid.
+            Log.d(TAG, "setDirectory: non-existent dir: " + al.getLocalLocation());
+            return false;
+        }
+        final String[] fileNames = galleryDir.list();
+        if (fileNames.length <= 0) {
+            // Empty directory.
+            Log.d(TAG, "setDirectory: empty dir: " + al.getLocalLocation());
+            return false;
+        }
+        // TODO: I should check that the files that exist here are actually image files.
+
+        // Everything checks out, let's set our current directory here.
+        mCurrentGallery = galleryDir;
+        mCurrentGalleryList = new ArrayList<>(Arrays.asList(fileNames));
         // Position the pointer just before the start (actually the very end), so the next call
         // to getFile returns the 0th element.
         mCurrentImageIndex = mCurrentGalleryList.size();
@@ -268,22 +291,26 @@ class FileController {
      * rather than directly calling the constructor.
      *
      * The critical method here is {@link #handleFile(String, ParcelFileDescriptor)}.
+     *
      */
     static class Unzipper implements DownloadHandler {
-        private final NetworkRoutines.DownloadInfo dlInfo;
+        NetworkRoutines.DownloadInfo dlInfo;
         private final Album album;
         final AlbumDao dao;
         private final MainController mc;
+        final File mPicturesDir;
 
         /**
          * This method needs to be called on a non-UI thread. It does long-running file processing.
-         * @param filename name of the file that was downloaded
+         * @param filename name of the file that was downloaded, relative to mPicturesDir
          * @param Uri a location of the file after it was downloaded. UNUSED.
          */
         @Override
         public void handleFile(String filename, ParcelFileDescriptor Uri) {
             final File toUnpack;
-            final File pictureDir = getPictureDirAfterV8();
+
+            // Let's check the filename is what we were expecting
+            Log.d(TAG, "File expected: " + dlInfo.pathOnDisk + ", observed: " + filename);
 
             // Unzip the file here.
             // Try opening the URI via a ParcelFileDescriptor
@@ -306,7 +333,9 @@ class FileController {
                 }
                 toUnpack = new File(plainPath);
             } else {
-                toUnpack = new File(pictureDir, filename);
+                toUnpack = new File(Environment.getExternalStoragePublicDirectory(
+                                        Environment.DIRECTORY_PICTURES),
+                        filename);
             }
 
             ZipFile inputZipped;
@@ -407,13 +436,15 @@ class FileController {
          * @param album
          * @param dao
          * @param mc
+         * @param mPicturesDir
          */
         private Unzipper(NetworkRoutines.DownloadInfo dlInfo, Album album,
-                         AlbumDao dao, MainController mc) {
+                         AlbumDao dao, MainController mc, File mPicturesDir) {
             this.dlInfo = dlInfo;
             this.album = album;
             this.dao = dao;
             this.mc = mc;
+            this.mPicturesDir = mPicturesDir;
         }
     }
 
@@ -425,11 +456,14 @@ class FileController {
      * Needs to be called from a background thread because it modifies databases.
      * @param dlInfo the name the dlInfo should be called.
      * @return an object that can unzip this dlInfo and extract its contents for later retrieval.
+     *
+     * This dlInfo object might be modified, so do not use it hence. Instead, get the updated
+     * dlInfo object from {@link Unzipper#dlInfo}.
      */
     Unzipper createUnzipper(NetworkRoutines.DownloadInfo dlInfo) {
         // Check to see if we can hold the eventual file size
-        File pictureDir = getPictureDirAfterV8();
-        long available = pictureDir.getFreeSpace();
+        File picturesDir = getPicturesDir();
+        long available = picturesDir.getFreeSpace();
         if (available < dlInfo.extractedSize) {
             Log.d(TAG, "Out of disk space, cannot unzip: Expected: "
                     + dlInfo.extractedSize
@@ -441,16 +475,32 @@ class FileController {
         // the database.
         Album album = new Album();
         album.setName(dlInfo.name);
-        album.setRemoteLocation(dlInfo.location.toString());
+        Log.d(TAG, "dlInfo.name = " + dlInfo.name);
+        String remoteLocation = dlInfo.location.toString();
+        album.setRemoteLocation(remoteLocation);
+        Log.d(TAG, "dlInfo.remoteLocation = " + remoteLocation);
         // Only when we insert it do we get a unique ID. This is why this method needs to be called
         // from a background thread.
         long id = db.albumDao().insert(album);
         // Now set that as the canonical ID for this
         album.setId(id);
+        Log.d(TAG, "dlInfo.id = " + id);
 
-        String topLevel = getPictureDirAfterV8().getAbsolutePath().concat(File.pathSeparator);
-        String galleryDir = "album_" + String.format(Locale.US, "%03d", id);
-        album.setLocalLocation(topLevel.concat(galleryDir));
-        return new Unzipper(dlInfo, album, db.albumDao(), mc);
+        String topLevel = picturesDir.getAbsolutePath().concat("/");
+        String pathPrefix = "gal_" + String.format(Locale.US, "%04d", id);
+        String localLocation = topLevel.concat(pathPrefix);
+        Log.d(TAG, "dlInfo.localLocation = " + localLocation);
+
+        // This is the location where the zip file should be stored. This is why it is a bad
+        // idea to read the original dlInfo object.
+        // location/album-335 will be unpacked from album-335.zip
+        String fileName = pathPrefix.concat(".zip");
+        dlInfo.pathOnDisk = getSubPath(fileName);
+        Log.d(TAG, "dlInfo.pathOnDisk = " + fileName);
+
+        Log.d(TAG, "picturesDir = " + picturesDir.getAbsolutePath());
+
+        album.setLocalLocation(localLocation);
+        return new Unzipper(dlInfo, album, db.albumDao(), mc, picturesDir);
     }
 }

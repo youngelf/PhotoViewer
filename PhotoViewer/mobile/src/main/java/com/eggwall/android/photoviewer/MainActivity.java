@@ -171,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
 //            s.setRemoteLocation("http://nothing.com");
 //            List<Album> p = d.getAll();
 //            s = p.get(0);
-//            Log.d(TAG, "Test album from previous insert = " + s);
+//            Log.d(TAG, "Test dlInfo from previous insert = " + s);
             return null;
         }
     }
