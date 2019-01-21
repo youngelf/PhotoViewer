@@ -14,8 +14,9 @@ package com.eggwall.android.photoviewer;
 // Ideally, the interfaces that the others provide are crisp enough that we can understand the
 // functionality here on its own merit.
 
-import android.net.Uri;
+import android.os.AsyncTask;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -104,24 +105,50 @@ public class MainController {
      * Requests adding a URI as a gallery.
      *
      * @param album to add as a gallery
-     * @return true if the gallery download is scheduled.
      */
-    boolean download(NetworkRoutines.DownloadInfo album) {
-        // Once a download is finished, we need to handle the file. The filecontroller handles
-        // that via a new unzipper object.
-        FileController.Unzipper unzipper = fileC.createUnzipper(album);
-        if (unzipper == null) {
-            Log.d(TAG, "Got a null unzipper");
-            return false;
+    void download(final NetworkRoutines.DownloadInfo album) {
+        // Needs to be done in the background.
+        (new DownloadTask(album, fileC, networkC)).execute();
+    }
+
+    static class DownloadTask extends AsyncTask<Void, Void, Void> {
+        final NetworkRoutines.DownloadInfo album;
+        final FileController fc;
+        final NetworkController nc;
+        boolean didSucceed = false;
+
+        DownloadTask(NetworkRoutines.DownloadInfo album, FileController fc, NetworkController nc) {
+            this.album = album;
+            this.fc = fc;
+            this.nc = nc;
         }
-        boolean status = networkC.requestURI(album.location, unzipper);
-        if (!status) {
-            Log.e(TAG, "Could not download file " + album.location);
-            return false;
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            // Once a download is finished, we need to handle the file. The filecontroller handles
+            // that via a new unzipper object.
+            FileController.Unzipper unzipper = fc.createUnzipper(album);
+            if (unzipper == null) {
+                Log.d(TAG, "Got a null unzipper");
+                didSucceed = false;
+                return null;
+            }
+            boolean status = nc.requestURI(album.location, unzipper);
+            if (!status) {
+                Log.e(TAG, "Could not download file " + album.location);
+                didSucceed = false;
+                return null;
+            }
+            // We can't do anything else since we need to wait for the download to complete.
+            Log.d(TAG, "Download for " + album.location + " queued.");
+            didSucceed = true;
+            return null;
         }
-        // We can't do anything else since we need to wait for the download to complete.
-        Log.d(TAG, "Download for " + album.location + " queued.");
-        return true;
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+        }
     }
 
     /**

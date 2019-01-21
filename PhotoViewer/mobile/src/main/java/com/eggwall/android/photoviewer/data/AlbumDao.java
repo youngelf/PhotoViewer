@@ -33,8 +33,13 @@ public interface AlbumDao {
     @Query("SELECT * FROM album WHERE id in (:ids)")
     List<Album> findByIdArray(int[] ids);
 
+    /**
+     * Insert a new Album into the database
+     * @param album an album in which the id is unspecified (0 is fine).
+     * @return the id that was assigned (guaranteed to be unique) for this album.
+     */
     @Insert
-    void insert(Album album);
+    long insert(Album album);
 
     @Update
     void update(Album album);

@@ -254,10 +254,10 @@ class CryptoRoutines {
             String key = bToS(skey.getEncoded());
             Log.d(TAG, "I generated this crazy long key: " + key);
             String expected = "This is a long message";
-            String plainPath = Environment.getExternalStorageDirectory().getPath().concat("/")
-                    .concat("plain.txt");
-            String cipherPath = Environment.getExternalStorageDirectory().getPath().concat("/")
-                    .concat("cipher.txt");
+            String plainPath = Environment.getExternalStorageDirectory().getPath()
+                    .concat(File.pathSeparator).concat("plain.txt");
+            String cipherPath = Environment.getExternalStorageDirectory().getPath()
+                    .concat(File.pathSeparator).concat("cipher.txt");
             // First, delete the file.
 //            if ((new File(cipherPath)).delete()) {
 //                Log.d(TAG, "Old cipher file deleted.");
@@ -271,8 +271,8 @@ class CryptoRoutines {
             Log.d(TAG, "Encryption succeeded. IV = " + bToS(iv));
 
             // Try to decrypt.
-            String testPlainPath = Environment.getExternalStorageDirectory().getPath().concat("/")
-                    .concat("test.txt");
+            String testPlainPath = Environment.getExternalStorageDirectory().getPath()
+                    .concat(File.pathSeparator).concat("test.txt");
             boolean result = decrypt(cipherPath, iv, skey, testPlainPath);
             if (!result) {
                 Log.d(TAG, "Decryption failed for  " + testPlainPath);

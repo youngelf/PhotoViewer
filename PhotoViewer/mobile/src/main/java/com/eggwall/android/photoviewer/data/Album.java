@@ -11,8 +11,8 @@ public class Album {
     /**
      * An opaque ID that uniquely defines this entry for all time.
      */
-    @PrimaryKey
-    private int id;
+    @PrimaryKey(autoGenerate = true)
+    private long id;
 
     /**
      * Remote location where this download was requested from. This remote location might
@@ -47,7 +47,7 @@ public class Album {
     @ColumnInfo(name = "download_time")
     private long downloadTimeMs;
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
@@ -63,7 +63,7 @@ public class Album {
         return lastViewedTimeMs;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 

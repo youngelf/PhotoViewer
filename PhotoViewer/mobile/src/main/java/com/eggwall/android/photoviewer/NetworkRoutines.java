@@ -26,6 +26,9 @@ class NetworkRoutines {
     /** CGI param key: is this file encrypted with {@link CryptoRoutines#AES_CBC_PKCS5_PADDING} */
     public static final String KEY_ENCRYPTED = "encrypted";
 
+    /**  CGI param key: Initialization vector as byte[] */
+    public static final String KEY_INITIALIZATION_VECTOR = "iv";
+
     /** CGI param key: is this a zip archive? */
     public static final String KEY_ZIPPED = "zipped";
 
@@ -48,6 +51,11 @@ class NetworkRoutines {
          */
         public final boolean isEncrypted;
         /**
+         * If encrypted, the initialization vector.
+         */
+        public final byte[] initializationVector;
+
+        /**
          * Final size of the entire package when it is extracted.
          */
         public final int extractedSize;
@@ -61,16 +69,19 @@ class NetworkRoutines {
          */
         public final String name;
 
-        DownloadInfo(Uri location, boolean isEncrypted,
+        DownloadInfo(Uri location, boolean isEncrypted, byte[] initializationVector,
                      int extractedSize, boolean isZipped, String name) {
             this.location = location;
             this.isEncrypted = isEncrypted;
+            this.initializationVector = initializationVector;
             this.extractedSize = extractedSize;
             this.isZipped = isZipped;
             this.name = name;
 
             Log.d(TAG, "Created album: location = " + location
                     + " isEncrypted = " + isEncrypted
+                    + " initializationVector = " + (initializationVector != null
+                            ? initializationVector : "null")
                     + " size = " + extractedSize
                     + " isZipped = " + isZipped
                     + " name = " + name
@@ -79,7 +90,7 @@ class NetworkRoutines {
     }
 
     public final static DownloadInfo EMPTY =
-            new DownloadInfo(Uri.EMPTY, false, 0, false, "EMPTY");
+            new DownloadInfo(Uri.EMPTY, false, null, 0, false, "EMPTY");
 
     /**
      * Get the URL to download from the intent this application was started from.
@@ -124,6 +135,7 @@ class NetworkRoutines {
         Uri uriR = Uri.EMPTY;
         // Assume not encrypted.
         boolean isEncryptedR = false;
+        byte[] initVectorR = null;
         boolean isZippedR = false;
         int extractedSizeR = 0;
         String albumNameR = "unspecified";
@@ -155,6 +167,13 @@ class NetworkRoutines {
                 isEncryptedR = encoded.equalsIgnoreCase("y");
             }
         }
+        if (names.contains(KEY_INITIALIZATION_VECTOR)) {
+            String encoded = uri.getQueryParameter(KEY_INITIALIZATION_VECTOR);
+            // We expect the value to be 'Y' or 'y'.
+            if (encoded != null) {
+                initVectorR = encoded.getBytes();
+            }
+        }
         if (names.contains(KEY_SIZE)) {
             String encoded = uri.getQueryParameter(KEY_SIZE);
             // We expect the value to be 'Y' or 'y'.
@@ -168,7 +187,8 @@ class NetworkRoutines {
             albumNameR = Uri.decode(encoded);
         }
 
-        return new DownloadInfo(uriR, isEncryptedR, extractedSizeR, isZippedR, albumNameR);
+        return new DownloadInfo(uriR, isEncryptedR, initVectorR,
+                extractedSizeR, isZippedR, albumNameR);
     }
 
 

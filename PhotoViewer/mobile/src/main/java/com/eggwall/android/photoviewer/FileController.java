@@ -1,10 +1,13 @@
 package com.eggwall.android.photoviewer;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
+import com.eggwall.android.photoviewer.data.Album;
+import com.eggwall.android.photoviewer.data.AlbumDao;
 import com.eggwall.android.photoviewer.data.AlbumDatabase;
 
 import java.io.BufferedInputStream;
@@ -15,9 +18,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import javax.crypto.SecretKey;
+
+import static com.eggwall.android.photoviewer.CryptoRoutines.keyFromString;
 import static java.io.File.separatorChar;
 
 /**
@@ -260,32 +267,55 @@ class FileController {
      * The critical method here is {@link #handleFile(String, ParcelFileDescriptor)}.
      */
     static class Unzipper implements DownloadHandler {
-        private final NetworkRoutines.DownloadInfo album;
+        private final NetworkRoutines.DownloadInfo dlInfo;
+        private final Album album;
 
         /**
          * This method needs to be called on a non-UI thread. It does long-running file processing.
          * @param filename name of the file that was downloaded
-         * @param Uri a location of the file after it was downloaded.
+         * @param Uri a location of the file after it was downloaded. UNUSED.
          */
         @Override
         public void handleFile(String filename, ParcelFileDescriptor Uri) {
+            final File toUnpack;
+            final File pictureDir = getPictureDirAfterV8();
+
             // Unzip the file here.
             // Try opening the URI via a ParcelFileDescriptor
+            if (dlInfo.isEncrypted) {
+                final String plainPath = Environment.getExternalStorageDirectory().getPath()
+                        .concat(File.pathSeparator).concat("plain.zip");
+                // Delete the existing .zip file first. This is a problem because simultaneous
+                // downloads will trample each other. Need the dlInfo's unique ID here.
+                if ((new File(plainPath)).delete()) {
+                    Log.d(TAG, "Old plain file deleted.");
+                }
+                // Decrypt it first, and then ask for it to be unzipped.
+                try {
+                    // TODO: Need a way to input the key first! This can be kept with the host
+                    // that the key specifies.
+                    SecretKey KEY = keyFromString("SOh7N8bl1R5ZoJrGLzhzjA==");
+                    CryptoRoutines.decrypt(filename, dlInfo.initializationVector, KEY, plainPath);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                toUnpack = new File(plainPath);
+            } else {
+                toUnpack = new File(pictureDir, filename);
+            }
 
-            // TODO: Check for free disk space first.
-            File pictureDir = getPictureDirAfterV8();
             ZipFile inputZipped;
             try {
-                inputZipped = new ZipFile(new File(pictureDir, filename));
+                inputZipped = new ZipFile(toUnpack);
             } catch (IOException e) {
                 e.printStackTrace();
-                Log.e(TAG, "Could not open zip file " + filename, e);
+                Log.e(TAG, "Could not open file: " + toUnpack.getAbsolutePath(), e);
                 // TODO: Cleanup here first.
                 return;
             }
 
             // Create a directory to hold it all
-            final File freshGalleryDir = new File (pictureDir, album.name);
+            final File freshGalleryDir = new File (pictureDir, album.getLocalLocation());
             boolean result;
             try {
                 result = freshGalleryDir.mkdir();
@@ -348,14 +378,24 @@ class FileController {
                     e.printStackTrace();
                 }
             }
-            // Now delete the original zip file.
+
+            // Done with it, delete the original package file.
+            if (toUnpack != null) {
+                if (toUnpack.delete()) {
+                    Log.d(TAG, "Plain file deleted:" + toUnpack.getAbsolutePath());
+                }
+            }
+
+            // Here I should modify the database to tell the file has been correctly pulled.
         }
 
         /** Hidden to force all creation through
          * {@link FileController#createUnzipper(NetworkRoutines.DownloadInfo)}
-         * @param album The album that this unzipper was created with.
+         * @param dlInfo The dlInfo that this unzipper was created with.
+         * @param album
          */
-        private Unzipper(NetworkRoutines.DownloadInfo album) {
+        private Unzipper(NetworkRoutines.DownloadInfo dlInfo, Album album) {
+            this.dlInfo = dlInfo;
             this.album = album;
         }
     }
@@ -365,19 +405,32 @@ class FileController {
 
     /**
      * Creates a new {@link Unzipper} object including any member-specified information.
-     * @param album the name the album should be called.
-     * @return an object that can unzip this album and extract its contents for later retrieval.
+     * Needs to be called from a background thread because it modifies databases.
+     * @param dlInfo the name the dlInfo should be called.
+     * @return an object that can unzip this dlInfo and extract its contents for later retrieval.
      */
-    Unzipper createUnzipper(NetworkRoutines.DownloadInfo album) {
+    Unzipper createUnzipper(NetworkRoutines.DownloadInfo dlInfo) {
         // Check to see if we can hold the eventual file size
         File pictureDir = getPictureDirAfterV8();
         long available = pictureDir.getFreeSpace();
-        if (available < album.extractedSize) {
+        if (available < dlInfo.extractedSize) {
             Log.d(TAG, "Out of disk space, cannot unzip: Expected: "
-                    + album.extractedSize
+                    + dlInfo.extractedSize
                     + " Available: " + available);
             return null;
         }
-        return new Unzipper(album);
+
+        // At this point, we should create a new {@link Album} object, and then insert it into
+        // the database.
+        Album album = new Album();
+        album.setName(dlInfo.name);
+        album.setRemoteLocation(dlInfo.location.toString());
+        // Only when we insert it do we get a unique ID. This is why this method needs to be called
+        // from a background thread.
+        long id = db.albumDao().insert(album);
+        // Now set that as the canonical ID for this
+        album.setId(id);
+        album.setLocalLocation("album_" + String.format(Locale.US, "%03d", id));
+        return new Unzipper(dlInfo, album);
     }
 }
