@@ -321,6 +321,13 @@ class FileController {
         private final MainController mc;
         final File mPicturesDir;
 
+        private String createAbsolutePath(String relativePath) {
+            return Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_PICTURES)
+                    .getAbsolutePath()
+                    .concat("/")
+                    .concat(relativePath);
+        }
         /**
          * This method needs to be called on a non-UI thread. It does long-running file processing.
          * @param filename name of the file that was downloaded, relative to mPicturesDir
@@ -336,10 +343,9 @@ class FileController {
             // Unzip the file here.
             // Try opening the URI via a ParcelFileDescriptor
             if (dlInfo.isEncrypted) {
-                final String plainPath = Environment.getExternalStorageDirectory().getPath()
-                        .concat(File.pathSeparator).concat("plain.zip");
-                // Delete the existing .zip file first. This is a problem because simultaneous
-                // downloads will trample each other. Need the dlInfo's unique ID here.
+                final String plainPath = createAbsolutePath("plain" + album.getId() + ".zip");
+                Log.d(TAG, "Decrypting zip at:" + plainPath);
+
                 if ((new File(plainPath)).delete()) {
                     Log.d(TAG, "Old plain file deleted.");
                 }
@@ -348,7 +354,7 @@ class FileController {
                     // TODO: Need a way to input the key first! This can be kept with the host
                     // that the key specifies.
                     SecretKey KEY = keyFromString("SOh7N8bl1R5ZoJrGLzhzjA==");
-                    CryptoRoutines.decrypt(filename, dlInfo.initializationVector, KEY, plainPath);
+                    CryptoRoutines.decrypt(createAbsolutePath(filename), dlInfo.initializationVector, KEY, plainPath);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -511,8 +517,13 @@ class FileController {
 
         // This is the location where the zip file should be stored. This is why it is a bad
         // idea to read the original dlInfo object.
-        // location/album-335 will be unpacked from album-335.zip
-        String fileName = pathPrefix.concat(".zip");
+        // location/gal_0335 will be unpacked from gal_0335.zip or gal_0335.asc
+        String fileName;
+        if (dlInfo.isEncrypted) {
+            fileName = pathPrefix.concat(".asc");
+        } else {
+            fileName = pathPrefix.concat(".zip");
+        }
         dlInfo.pathOnDisk = getSubPath(fileName);
         Log.d(TAG, "dlInfo.pathOnDisk = " + fileName);
 

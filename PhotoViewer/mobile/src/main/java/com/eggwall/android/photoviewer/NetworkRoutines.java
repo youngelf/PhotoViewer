@@ -166,28 +166,30 @@ class NetworkRoutines {
         }
         if (names.contains(KEY_ZIPPED)) {
             String encoded = uri.getQueryParameter(KEY_ZIPPED);
-            // We expect the value to be 'Y' or 'y'.
+            // We expect the value to be 'Y' or 'y', or 'T' or 't'.
             if (encoded != null) {
-                isZippedR = encoded.equalsIgnoreCase("y");
+                isZippedR = encoded.equalsIgnoreCase("y")
+                        || encoded.equalsIgnoreCase("t");
             }
         }
         if (names.contains(KEY_ENCRYPTED)) {
             String encoded = uri.getQueryParameter(KEY_ENCRYPTED);
-            // We expect the value to be 'Y' or 'y'.
+            // We expect the value to be 'Y' or 'y' or 'T' or 't'.
             if (encoded != null) {
-                isEncryptedR = encoded.equalsIgnoreCase("y");
+                isEncryptedR = encoded.equalsIgnoreCase("y")
+                        || encoded.equalsIgnoreCase("t");
             }
         }
         if (names.contains(KEY_INITIALIZATION_VECTOR)) {
             String encoded = uri.getQueryParameter(KEY_INITIALIZATION_VECTOR);
-            // We expect the value to be 'Y' or 'y'.
             if (encoded != null) {
-                initVectorR = encoded.getBytes();
+                initVectorR = CryptoRoutines.STob(encoded);
+                Log.d(TAG, "initialization vector = " + CryptoRoutines.bToS(initVectorR));
             }
         }
         if (names.contains(KEY_SIZE)) {
+            // Size in bytes.
             String encoded = uri.getQueryParameter(KEY_SIZE);
-            // We expect the value to be 'Y' or 'y'.
             if (encoded != null) {
                 extractedSizeR = Integer.parseInt(encoded);
             }
