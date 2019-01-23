@@ -140,6 +140,8 @@ public class MainController {
 
     /**
      * Display this dlInfo if it exists, false if it doesn't.
+     *
+     * Call on the background thread, since this reads disk.
      * @param album
      * @return
      */

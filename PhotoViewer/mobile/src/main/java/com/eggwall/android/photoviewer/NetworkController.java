@@ -45,7 +45,8 @@ class NetworkController {
         final String mFilename;
         final FileController.Unzipper mUnzipper;
 
-        public Receiver(long requestId, Uri location, String filename, FileController.Unzipper callWhenComplete) {
+        public Receiver(long requestId, Uri location, String filename,
+                        FileController.Unzipper callWhenComplete) {
             mRequestId = requestId;
             mLocation = location;
             mFilename = filename;
@@ -57,12 +58,18 @@ class NetworkController {
             // We are never getting called again, so let's just unregister ourselves first.
             context.unregisterReceiver(this);
 
+            // Call execute on this if anything bad happens to let the callback know we are done
+            // but that we failed to download anything.
+            FileTask errorTask = new FileTask(mUnzipper,
+                    FileController.Unzipper.FILENAME_ERROR, FileController.Unzipper.PFD_ERROR);
+
             // check if the broadcast message is for our enqueued download
             long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
 
             if (referenceId != mRequestId) {
                 Log.e(TAG, "DownloadManager response mismatch! Expected = " + mRequestId
                     + "Received = " + referenceId);
+                errorTask.execute();
                 return;
             }
             // Query the download manager to confirm the file was correctly downloaded
@@ -72,6 +79,7 @@ class NetworkController {
             // Ensure at least one result.
             if (cursor == null || !cursor.moveToFirst()) {
                 Log.e(TAG, "DownloadManager does not know about file: " + mLocation);
+                errorTask.execute();
                 return;
             }
 
@@ -85,9 +93,11 @@ class NetworkController {
             if (status != DownloadManager.STATUS_SUCCESSFUL) {
                 Log.e(TAG, "Failed to download file: " + mLocation
                         + " Status = " + status
-                        + ". Values at https://developer.android.com/reference/android/app/DownloadManager.html#STATUS_SUCCESSFUL");
+                        + ". Values at https://developer.android.com/reference/android/app/"
+                        + "DownloadManager.html#STATUS_SUCCESSFUL");
 
-                // Delete the entry from the album list, or at least remember the failure. for debugging later.
+                // Delete the entry from the album list, or at least remember the failure.
+                errorTask.execute();
                 return;
             }
 
@@ -118,6 +128,7 @@ class NetworkController {
                     ParcelFileDescriptor pfd = resolver.openFileDescriptor(u, "r");
                     if (pfd == null) {
                         Log.d(TAG, "ParcelFileDescriptor null!");
+                        errorTask.execute();
                         return;
                     }
                     size = pfd.getStatSize();
@@ -133,6 +144,7 @@ class NetworkController {
                 final ParcelFileDescriptor pfd = resolver.openFileDescriptor(u, "r");
                 if (pfd == null) {
                     Log.d(TAG, "ParcelFileDescriptor null!");
+                    errorTask.execute();
                     return;
                 }
                 // Print out information about the pfd
@@ -142,10 +154,15 @@ class NetworkController {
                 if (mUnzipper != null) {
                     // Asynchronously, handle the file.
                     (new FileTask(mUnzipper, mFilename, pfd)).execute();
+                    return;
                 }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
+                errorTask.execute();
+                return;
             }
+            // In case we did not return correctly, for any reason, let the error handler know.
+            errorTask.execute();
         }
     }
 

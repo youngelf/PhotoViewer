@@ -13,8 +13,11 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
-
     <!-- TODO: Enable full backup for the settings file. -->
+
+    <!-- usesClearTextTraffic="true" is required on newer versions of the Android platform where
+         DownloadManager refuses to download http:// traffic. Safe on older version of Android
+         where the attribute is unknown and therefore ignored. -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

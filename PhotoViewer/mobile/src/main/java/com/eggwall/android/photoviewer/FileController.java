@@ -228,23 +228,23 @@ class FileController {
      *
      * This needs to be called on a background thread, since it processes files.
      *
-     * @param al the album to show
+     * @param album the album to show
      * @return true if the album was switched.
      */
-    boolean setDirectory(Album al) {
+    boolean setDirectory(Album album) {
         MainController.checkBackgroundThread();
 
         // Check that the given directory exists and has images
-        final File galleryDir = new File(al.getLocalLocation());
+        final File galleryDir = new File(album.getLocalLocation());
         if (!galleryDir.isDirectory()) {
             // The directory doesn't exist, so this is invalid.
-            Log.d(TAG, "setDirectory: non-existent dir: " + al.getLocalLocation());
+            Log.d(TAG, "setDirectory: non-existent dir: " + album.getLocalLocation());
             return false;
         }
         final String[] fileNames = galleryDir.list();
         if (fileNames.length <= 0) {
             // Empty directory.
-            Log.d(TAG, "setDirectory: empty dir: " + al.getLocalLocation());
+            Log.d(TAG, "setDirectory: empty dir: " + album.getLocalLocation());
             return false;
         }
         // TODO: I should check that the files that exist here are actually image files.
@@ -260,6 +260,10 @@ class FileController {
         // to getFile returns the 0th element.
         mCurrentImageIndex = mCurrentGalleryList.size();
         Log.d(TAG, "mCurrentImageIndex = " + mCurrentImageIndex);
+
+        // Update the database to modify last-viewed-timestamp
+        album.setLastViewedTimeMs(SystemClock.elapsedRealtime());
+        db.albumDao().update(album);
 
         // Now I need to ask the main controller to advance to next.
         mc.updateImage(UiConstants.NEXT, false);
@@ -327,6 +331,8 @@ class FileController {
         final AlbumDao dao;
         private final MainController mc;
         final File mPicturesDir;
+        public static String FILENAME_ERROR = "";
+        public static ParcelFileDescriptor PFD_ERROR = null;
 
         private String createAbsolutePath(String relativePath) {
             return Environment.getExternalStoragePublicDirectory(
@@ -342,6 +348,12 @@ class FileController {
          */
         @Override
         public void handleFile(String filename, ParcelFileDescriptor Uri) {
+            // Check if we failed and the error handling should be invoked
+            if (filename == FILENAME_ERROR && Uri == PFD_ERROR) {
+                // Modify the database to remove a record of the download.
+                dao.delete(album);
+                return;
+            }
             final File toUnpack;
 
             // Let's check the filename is what we were expecting
