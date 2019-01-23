@@ -106,18 +106,25 @@ class FileController {
         final File galleryDir = new File(rootSdLocation, PICTURES_DIR);
         if (!galleryDir.isDirectory()) {
             // The directory doesn't exist, so try creating one.
-            Log.e(TAG, "Gallery directory does not exist." + rootSdLocation);
+            Log.e(TAG, "Gallery directory does not exist: " + rootSdLocation);
             boolean result;
             try {
                 result = galleryDir.mkdir();
             } catch (Exception e) {
-                Log.e(TAG, "Could not create a directory " + e);
+                Log.e(TAG, "Could not create a directory: " + galleryDir
+                        + " Message:" + e.getMessage()
+                        , e);
+                // Nothing is going to work here, so let's fail hard
+                System.exit(-1);
                 return null;
             }
             if (result) {
                 Log.d(TAG, "Created a directory at " + galleryDir.getAbsolutePath());
             } else {
-                Log.d(TAG, "FAILED to make a directory at " + galleryDir.getAbsolutePath());
+                Log.wtf(TAG, "FAILED to make a directory at " + galleryDir.getAbsolutePath(),
+                        new Error());
+                // Nothing is going to work here, so let's fail hard
+                System.exit(-1);
                 return null;
             }
         }
@@ -132,7 +139,7 @@ class FileController {
         return mPicturesDir;
     }
 
-    public String getSubPath(String subpath) {
+    private String getSubPath(String subpath) {
         return PICTURES_DIR.concat("/").concat(subpath);
     }
 

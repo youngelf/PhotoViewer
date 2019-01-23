@@ -81,8 +81,13 @@ class NetworkController {
             }
 
             int statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
-            if (cursor.getInt(statusIdx) != DownloadManager.STATUS_SUCCESSFUL) {
-                Log.e(TAG, "Failed to download file: " + mLocation);
+            int status = cursor.getInt(statusIdx);
+            if (status != DownloadManager.STATUS_SUCCESSFUL) {
+                Log.e(TAG, "Failed to download file: " + mLocation
+                        + " Status = " + status
+                        + ". Values at https://developer.android.com/reference/android/app/DownloadManager.html#STATUS_SUCCESSFUL");
+
+                // Delete the entry from the album list, or at least remember the failure. for debugging later.
                 return;
             }
 

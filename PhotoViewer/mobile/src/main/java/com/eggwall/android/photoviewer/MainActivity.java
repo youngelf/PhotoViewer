@@ -150,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         CryptoRoutines.decryptTextTest();
-        CryptoRoutines.decryptFileTest();
+//        CryptoRoutines.decryptFileTest();
     }
 
     static class DbTester extends AsyncTask<Void, Void, Void> {
