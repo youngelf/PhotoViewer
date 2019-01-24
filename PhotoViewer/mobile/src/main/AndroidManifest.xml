@@ -15,14 +15,23 @@
 
     <!-- TODO: Enable full backup for the settings file. -->
 
-    <!-- usesClearTextTraffic="true" is required on newer versions of the Android platform where
-         DownloadManager refuses to download http:// traffic. Safe on older version of Android
-         where the attribute is unknown and therefore ignored. -->
+    <!--
+
+     usesClearTextTraffic="true" is required on newer versions of the Android platform where
+     DownloadManager refuses to download http:// traffic. Safe on older version of Android
+     where the attribute is unknown and therefore ignored.
+
+     Also, round icons are stupid, so let's use the non-round icons across all systems. Most
+     round icons I have seen only serve to enclose a non-round asset in a silly bubble.
+     This cuts on overall usability since every icon looks the same and the user has to
+     spend time looking carefully at what each icon really is.
+
+    -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:fullBackupContent="true"
         android:usesCleartextTraffic="true"

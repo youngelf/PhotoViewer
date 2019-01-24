@@ -3,7 +3,6 @@ package com.eggwall.android.photoviewer;
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
@@ -28,11 +27,11 @@ import com.eggwall.android.photoviewer.data.AlbumDatabase;
  * TODO:    GCM cloud messaging to avoid polling.
  * TODO: Some unique ID to separate two feeds from one another.
  * TODO: A UI to show all the albums (today only one is shown)
- * TODO: Showing slideshow state, and allowing slideshow to stop.
  * TODO: Settings activity to change slideshow duration, auto-start newest, download frequency, etc
- * TODO: Desktop application to create these image files.
  * TODO: pinch-zoom on an image.
  * TODO: Diagnostics in the app to find what's wrong.
+ * DONE: Showing slideshow state, and allowing slideshow to stop.
+ * DONE: Desktop application to create these image files.
  */
 
 /**

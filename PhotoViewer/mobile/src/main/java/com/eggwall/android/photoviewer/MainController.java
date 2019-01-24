@@ -75,6 +75,17 @@ public class MainController {
     }
 
     /**
+     * Confirm that any thread is great.  Confirms that neither {@link #checkBackgroundThread()}
+     * nor {@link #checkMainThread()} are needed here.
+     */
+    public static void checkAnyThread() {
+        // This is more for the programmer to read than for anything to be confirmed. The existence
+        // of this method confirms that the programmer confirms that any thread is good, and that
+        // he/she didn't forget to call checkBackgroundThread() or checkMainThreads() by mistake.
+        return;
+    }
+
+    /**
      * Verify that the object was created before use.
      * @return false if created, true if everything is ok.
      */
@@ -139,7 +150,7 @@ public class MainController {
     }
 
     /**
-     * Display this dlInfo if it exists, false if it doesn't.
+     * Display this album if it exists, false if it doesn't.
      *
      * Call on the background thread, since this reads disk.
      * @param album
@@ -147,6 +158,7 @@ public class MainController {
      */
     boolean showAlbum(Album album) {
         creationCheck();
+        checkBackgroundThread();
 
         fileC.setDirectory(album);
         return true;
@@ -158,6 +170,8 @@ public class MainController {
      */
     void onWindowFocusChanged(boolean hasFocus) {
         creationCheck();
+        // I think the UI thread calls this, but I don't really care.
+        checkAnyThread();
 
         uiC.onWindowFocusChanged(hasFocus);
     }
@@ -165,11 +179,12 @@ public class MainController {
     /**
      * Requests adding a URI as a gallery.
      *
+     * Can be called on the foreground thread or a background thread.
      * @param album to add as a gallery
      */
     void download(final NetworkRoutines.DownloadInfo album) {
         creationCheck();
-
+        checkAnyThread();
         // Needs to be done in the background.
         (new DownloadTask(album, fileC, networkC)).execute();
     }
@@ -221,11 +236,14 @@ public class MainController {
     /**
      * Update the image by providing an offset
      *
+     * Call from the background thread because this reads disk.
+     *
      * @param offset  is either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
      * @param showFab
      */
     void updateImage(int offset, boolean showFab) {
         creationCheck();
+        checkBackgroundThread();
 
         if (offset != UiConstants.NEXT && offset != UiConstants.PREV) {
             Log.e(TAG, "updateImage: Incorrect offset provided: " + offset);
