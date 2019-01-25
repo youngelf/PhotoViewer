@@ -22,7 +22,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-class CryptoRoutines {
+public class CryptoRoutines {
     private static final String TAG = "CryptoRoutines";
 
     /** AES Encryption with Block Cipher and PKCS5 padding */

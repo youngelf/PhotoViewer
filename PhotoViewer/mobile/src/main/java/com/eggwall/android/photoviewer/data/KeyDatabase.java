@@ -9,25 +9,19 @@ import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 import android.support.annotation.NonNull;
 
-/**
- * Keeps a log of ongoing downloads, where they are from, what files were written for them,
- * and other metadata associated with a download that is later unpacked into a file.
- *
- * Once the download is completed, it becomes a collection of Albums that exist on the device,
- * and a way for the LRU cache to purge out old entries.
- */
-@Database(entities = {Album.class}, version = 1)
-public abstract class AlbumDatabase extends RoomDatabase {
-    public abstract AlbumDao albumDao();
+@Database(entities={Key.class}, version=1)
+public abstract class KeyDatabase extends RoomDatabase {
 
-    private static volatile AlbumDatabase INSTANCE;
+    public abstract KeyDao keyDao();
 
-    public static AlbumDatabase getDatabase(final Context context) {
+    private static volatile KeyDatabase INSTANCE;
+
+    public static KeyDatabase getDatabase(final Context context) {
         if (INSTANCE == null) {
-            synchronized (AlbumDatabase.class) {
+            synchronized (KeyDatabase.class) {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
-                            AlbumDatabase.class, "album")
+                            KeyDatabase.class, "key")
                             .build();
                 }
             }
@@ -35,8 +29,7 @@ public abstract class AlbumDatabase extends RoomDatabase {
         return INSTANCE;
     }
 
-    public AlbumDatabase() {
-        // Create a database if none exists.
+    public KeyDatabase() {
 
     }
 

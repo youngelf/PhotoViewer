@@ -13,33 +13,68 @@ import java.util.Set;
 class NetworkRoutines {
     private static final String TAG = "NetworkRoutines";
 
-
     /** The scheme for the custom URI. */
     public static final String SCHEME = "photoviewer";
 
-    /** The domain in the custom URI. Not currently checking it. */
-    public static final String DOMAIN = "eggwall";
+    // One of the REQ_ keys need to be provided. None of these REQ_ keys should have the same value
+    // as any of the KEY_ strings, because otherwise the optional param will be mistaken for the
+    // required param.
+    /** CGI param key: URL where the package is available. */
+    public static final String REQ_PACKAGE_SRC = "src";
 
     /** CGI param key: URL where the package is available. */
-    public static final String KEY_LOCATION = "src";
+    public static final String REQ_SECRETKEY = "key";
 
-    /** CGI param key: is this file encrypted with {@link CryptoRoutines#AES_CBC_PKCS5_PADDING} */
-    public static final String KEY_ENCRYPTED = "encrypted";
 
-    /**  CGI param key: Initialization vector as byte[] */
-    public static final String KEY_INITIALIZATION_VECTOR = "iv";
-
-    /** CGI param key: is this a zip archive? */
-    public static final String KEY_ZIPPED = "zipped";
-
-    /** CGI param key: the unpacked size of the archive. */
-    public static final String KEY_SIZE = "size";
-
-    /**  CGI param key: Human readable dlInfo name */
-    public static final String KEY_ALBUMNAME = "name";
+    /** CGI param key: URL where the package is available. */
+    public static final String KEY_NAME = "name";
 
     /**
-     * All the information that is provided by a URL
+     * CGI param key: Unique ID for the key. This is a unique ID that corresponds to the key, and
+     * then the key can be looked up. If the key is compromised, create another key, change the
+     * UID and encrypt new packages with the updated key and uid. Retained as a string all through
+     * and never converted to raw bits.
+     *
+     * Any UUID that conforms to RFC 4122 is great.
+     * https://www.ietf.org/rfc/rfc4122.txt
+     */
+    public static final String KEY_UNIQUEID = "keyid";
+
+    // Options that go along with REQ_PACKAGE_SRC
+    /**
+     * CGI param key: is this file encrypted with {@link CryptoRoutines#AES_CBC_PKCS5_PADDING}.
+     * Provided as an option along with {@link #REQ_PACKAGE_SRC}
+     */
+    public static final String KEY_ENCRYPTED = "encrypted";
+
+    /**
+     * CGI param key: Initialization vector as byte[]
+     * Provided as an option along with {@link #REQ_PACKAGE_SRC}
+     */
+    public static final String KEY_INITIALIZATION_VECTOR = "iv";
+
+    /**
+     * CGI param key: is this a zip archive?
+     * Provided as an option along with {@link #REQ_PACKAGE_SRC}
+     */
+    public static final String KEY_ZIPPED = "zipped";
+
+    /**
+     * CGI param key: the unpacked size of the archive.
+     * Provided as an option along with {@link #REQ_PACKAGE_SRC}
+     */
+    public static final String KEY_SIZE = "size";
+
+    /**
+     * CGI param key: Human readable dlInfo name
+     * Provided as an option along with {@link #REQ_PACKAGE_SRC}
+     */
+    public static final String KEY_ALBUMNAME = "name";
+
+
+    /**
+     * All the information that is provided by a URL. This is constructed when a
+     * {@link #REQ_PACKAGE_SRC} CGI param (and associated param list) is present.
      */
     static class DownloadInfo {
         /**
@@ -104,6 +139,155 @@ class NetworkRoutines {
             new DownloadInfo(Uri.EMPTY, "", false, null, 0, false, "EMPTY");
 
     /**
+     * All the information required to import a secret key into the database. This is constructed
+     * when a {@link #REQ_SECRETKEY} CGI param is present.
+     */
+    static class KeyImportInfo {
+        /**
+         * The key itself, as a Base64 encoding of the byte array.
+         */
+        public final String secretKey;
+        /**
+         * Which keyId this key corresponds to.
+         */
+        public final String keyId;
+        /**
+         * A helpful, human-readable name for the user to call this.
+         */
+        public final String name;
+
+        KeyImportInfo(String secretKey, String keyId, String name) {
+            this.secretKey = secretKey;
+            this.keyId = keyId;
+            this.name = name;
+            Log.d(TAG, "Received a new key: (id=" + keyId + ", name = " + name
+                    + ", secret = " + secretKey);
+        }
+    }
+
+    public static final int TYPE_IGNORE = 0;
+    public static final int TYPE_DOWNLOAD = 1;
+    public static final int TYPE_SECRET_KEY = 2;
+
+    /**
+     * Get the URL to download from the intent this application was started from.
+     *
+     * This will create a URL of the kind
+     * from an intent where the Data has the URL: http://dropbox.com/slkdjf/al
+     * photoviewer://eggwall/test?q=this&src=http%3A%2F%2Fdropbox.com%2Fslkdjf%2Fal
+     * @param intent the Intent the application was started from. Usually obtained from
+     *               {@link Activity#getIntent()}
+     * @return the URL if one is parsed, {@link Uri#EMPTY} otherwise.
+     */
+    static int getIntentType(Intent intent) {
+        if (intent == null) {
+            return TYPE_IGNORE;
+        }
+        String action = intent.getAction();
+        // Unpack the actual URL from that data string
+        Uri uri = intent.getData();
+
+        // That could be empty because the starting intent could have no data associated. This
+        // happens when the user launched into it from All apps, or through commandline.
+        if (action == null || !action.equals(Intent.ACTION_VIEW)
+                || uri == null) {
+            return TYPE_IGNORE;
+        }
+
+        String scheme = uri.getScheme();
+        String path = uri.getPath();
+
+        // Confirm that this is a request to view, with the correct scheme and a non-empty path.
+        if (scheme == null || !scheme.equals(SCHEME)
+                || path == null) {
+            return TYPE_IGNORE;
+        }
+
+        // I should change this to be based on lastPathSegment instead.
+        String lastPathSegment = uri.getLastPathSegment();
+        if (lastPathSegment == null) {
+            return TYPE_IGNORE;
+        }
+
+        if (lastPathSegment.equalsIgnoreCase("import")) {
+            return TYPE_SECRET_KEY;
+        }
+        if (lastPathSegment.equalsIgnoreCase("download")) {
+            return TYPE_DOWNLOAD;
+        }
+        return TYPE_IGNORE;
+    }
+
+    /**
+     * Key to return when there is nothing to do.
+     */
+    final static KeyImportInfo EMPTY_KEY = new KeyImportInfo("", "", "");
+
+    /**
+     * Get the URL to download from the intent this application was started from.
+     *
+     * This will create a URL of the kind
+     * from an intent where the Data has the URL: http://dropbox.com/slkdjf/al
+     * photoviewer://eggwall/test?q=this&src=http%3A%2F%2Fdropbox.com%2Fslkdjf%2Fal
+     * @param intent the Intent the application was started from. Usually obtained from
+     *               {@link Activity#getIntent()}
+     * @return the URL if one is parsed, {@link Uri#EMPTY} otherwise.
+     */
+    static KeyImportInfo getKeyInfo(Intent intent) {
+        if (intent == null) {
+            return EMPTY_KEY;
+        }
+
+        String action = intent.getAction();
+
+        // Unpack the actual URL from that data string
+        Uri uri = intent.getData();
+        // That could be empty because the starting intent could have no data associated. This
+        // happens when the user launched into it from All apps, or through commandline.
+        if (uri == null || action == null) {
+            return EMPTY_KEY;
+        }
+
+        String scheme = uri.getScheme();
+        Log.d(TAG, "Scheme = " + scheme);
+        String path = uri.getPath();
+        Log.d(TAG, "Path = " + path);
+
+        String secretKey = "";
+        String name = "";
+        String keyId = "";
+
+        // Confirm that this is a request to view, with the correct scheme and a non-empty path.
+        if (action.equals(Intent.ACTION_VIEW)
+                && scheme != null && scheme.equals(SCHEME)
+                && path != null) {
+
+            // All the parameters, to find what kind we are looking at.
+            Set<String> names = uri.getQueryParameterNames();
+
+            // Keys need to have the secret associated
+            if (names.contains(REQ_SECRETKEY)) {
+                String encoded = uri.getQueryParameter(REQ_SECRETKEY);
+                secretKey = Uri.decode(encoded);
+                Log.d(TAG, "Secret Key = " + secretKey);
+            }
+            if (names.contains(KEY_NAME)) {
+                String encoded = uri.getQueryParameter(KEY_NAME);
+                // If it is available, then try to decode the parameter (since it is a string)
+                name = Uri.decode(encoded);
+            }
+            if (names.contains(KEY_UNIQUEID)) {
+                String encoded = uri.getQueryParameter(KEY_UNIQUEID);
+                // If it is available, then try to decode the parameter (since it is a string)
+                keyId = Uri.decode(encoded);
+            }
+            return new KeyImportInfo(secretKey, keyId, name);
+        }
+        // Assume downloads.
+        return EMPTY_KEY;
+    }
+
+    /**
      * Get the URL to download from the intent this application was started from.
      *
      * This will create a URL of the kind
@@ -131,16 +315,22 @@ class NetworkRoutines {
 
         // Confirm that this is a request to view, with the correct scheme and a non-empty path.
         if (action.equals(Intent.ACTION_VIEW)
-                && scheme != null
-                && scheme.equals(SCHEME)
+                && scheme != null && scheme.equals(SCHEME)
                 && path != null) {
-            return getDownloadInfo(uri);
-        }
 
+            // All the parameters, to find what kind we are looking at.
+            Set<String> names = uri.getQueryParameterNames();
+
+            // Downloads need to have a path associated with them.
+            if (names.contains(REQ_PACKAGE_SRC)) {
+                return getDownloadInfo(uri);
+            }
+        }
+        // Assume downloads.
         return EMPTY;
     }
 
-    static DownloadInfo getDownloadInfo(Uri uri) {
+    private static DownloadInfo getDownloadInfo(Uri uri) {
         // All the components of the DownloadInfo object.
         // Assume URI is not specified.
         Uri uriR = Uri.EMPTY;
@@ -158,8 +348,8 @@ class NetworkRoutines {
         }
 
         Set<String> names = uri.getQueryParameterNames();
-        if (names.contains(KEY_LOCATION)) {
-            String encoded = uri.getQueryParameter(KEY_LOCATION);
+        if (names.contains(REQ_PACKAGE_SRC)) {
+            String encoded = uri.getQueryParameter(REQ_PACKAGE_SRC);
             // If it is available, then try to decode the parameter (since it is a URL itself)
             // and then try to parse it as a URL.
             uriR = Uri.parse(Uri.decode(encoded));

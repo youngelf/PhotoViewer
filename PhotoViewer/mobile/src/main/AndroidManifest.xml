@@ -50,8 +50,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="photoviewer"
-                    android:host="eggwall"/>
+                <data android:scheme="photoviewer" android:host="eggwall"/>
             </intent-filter>
 
         </activity>

@@ -189,6 +189,17 @@ public class MainController {
         (new DownloadTask(album, fileC, networkC)).execute();
     }
 
+    /**
+     * Import the key provided here into the correct database.
+     *
+     * Call from any thread.
+     * @param key
+     */
+    public void importKey(NetworkRoutines.KeyImportInfo key) {
+        checkAnyThread();
+        fileC.importKey(key);
+    }
+
     static class DownloadTask extends AsyncTask<Void, Void, Void> {
         NetworkRoutines.DownloadInfo dlInfo;
         final FileController fc;

@@ -141,11 +141,27 @@ public class MainActivity extends AppCompatActivity {
         DbTester s = new DbTester(this);
         s.execute();
 
-        NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(getIntent());
-        if (album != NetworkRoutines.EMPTY) {
-            Log.d(TAG, "I'm going to download this URL now: " + album);
-            // Now download that URL and switch over to that screen.
-            mc.download(album);
+        int actionType = NetworkRoutines.getIntentType(getIntent());
+        switch (actionType) {
+            case NetworkRoutines.TYPE_IGNORE:
+                // Ignore it, because there's nothing to be done.
+                break;
+            case NetworkRoutines.TYPE_DOWNLOAD:
+                NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(getIntent());
+                if (album != NetworkRoutines.EMPTY) {
+                    Log.d(TAG, "I'm going to download this URL now: " + album);
+                    // Now download that URL and switch over to that screen.
+                    mc.download(album);
+                }
+                break;
+            case NetworkRoutines.TYPE_SECRET_KEY:
+                NetworkRoutines.KeyImportInfo key = NetworkRoutines.getKeyInfo(getIntent());
+                if (key != NetworkRoutines.EMPTY_KEY) {
+                    Log.d(TAG, "I'm going to import this key now: " + key);
+                    // Now download that URL and switch over to that screen.
+                    mc.importKey(key);
+                }
+                break;
         }
 
         CryptoRoutines.decryptTextTest();

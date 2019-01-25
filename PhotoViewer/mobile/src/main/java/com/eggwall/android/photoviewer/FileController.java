@@ -310,6 +310,17 @@ class FileController {
     }
 
     /**
+     * Import this key.
+     *
+     * Call from any thread.
+     * @param key
+     */
+    public void importKey(NetworkRoutines.KeyImportInfo key) {
+        // Create a background thread to insert into the database.
+        // TODO: Check if the value exists and alert if it does.
+    }
+
+    /**
      * Handles the completion of a download. This class needs to unzip a file, perhaps decrypt
      * it, etc. As a result, this is the responsibility of the {@link FileController}. This class
      * needs to be static to ensure that no {@link Context} objects are leaking because these
