@@ -109,19 +109,26 @@ class NetworkRoutines {
         public final boolean isZipped;
 
         /**
+         * The unique id: the UUID of the key that allows us to look it up, NOT the integer
+         * id of the key in the database.
+         */
+        public final String keyUid;
+
+        /**
          * Human-readable name of the dlInfo. This can contain spaces, and be longer than 8
          * characters and so is not suitable as a storage location.
          */
         public final String name;
 
         DownloadInfo(Uri location, String pathOnDisk, boolean isEncrypted, byte[] initializationVector,
-                     int extractedSize, boolean isZipped, String name) {
+                     int extractedSize, boolean isZipped, String keyUid, String name) {
             this.location = location;
             this.pathOnDisk = pathOnDisk;
             this.isEncrypted = isEncrypted;
             this.initializationVector = initializationVector;
             this.extractedSize = extractedSize;
             this.isZipped = isZipped;
+            this.keyUid = keyUid;
             this.name = name;
 
             Log.d(TAG, "Created dlInfo: location = " + location
@@ -136,7 +143,7 @@ class NetworkRoutines {
     }
 
     public final static DownloadInfo EMPTY =
-            new DownloadInfo(Uri.EMPTY, "", false, null, 0, false, "EMPTY");
+            new DownloadInfo(Uri.EMPTY, "", false, null, 0, false, "", "EMPTY");
 
     /**
      * All the information required to import a secret key into the database. This is constructed
@@ -339,6 +346,7 @@ class NetworkRoutines {
         byte[] initVectorR = null;
         boolean isZippedR = false;
         int extractedSizeR = 0;
+        String keyUid="";
         String albumNameR = "unspecified";
 
         // That could be empty because the starting intent could have no data associated. This
@@ -389,9 +397,14 @@ class NetworkRoutines {
             // If it is available, then try to decode the parameter (since it is a string)
             albumNameR = Uri.decode(encoded);
         }
+        if (names.contains(KEY_UNIQUEID)) {
+            String encoded = uri.getQueryParameter(KEY_UNIQUEID);
+            // If it is available, then try to decode the parameter (since it is a string)
+            keyUid = Uri.decode(encoded);
+        }
 
         return new DownloadInfo(uriR, null, isEncryptedR, initVectorR,
-                extractedSizeR, isZippedR, albumNameR);
+                extractedSizeR, isZippedR, keyUid, albumNameR);
     }
 
 

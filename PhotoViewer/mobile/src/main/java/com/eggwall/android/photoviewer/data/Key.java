@@ -38,6 +38,12 @@ public class Key {
         return id;
     }
 
+    public Key(String uuid, String secret, String name) {
+        this.secret = secret;
+        this.name = name;
+        this.uuid = uuid;
+    }
+
     public SecretKey getKey () {
         return keyFromString(secret);
     }

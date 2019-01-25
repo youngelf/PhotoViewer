@@ -22,6 +22,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import java.io.IOException;
 
@@ -111,6 +112,21 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     private int mLastSystemUiVis = 0;
     private GestureDetectorCompat mDetector;
 
+    /**
+     * Show a diagnostic message.
+     *
+     * Call from any thread.
+     * @param message
+     */
+    public void MakeText(final String message) {
+        mDrawer.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(mMainActivity, message, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
     private class FlingDetector extends GestureDetector.SimpleOnGestureListener {
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
@@ -154,7 +170,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             NetworkRoutines.DownloadInfo test = new NetworkRoutines.DownloadInfo(
                     Uri.parse("http://192.168.11.122/images.zip"),
                     "/sdcard/Pictures/test.zip", false,
-                    null, 4000000, false, "test");
+                    null, 4000000, false, "", "test");
             mainController.download(test);
         } else if (id == R.id.nav_share) {
 

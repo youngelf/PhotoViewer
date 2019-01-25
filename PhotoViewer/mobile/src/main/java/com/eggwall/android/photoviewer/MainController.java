@@ -17,6 +17,7 @@ package com.eggwall.android.photoviewer;
 import android.os.AsyncTask;
 import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.eggwall.android.photoviewer.data.Album;
 
@@ -139,6 +140,7 @@ public class MainController {
         creationCheck();
 
         // File handling on the main thread. This is a bad idea.
+        // TODO: Change this so it reads a the album database, and in the background.
         ArrayList<String> galleriesList = fileC.getGalleriesList();
         if (galleriesList.size() >= 1) {
             // Select the first directory.
@@ -177,6 +179,18 @@ public class MainController {
     }
 
     /**
+     * Make a diagnostic message
+     *
+     * Call from any thread.
+     * @param message
+     */
+    void toast(String message) {
+        creationCheck();
+        checkAnyThread();
+        uiC.MakeText(message);
+    }
+
+    /**
      * Requests adding a URI as a gallery.
      *
      * Can be called on the foreground thread or a background thread.
@@ -197,7 +211,29 @@ public class MainController {
      */
     public void importKey(NetworkRoutines.KeyImportInfo key) {
         checkAnyThread();
-        fileC.importKey(key);
+        (new KeyTask(fileC, key)).execute();
+    }
+
+
+    static class KeyTask extends  AsyncTask<Void, Void, Void> {
+        private final FileController fileController;
+        private final NetworkRoutines.KeyImportInfo key;
+
+        KeyTask(FileController fileController, NetworkRoutines.KeyImportInfo key) {
+            this.fileController = fileController;
+            this.key = key;
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            fileController.importKey(key);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+        }
     }
 
     static class DownloadTask extends AsyncTask<Void, Void, Void> {

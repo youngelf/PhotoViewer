@@ -9,6 +9,9 @@ import android.util.Log;
 import com.eggwall.android.photoviewer.data.Album;
 import com.eggwall.android.photoviewer.data.AlbumDao;
 import com.eggwall.android.photoviewer.data.AlbumDatabase;
+import com.eggwall.android.photoviewer.data.Key;
+import com.eggwall.android.photoviewer.data.KeyDao;
+import com.eggwall.android.photoviewer.data.KeyDatabase;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -41,7 +44,12 @@ class FileController {
     /**
      * An instance of the database where I will include information about the files and albums.
      */
-    private AlbumDatabase db;
+    private AlbumDatabase albumDb;
+
+    /**
+     * An instance of the database where I will include information about the files and albums.
+     */
+    private KeyDatabase keyDb;
 
     /**
      * The actual directory that corresponds to the external SD card.  But nobody is allowed to
@@ -73,7 +81,8 @@ class FileController {
      * @param mainController
      */
     FileController(Context context, MainController mainController) {
-        this.db = AlbumDatabase.getDatabase(context);
+        this.albumDb = AlbumDatabase.getDatabase(context);
+        this.keyDb = KeyDatabase.getDatabase(context);
         this.mc = mainController;
     }
 
@@ -263,7 +272,7 @@ class FileController {
 
         // Update the database to modify last-viewed-timestamp
         album.setLastViewedTimeMs(SystemClock.elapsedRealtime());
-        db.albumDao().update(album);
+        albumDb.albumDao().update(album);
 
         // Now I need to ask the main controller to advance to next.
         mc.updateImage(UiConstants.NEXT, false);
@@ -312,12 +321,23 @@ class FileController {
     /**
      * Import this key.
      *
-     * Call from any thread.
+     * Call from the background thread.
      * @param key
      */
     public void importKey(NetworkRoutines.KeyImportInfo key) {
-        // Create a background thread to insert into the database.
-        // TODO: Check if the value exists and alert if it does.
+        KeyDao keyDao = keyDb.keyDao();
+        if (keyDao.forUuid(key.keyId) != null) {
+            // Key exists, so disallow imports.
+            Log.d(TAG, "Secret with UUID uuid=" + key.keyId + " EXISTS with name=" + key.name
+                    + ". NOT importing");
+            mc.toast("Key exists. NOT imported!");
+            return;
+        }
+        Key k = new Key(key.keyId, key.secretKey, key.name);
+        long i = keyDao.insert(k);
+        Log.d(TAG, "Inserted key with secret " + key.secretKey + ", name=" + key.name
+                + ", uuid=" + key.keyId + ", at location=" + i);
+        mc.toast("Key imported. All good.");
     }
 
     /**
@@ -339,7 +359,8 @@ class FileController {
     static class Unzipper implements DownloadHandler {
         NetworkRoutines.DownloadInfo dlInfo;
         private final Album album;
-        final AlbumDao dao;
+        final AlbumDao albumDao;
+        final KeyDao keyDao;
         private final MainController mc;
         final File mPicturesDir;
         public static String FILENAME_ERROR = "";
@@ -362,7 +383,7 @@ class FileController {
             // Check if we failed and the error handling should be invoked
             if (filename == FILENAME_ERROR && Uri == PFD_ERROR) {
                 // Modify the database to remove a record of the download.
-                dao.delete(album);
+                albumDao.delete(album);
                 return;
             }
             final File toUnpack;
@@ -381,9 +402,16 @@ class FileController {
                 }
                 // Decrypt it first, and then ask for it to be unzipped.
                 try {
-                    // TODO: Need a way to input the key first! This can be kept with the host
-                    // that the key specifies.
-                    SecretKey KEY = keyFromString("SOh7N8bl1R5ZoJrGLzhzjA==");
+                    // Pick up the appropriate key from the database, and decrypt using that.
+                    Key x = keyDao.forUuid(dlInfo.keyUid);
+                    if (x == null) {
+                        Log.d(TAG, "Did NOT find key with uuid = " + dlInfo.keyUid);
+                        // Clean the existing file and return.
+                        (new File(createAbsolutePath(filename))).delete();
+                        return;
+                    }
+                    Log.d(TAG, "Found key with uuid = " + dlInfo.keyUid);
+                    SecretKey KEY = keyFromString(x.getSecret());
                     CryptoRoutines.decrypt(createAbsolutePath(filename), dlInfo.initializationVector, KEY, plainPath);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -481,7 +509,7 @@ class FileController {
             album.setDownloadTimeMs(SystemClock.elapsedRealtime());
 
             // Here I should modify the database to tell the file has been correctly pulled.
-            dao.update(album);
+            albumDao.update(album);
 
             // Ideally here I should display this image, but there is no good way to do that.
             mc.showAlbum(album);
@@ -492,14 +520,16 @@ class FileController {
          * @param dlInfo The dlInfo that this unzipper was created with.
          * @param album
          * @param dao
+         * @param keyDao
          * @param mc
          * @param mPicturesDir
          */
         private Unzipper(NetworkRoutines.DownloadInfo dlInfo, Album album,
-                         AlbumDao dao, MainController mc, File mPicturesDir) {
+                         AlbumDao dao, KeyDao keyDao, MainController mc, File mPicturesDir) {
             this.dlInfo = dlInfo;
             this.album = album;
-            this.dao = dao;
+            this.albumDao = dao;
+            this.keyDao = keyDao;
             this.mc = mc;
             this.mPicturesDir = mPicturesDir;
         }
@@ -535,7 +565,7 @@ class FileController {
         Log.d(TAG, "dlInfo.remoteLocation = " + remoteLocation);
         // Only when we insert it do we get a unique ID. This is why this method needs to be called
         // from a background thread.
-        long id = db.albumDao().insert(album);
+        long id = albumDb.albumDao().insert(album);
         // Now set that as the canonical ID for this
         album.setId(id);
         Log.d(TAG, "dlInfo.id = " + id);
@@ -560,6 +590,6 @@ class FileController {
         Log.d(TAG, "picturesDir = " + picturesDir.getAbsolutePath());
 
         album.setLocalLocation(localLocation);
-        return new Unzipper(dlInfo, album, db.albumDao(), mc, picturesDir);
+        return new Unzipper(dlInfo, album, albumDb.albumDao(), keyDb.keyDao(), mc, picturesDir);
     }
 }
