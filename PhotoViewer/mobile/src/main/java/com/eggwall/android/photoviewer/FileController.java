@@ -81,6 +81,7 @@ class FileController {
      * @param mainController
      */
     FileController(Context context, MainController mainController) {
+        // TODO: These database calls read/write disk so I need to move them to a background thread
         this.albumDb = AlbumDatabase.getDatabase(context);
         this.keyDb = KeyDatabase.getDatabase(context);
         this.mc = mainController;
@@ -120,20 +121,18 @@ class FileController {
             try {
                 result = galleryDir.mkdir();
             } catch (Exception e) {
-                Log.e(TAG, "Could not create a directory: " + galleryDir
-                        + " Message:" + e.getMessage()
-                        , e);
+                String message = "Could not create a directory: " + galleryDir
+                        + " Message:" + e.getMessage();
                 // Nothing is going to work here, so let's fail hard
-                System.exit(-1);
+                MainController.crashHard(message);
                 return null;
             }
             if (result) {
                 Log.d(TAG, "Created a directory at " + galleryDir.getAbsolutePath());
             } else {
-                Log.wtf(TAG, "FAILED to make a directory at " + galleryDir.getAbsolutePath(),
-                        new Error());
+                String message = "FAILED to make a directory at " + galleryDir.getAbsolutePath();
                 // Nothing is going to work here, so let's fail hard
-                System.exit(-1);
+                MainController.crashHard(message);
                 return null;
             }
         }

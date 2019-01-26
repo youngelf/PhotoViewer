@@ -94,6 +94,15 @@ public class MainController {
     }
 
     /**
+     * Utility method to print an error, and crash hard.
+     */
+    public static void crashHard(String message) {
+        Log.wtf(TAG, message, new Error());
+        System.exit(-1);
+        throw new RuntimeException();
+    }
+
+    /**
      * Verify that the object was created before use.
      * @return false if created, true if everything is ok.
      */
@@ -103,10 +112,8 @@ public class MainController {
             return;
         }
 
-        // During development, crash pretty hard.
-        Log.wtf(TAG, "MainController used before calling create()", new Error());
         // Nothing is going to work correctly in this situation. Just say 'No'.
-        System.exit(-1);
+        crashHard("MainController used before calling create()");
     }
 
     /**
@@ -117,19 +124,19 @@ public class MainController {
      * @return
      */
     boolean create(MainActivity mainActivity) {
+        // Should NOT call creationCheck(), because this method creates!
         checkAnyThread();
+
         if (created) {
             // This is also a problem. The MainController object is being reused!
-            Log.wtf(TAG, "MainController.create called twice!", new Error());
 
             // We expect random failures since there are callbacks with stale controllers.
-            // Just say 'No'.
-            System.exit(-1);
+            // Just say 'No'. There is some confusion whether this closes the process.
+            crashHard("MainController.create called twice!");
             return false;
         }
 
-        // The order should NOT matter, but I haven't tried out a different order of creation of
-        // objects.
+        // The order of creation of these objects should NOT matter
         fileC = new FileController(mainActivity, this);
 
         uiC = new UiController(mainActivity, this);
@@ -157,8 +164,9 @@ public class MainController {
             // Select the first directory.
             fileC.setDirectory(galleriesList.get(0));
         }
-
         Log.d(TAG, "The next file is: " + fileC.getFile(UiConstants.NEXT));
+
+        // And load the next image.
         updateImage(UiConstants.NEXT, true);
         return true;
     }
@@ -211,6 +219,7 @@ public class MainController {
     void download(final NetworkRoutines.DownloadInfo album) {
         creationCheck();
         checkAnyThread();
+
         // Needs to be done in the background.
         (new DownloadTask(album, fileC, networkC)).execute();
     }
@@ -221,31 +230,31 @@ public class MainController {
      * Call from any thread.
      * @param key
      */
-    public void importKey(NetworkRoutines.KeyImportInfo key) {
+    public void importKey(final NetworkRoutines.KeyImportInfo key) {
+        creationCheck();
         checkAnyThread();
-        (new KeyTask(fileC, key)).execute();
+
+        if (isMainThread()) {
+            // Start a background thread to import the actual key.
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    importKeyBackgroundThread(key);
+                }
+            }).start();
+        } else {
+            // Background thread already, import away.
+            importKeyBackgroundThread(key);
+        }
     }
 
-
-    static class KeyTask extends  AsyncTask<Void, Void, Void> {
-        private final FileController fileController;
-        private final NetworkRoutines.KeyImportInfo key;
-
-        KeyTask(FileController fileController, NetworkRoutines.KeyImportInfo key) {
-            this.fileController = fileController;
-            this.key = key;
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            fileController.importKey(key);
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-        }
+    /**
+     * Import the key, assuming that we are in a background thread. Can only be called
+     * from {@link #importKey(NetworkRoutines.KeyImportInfo)}
+     * @param key
+     */
+    private void importKeyBackgroundThread(NetworkRoutines.KeyImportInfo key) {
+        fileC.importKey(key);
     }
 
     static class DownloadTask extends AsyncTask<Void, Void, Void> {
@@ -311,12 +320,12 @@ public class MainController {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    updateImageImpl(offset, showFab);
+                    updateImageBackgroundThread(offset, showFab);
                 }
             }).start();
         } else {
             // Already background thread, carry on.
-            updateImageImpl(offset, showFab);
+            updateImageBackgroundThread(offset, showFab);
         }
     }
 
@@ -326,10 +335,9 @@ public class MainController {
      * @param offset
      * @param showFab
      */
-    private void updateImageImpl(final int offset, final boolean showFab) {
+    private void updateImageBackgroundThread(final int offset, final boolean showFab) {
         if (offset != UiConstants.NEXT && offset != UiConstants.PREV) {
-            Log.e(TAG, "updateImage: Incorrect offset provided: " + offset);
-            System.exit(-1);
+            crashHard("updateImage: Incorrect offset provided: " + offset);
             return;
         }
 

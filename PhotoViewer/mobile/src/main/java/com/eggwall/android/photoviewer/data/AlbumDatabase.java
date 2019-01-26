@@ -22,6 +22,13 @@ public abstract class AlbumDatabase extends RoomDatabase {
 
     private static volatile AlbumDatabase INSTANCE;
 
+    /**
+     * Get or create a database.
+     *
+     * Needs to be called on a background thread, since it reads/writes disk.
+     * @param context
+     * @return
+     */
     public static AlbumDatabase getDatabase(final Context context) {
         if (INSTANCE == null) {
             synchronized (AlbumDatabase.class) {

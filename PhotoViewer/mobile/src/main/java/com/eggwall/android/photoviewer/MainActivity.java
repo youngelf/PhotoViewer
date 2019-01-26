@@ -2,7 +2,6 @@ package com.eggwall.android.photoviewer;
 
 import android.Manifest;
 import android.content.DialogInterface;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
@@ -51,6 +50,20 @@ public class MainActivity extends AppCompatActivity {
      * we'll get in onRequestPermissionResult.
      */
     public final int REQUEST_READ_EXTERNAL_STORAGE = 81;
+
+    /**
+     * Key for the offset in the album that the application was showing when
+     * {@link #onSaveInstanceState(Bundle)} was called
+     */
+    public static final String KEY_OFFSET = "offset";
+
+    /**
+     * Key for the album that the application was showing when {@link #onSaveInstanceState(Bundle)}
+     * was called
+     */
+    public static final String KEY_ALBUMID = "albumid";
+    /** ID to expect when no known album was being viewed */
+    public static final int ALBUMID_NO_ALBUM = -1;
 
     // One side benefit of calling it Main Controller that the object itself is the MC.
     /** The object that orchestrates the other controllers. */
@@ -112,6 +125,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Try recovering the offset that the previous view was at.
+        if (savedInstanceState != null) {
+            int offset = savedInstanceState.getInt(KEY_OFFSET, 0);
+
+            // Album IDs are guaranteed to be 0 or higher, so -1 confirms that no album was being
+            // shown previously.
+            long albumId = savedInstanceState.getInt(KEY_ALBUMID, ALBUMID_NO_ALBUM);
+        }
+
         setContentView(R.layout.activity_main);
 
         if (keepScreenOn) {
@@ -123,9 +146,8 @@ public class MainActivity extends AppCompatActivity {
 
         mc = new MainController();
         if (!mc.create(this)) {
-            Log.e(TAG, "Could not construct a Main Controller", new Error());
             // Nothing is going to work without a MainController.
-            System.exit(-1);
+            MainController.crashHard("Could not construct a Main Controller");
         }
 
         int actionType = NetworkRoutines.getIntentType(getIntent());
