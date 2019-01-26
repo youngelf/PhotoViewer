@@ -1,7 +1,6 @@
 package com.eggwall.android.photoviewer;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -15,23 +14,21 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
 
-import com.eggwall.android.photoviewer.data.Album;
-import com.eggwall.android.photoviewer.data.AlbumDao;
-import com.eggwall.android.photoviewer.data.AlbumDatabase;
-
 /*
  * TODO: Delete oldest file: LRU cache.
- * TODO: Read keys and RSS-like locations from a bar code.
- * TODO: Store keys and associated information in the database.
  * TODO: Periodically poll the RSS feed for new content.
  * TODO:    GCM cloud messaging to avoid polling.
- * TODO: Some unique ID to separate two feeds from one another.
  * TODO: A UI to show all the albums (today only one is shown)
  * TODO: Settings activity to change slideshow duration, auto-start newest, download frequency, etc
  * TODO: pinch-zoom on an image.
  * TODO: Diagnostics in the app to find what's wrong.
+ * TODO: Remember offset in the album when rotating.
+ * TODO: Remember if autoplay was on when rotating.
  * DONE: Showing slideshow state, and allowing slideshow to stop.
  * DONE: Desktop application to create these image files.
+ * DONE: Read keys and RSS-like locations from a bar code.
+ * DONE: Store keys and associated information in the database.
+ * DONE: Some unique ID to separate two feeds from one another.
  */
 
 /**
@@ -131,20 +128,12 @@ public class MainActivity extends AppCompatActivity {
             System.exit(-1);
         }
 
-        if (!mc.showInitial()) {
-            Log.e(TAG, "Could not show the first screen", new Error());
-        }
-
-
-        // This stuff needs to move to the MC as well.
-        // Let's try out the database code
-        DbTester s = new DbTester(this);
-        s.execute();
-
         int actionType = NetworkRoutines.getIntentType(getIntent());
         switch (actionType) {
             case NetworkRoutines.TYPE_IGNORE:
-                // Ignore it, because there's nothing to be done.
+                // Show the initial screen because nothing else can be done. But that can hit
+                // disk so do this in the background.
+                (new LoadInitialTask(mc)).execute();
                 break;
             case NetworkRoutines.TYPE_DOWNLOAD:
                 NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(getIntent());
@@ -163,30 +152,20 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
         }
-
-        CryptoRoutines.decryptTextTest();
-//        CryptoRoutines.decryptFileTest();
     }
 
-    static class DbTester extends AsyncTask<Void, Void, Void> {
-        private final Context context;
+    static class LoadInitialTask extends AsyncTask<Void, Void, Void> {
+        private final MainController mainController;
 
-        DbTester(Context context) {
-            this.context = context;
+        LoadInitialTask(MainController mainController) {
+            this.mainController = mainController;
         }
 
         @Override
         protected Void doInBackground(Void... voids) {
-            AlbumDatabase db = AlbumDatabase.getDatabase(context);
-            db.clearAllTables();
-            AlbumDao d = db.albumDao();
-            Album s = new Album();
-//            s.setId(1);
-//            s.setName("Pismo");
-//            s.setRemoteLocation("http://nothing.com");
-//            List<Album> p = d.getAll();
-//            s = p.get(0);
-//            Log.d(TAG, "Test dlInfo from previous insert = " + s);
+            if (!mainController.showInitial()) {
+                mainController.toast("Could not show the first screen");
+            }
             return null;
         }
     }

@@ -172,8 +172,17 @@ class NetworkRoutines {
         }
     }
 
+    /**
+     * Ignore this Intent because it doesn't have anything to act upon.
+     */
     public static final int TYPE_IGNORE = 0;
+    /**
+     * This is an Intent to download a package, perhaps encrypted.
+     */
     public static final int TYPE_DOWNLOAD = 1;
+    /**
+     * This is an Intent to import a secret key into the database.
+     */
     public static final int TYPE_SECRET_KEY = 2;
 
     /**

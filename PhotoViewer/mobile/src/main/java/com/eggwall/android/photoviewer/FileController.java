@@ -418,9 +418,9 @@ class FileController {
                 }
                 toUnpack = new File(plainPath);
             } else {
-                toUnpack = new File(Environment.getExternalStoragePublicDirectory(
-                                        Environment.DIRECTORY_PICTURES),
-                        filename);
+                File dir = Environment.getExternalStoragePublicDirectory(
+                        Environment.DIRECTORY_PICTURES);
+                toUnpack = new File(dir, filename);
             }
 
             ZipFile inputZipped;
@@ -429,7 +429,7 @@ class FileController {
             } catch (IOException e) {
                 e.printStackTrace();
                 Log.e(TAG, "Could not open file: " + toUnpack.getAbsolutePath(), e);
-                // TODO: Cleanup here first.
+                toUnpack.delete();
                 return;
             }
 

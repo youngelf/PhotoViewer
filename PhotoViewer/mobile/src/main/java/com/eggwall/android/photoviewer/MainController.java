@@ -17,7 +17,6 @@ package com.eggwall.android.photoviewer;
 import android.os.AsyncTask;
 import android.os.Looper;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.eggwall.android.photoviewer.data.Album;
 
@@ -105,9 +104,12 @@ public class MainController {
     /**
      * Creates and initializes a {@link MainController}. Before this method is called, no other
      * public calls are valid.
+     *
+     * Can be called from any thread, though it is called from onCreate() usually.
      * @return
      */
     boolean create(MainActivity mainActivity) {
+        checkAnyThread();
         if (created) {
             // This is also a problem. The MainController object is being reused!
             Log.wtf(TAG, "MainController.create called twice!", new Error());
@@ -138,6 +140,7 @@ public class MainController {
      */
     boolean showInitial() {
         creationCheck();
+        checkBackgroundThread();
 
         // File handling on the main thread. This is a bad idea.
         // TODO: Change this so it reads a the album database, and in the background.
