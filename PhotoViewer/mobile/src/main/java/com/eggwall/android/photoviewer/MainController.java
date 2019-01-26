@@ -63,6 +63,14 @@ public class MainController {
     }
 
     /**
+     * Checks if the current thread is the main thread or not.
+     * @return
+     */
+    public static boolean isMainThread() {
+        return (Looper.myLooper() == Looper.getMainLooper());
+    }
+
+    /**
      * Confirm the current thread is NOT the main thread or not.
      * @return
      */
@@ -151,6 +159,7 @@ public class MainController {
         }
 
         Log.d(TAG, "The next file is: " + fileC.getFile(UiConstants.NEXT));
+        updateImage(UiConstants.NEXT, true);
         return true;
     }
 
@@ -286,15 +295,38 @@ public class MainController {
     /**
      * Update the image by providing an offset
      *
-     * Call from the background thread because this reads disk.
+     * Call from any thread.
      *
      * @param offset  is either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
      * @param showFab
      */
-    void updateImage(int offset, boolean showFab) {
+    void updateImage(final int offset, final boolean showFab) {
         creationCheck();
-        checkBackgroundThread();
+        checkAnyThread();
 
+        // Since I can be called from any thread, I might need to run this code in a background
+        // thread.
+        if (isMainThread()) {
+            // Pop into a background thread: shouldn't do file handling from the main thread.
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    updateImageImpl(offset, showFab);
+                }
+            }).start();
+        } else {
+            // Already background thread, carry on.
+            updateImageImpl(offset, showFab);
+        }
+    }
+
+    /**
+     * Carry out the work of {@link #updateImage(int, boolean)}, but expect to be run from the
+     * background thread. Can only be called from {@link #updateImage(int, boolean)}.
+     * @param offset
+     * @param showFab
+     */
+    private void updateImageImpl(final int offset, final boolean showFab) {
         if (offset != UiConstants.NEXT && offset != UiConstants.PREV) {
             Log.e(TAG, "updateImage: Incorrect offset provided: " + offset);
             System.exit(-1);
@@ -307,4 +339,5 @@ public class MainController {
         // Now switch to a foreground thread to update the UI.
         uiC.updateImage(nextFile, offset, showFab);
     }
+
 }

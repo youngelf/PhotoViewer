@@ -133,7 +133,15 @@ public class MainActivity extends AppCompatActivity {
             case NetworkRoutines.TYPE_IGNORE:
                 // Show the initial screen because nothing else can be done. But that can hit
                 // disk so do this in the background.
-                (new LoadInitialTask(mc)).execute();
+                final MainController mainController = mc;
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!mainController.showInitial()) {
+                            mainController.toast("Could not show the first screen");
+                        }
+                    }
+                }).start();
                 break;
             case NetworkRoutines.TYPE_DOWNLOAD:
                 NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(getIntent());
@@ -151,22 +159,6 @@ public class MainActivity extends AppCompatActivity {
                     mc.importKey(key);
                 }
                 break;
-        }
-    }
-
-    static class LoadInitialTask extends AsyncTask<Void, Void, Void> {
-        private final MainController mainController;
-
-        LoadInitialTask(MainController mainController) {
-            this.mainController = mainController;
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            if (!mainController.showInitial()) {
-                mainController.toast("Could not show the first screen");
-            }
-            return null;
         }
     }
 

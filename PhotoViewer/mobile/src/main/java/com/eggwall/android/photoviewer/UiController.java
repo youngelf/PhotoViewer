@@ -208,7 +208,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * @param offset  is either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
      * @param showFab True if the Floating Action Bar should be shown, false if it should be hidden.
      */
-    void updateImage(String nextFile, int offset, boolean showFab) {
+    void updateImage(String nextFile, final int offset, final boolean showFab) {
         // Calculate how big the bitmap is
         BitmapFactory.Options opts = new BitmapFactory.Options();
         // Just calculate how big the file is to learn the sizes
@@ -273,18 +273,18 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             public void run() {
                 mImageView.setImageBitmap(bMap);
                 mImageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+
+                if (showFab) {
+                    // Show the correct FAB, and hide it after a while
+                    if (offset == UiConstants.NEXT) {
+                        showFab(mNextFab);
+                    }
+                    if (offset == UiConstants.PREV) {
+                        showFab(mPrevFab);
+                    }
+                }
             }
         });
-
-        if (showFab) {
-            // Show the correct FAB, and hide it after a while
-            if (offset == UiConstants.NEXT) {
-                showFab(mNextFab);
-            }
-            if (offset == UiConstants.PREV) {
-                showFab(mPrevFab);
-            }
-        }
     }
 
     /**
@@ -518,9 +518,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         // Hide the navigation after 7 seconds
         mHandler.postDelayed(hideBarAndToolbar, 7000);
-
-        // UGLY hack to show the first image after everything is hooked up.
-        mHandler.postDelayed(showFirstImage, 500);
     }
 
     /**
