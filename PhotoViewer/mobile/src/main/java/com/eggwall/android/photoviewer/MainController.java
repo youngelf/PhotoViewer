@@ -1,31 +1,19 @@
 package com.eggwall.android.photoviewer;
 
-//
-// Non-javadoc, for remembering why I am adding this class.
-// Right now we have three existing Controllers: UI, Network and File, and none of them seem
-// like the right place to put overall logic. Clearly it doesn't make sense for the FileController
-// to know about the UI controller, or the Network Controller to know about the UI since they have
-// relatively straight-forward roles. This means that some other object has to put their combined
-// functionality together.
-
-// I'll start out extracting code from {@link MainActivity} because that has some of this
-// orchestration logic, and hopefully this class doesn't grow in complexity.
-
-// Ideally, the interfaces that the others provide are crisp enough that we can understand the
-// functionality here on its own merit.
-
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Looper;
 import android.util.Log;
 
 import com.eggwall.android.photoviewer.data.Album;
 
-import java.util.ArrayList;
-
 /**
  * Class that orchestrates the entire application. It has a {@link FileController}, a
  * {@link UiController}, and a {@link NetworkController} and orchestrates their behavior.
+ *
+ * All dependencies should be one-way: {@link MainController} can know about the other controllers
+ * but they should only know about the {@link MainController} in order to call other functionality.
+ * This separation should help reduce complexity in individual controllers, and also allow them
+ * to do threading right: either stay in the background thread or in the main thread.
  */
 public class MainController {
     private static final String TAG = "MainController";
@@ -52,58 +40,6 @@ public class MainController {
     private NetworkController networkC;
 
     /**
-     * Checks if the current thread is the main thread or not.
-     * @return
-     */
-    public static void checkMainThread() {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            // This is the main thread. Do nothing.
-            return;
-        }
-        Log.w(TAG, "Error. NOT main thread!", new Error());
-    }
-
-    /**
-     * Checks if the current thread is the main thread or not.
-     * @return
-     */
-    public static boolean isMainThread() {
-        return (Looper.myLooper() == Looper.getMainLooper());
-    }
-
-    /**
-     * Confirm the current thread is NOT the main thread or not.
-     * @return
-     */
-    public static void checkBackgroundThread() {
-        if (Looper.myLooper() != Looper.getMainLooper()) {
-            // This is the main thread. Do nothing.
-            return;
-        }
-        Log.w(TAG, "Error. NOT background thread!", new Error());
-    }
-
-    /**
-     * Confirm that any thread is great.  Confirms that neither {@link #checkBackgroundThread()}
-     * nor {@link #checkMainThread()} are needed here.
-     */
-    public static void checkAnyThread() {
-        // This is more for the programmer to read than for anything to be confirmed. The existence
-        // of this method confirms that the programmer confirms that any thread is good, and that
-        // he/she didn't forget to call checkBackgroundThread() or checkMainThreads() by mistake.
-        return;
-    }
-
-    /**
-     * Utility method to print an error, and crash hard.
-     */
-    public static void crashHard(String message) {
-        Log.wtf(TAG, message, new Error());
-        System.exit(-1);
-        throw new RuntimeException();
-    }
-
-    /**
      * Verify that the object was created before use.
      * @return false if created, true if everything is ok.
      */
@@ -114,7 +50,7 @@ public class MainController {
         }
 
         // Nothing is going to work correctly in this situation. Just say 'No'.
-        crashHard("MainController used before calling create()");
+        AndroidRoutines.crashHard("MainController used before calling create()");
     }
 
     /**
@@ -126,14 +62,14 @@ public class MainController {
      */
     boolean create(MainActivity mainActivity) {
         // Should NOT call creationCheck(), because this method creates!
-        checkAnyThread();
+        AndroidRoutines.checkAnyThread();
 
         if (created) {
             // This is also a problem. The MainController object is being reused!
 
             // We expect random failures since there are callbacks with stale controllers.
             // Just say 'No'. There is some confusion whether this closes the process.
-            crashHard("MainController.create called twice!");
+            AndroidRoutines.crashHard("MainController.create called twice!");
             return false;
         }
 
@@ -156,16 +92,18 @@ public class MainController {
      */
     boolean showInitial(Bundle icicle) {
         creationCheck();
-        checkBackgroundThread();
+        AndroidRoutines.checkBackgroundThread();
 
         Album initial = fileC.getInitial(icicle);
         if (initial != null) {
+            // I have some album to show, and one that hopefully loads.
             showAlbum(initial);
+            uiC.loadInitial(icicle);
             return true;
-        } else {
-            // What can we do here, if the first album is null? Perhaps the splash screen instead?
-            showSplash();
         }
+
+        // What can we do here, if the first album is null? Perhaps the splash screen instead?
+        showSplash();
         // Didn't show any album.
         return false;
     }
@@ -179,7 +117,7 @@ public class MainController {
      */
     void showSplash() {
         creationCheck();
-        checkBackgroundThread();
+        AndroidRoutines.checkBackgroundThread();
 
         // Show a generic splash screen, does nothing right now.
         Log.d(TAG, "showSplash called without any implementation!", new Error());
@@ -194,7 +132,7 @@ public class MainController {
      */
     boolean showAlbum(Album album) {
         creationCheck();
-        checkBackgroundThread();
+        AndroidRoutines.checkBackgroundThread();
 
         return fileC.showAlbum(album);
     };
@@ -206,7 +144,7 @@ public class MainController {
     void onWindowFocusChanged(boolean hasFocus) {
         creationCheck();
         // I think the UI thread calls this, and we do UI modification, so let's enforce a UI thread
-        checkMainThread();
+        AndroidRoutines.checkMainThread();
 
         uiC.onWindowFocusChanged(hasFocus);
     }
@@ -219,7 +157,7 @@ public class MainController {
      */
     void toast(String message) {
         creationCheck();
-        checkAnyThread();
+        AndroidRoutines.checkAnyThread();
         uiC.MakeText(message);
     }
 
@@ -231,7 +169,7 @@ public class MainController {
      */
     void download(final NetworkRoutines.DownloadInfo album) {
         creationCheck();
-        checkAnyThread();
+        AndroidRoutines.checkAnyThread();
 
         // Needs to be done in the background.
         (new DownloadTask(album, fileC, networkC)).execute();
@@ -245,9 +183,9 @@ public class MainController {
      */
     public void importKey(final NetworkRoutines.KeyImportInfo key) {
         creationCheck();
-        checkAnyThread();
+        AndroidRoutines.checkAnyThread();
 
-        if (isMainThread()) {
+        if (AndroidRoutines.isMainThread()) {
             // Start a background thread to import the actual key.
             new Thread(new Runnable() {
                 @Override
@@ -268,6 +206,23 @@ public class MainController {
      */
     private void importKeyBackgroundThread(NetworkRoutines.KeyImportInfo key) {
         fileC.importKey(key);
+    }
+
+    /**
+     * Activity is going away, save any state here for future reads where the bundle will
+     * be passed in {@link #showInitial(Bundle)}
+     * @param icicle A bundle to save state in, possibly null
+     */
+    public void onSaveInstanceState(Bundle icicle) {
+        creationCheck();
+        AndroidRoutines.checkMainThread();
+
+        if (icicle == null) {
+            return;
+        }
+        // Currently, the File controller and the UI controller are the only two who need this.
+        fileC.onSaveInstanceState(icicle);
+        uiC.onSaveInstanceState(icicle);
     }
 
     static class DownloadTask extends AsyncTask<Void, Void, Void> {
@@ -324,11 +279,11 @@ public class MainController {
      */
     void updateImage(final int offset, final boolean showFab) {
         creationCheck();
-        checkAnyThread();
+        AndroidRoutines.checkAnyThread();
 
         // Since I can be called from any thread, I might need to run this code in a background
         // thread.
-        if (isMainThread()) {
+        if (AndroidRoutines.isMainThread()) {
             // Pop into a background thread: shouldn't do file handling from the main thread.
             new Thread(new Runnable() {
                 @Override
@@ -350,7 +305,7 @@ public class MainController {
      */
     private void updateImageBackgroundThread(final int offset, final boolean showFab) {
         if (offset != UiConstants.NEXT && offset != UiConstants.PREV) {
-            crashHard("updateImage: Incorrect offset provided: " + offset);
+            AndroidRoutines.crashHard("updateImage: Incorrect offset provided: " + offset);
             return;
         }
 

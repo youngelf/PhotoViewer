@@ -4,7 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
-import android.net.Uri;
+import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
@@ -65,6 +65,11 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
 
+    /**
+     * {@link Bundle} key containing whether {@link #slideShowPlaying} is true.
+     */
+    public static final String SS_AUTOPLAY = "uic-slideshowplaying";
+
     /** Runnable to hide the System UI. */
     private final Runnable hideSysUi = new Runnable() {
         @Override
@@ -107,7 +112,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             SYSTEM_UI_FLAG_LAYOUT_STABLE;
 
     /** True if the slide show is currently on auto-play mode. */
-    private boolean mSlideShowStatus = false;
+    private boolean slideShowPlaying = false;
 
     private int mLastSystemUiVis = 0;
     private GestureDetectorCompat mDetector;
@@ -119,12 +124,43 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * @param message
      */
     public void MakeText(final String message) {
-        mDrawer.post(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(mMainActivity, message, Toast.LENGTH_LONG).show();
-            }
-        });
+        if (AndroidRoutines.isMainThread()) {
+            // Just create a toast, and be done with it.
+            Toast.makeText(mMainActivity, message, Toast.LENGTH_LONG).show();
+        } else {
+            // Post a runnable on a view in a foreground thread (cannot do UI in background)
+            mDrawer.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(mMainActivity, message, Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+
+    /**
+     * Save any instance state that might be needed later.
+     * @param icicle guaranteed non-null
+     */
+    public void onSaveInstanceState(Bundle icicle) {
+        icicle.putBoolean(SS_AUTOPLAY, slideShowPlaying);
+    }
+
+    /**
+     * Load up any instance state saved earlier.
+     * @param icicle perhaps null
+     */
+    public void loadInitial(Bundle icicle) {
+        if (icicle == null) {
+            // This method can only work if the icicle exists.
+            return;
+        }
+
+        slideShowPlaying = icicle.getBoolean(SS_AUTOPLAY, false);
+        MenuItem item = mMainActivity.findViewById(R.id.nav_slideshow);
+        if (item != null) {
+            setSlideshow(slideShowPlaying, item);
+        }
     }
 
     private class FlingDetector extends GestureDetector.SimpleOnGestureListener {
@@ -152,32 +188,36 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
+        switch (item.getItemId()) {
+            case R.id.nav_camera:
+                // Handle the camera action
+                break;
 
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
+            case R.id.nav_gallery:
+                break;
 
-        } else if (id == R.id.nav_slideshow) {
-            mSlideShowStatus = setSlideshow(!mSlideShowStatus);
+            case R.id.nav_slideshow:
+                slideShowPlaying = setSlideshow(!slideShowPlaying, item);
+                break;
 
-            // Set the state of item to show if the slideshow is playing or paused
-            item.setIcon(mSlideShowStatus ? R.drawable.ic_pause : R.drawable.ic_play);
-        } else if (id == R.id.nav_manage) {
-            // Download a zip file from somewhere and unzip it.
-            // TODO: make this pop out a dialog instead.
-            NetworkRoutines.DownloadInfo test = new NetworkRoutines.DownloadInfo(
-                    Uri.parse("http://192.168.11.122/images.zip"),
-                    "/sdcard/Pictures/test.zip", false,
-                    null, 4000000, false, "", "test");
-            mainController.download(test);
-        } else if (id == R.id.nav_share) {
+            case R.id.nav_manage:
+                // TODO: make this pop out a dialog instead.
+                // Download a zip file from somewhere and unzip it.
+//            NetworkRoutines.DownloadInfo test = new NetworkRoutines.DownloadInfo(
+//                    Uri.parse("http://192.168.11.122/images.zip"),
+//                    "/sdcard/Pictures/test.zip", false,
+//                    null, 4000000, false, "", "test");
+//            mainController.download(test);
+                break;
 
-        } else if (id == R.id.nav_send) {
+            case R.id.nav_share:
+                break;
+
+            case R.id.nav_send:
+                break;
 
         }
-
+        // Since the user clicked on some item, dismiss the drawer (if open)
         mDrawer.closeDrawer(GravityCompat.START);
         return true;
     }
@@ -318,11 +358,12 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         // Raw height and width of image
         final float height;
         final float width;
-        // Switch height and width for images that are rotated.
         if (rotate) {
+            // Switch height and width for images that ARE rotated.
             height = options.outWidth;
             width = options.outHeight;
         } else {
+            // Keep height and width as they are.
             height = options.outHeight;
             width = options.outWidth;
         }
@@ -419,6 +460,12 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
     };
 
+    /**
+     * Create a new {@link UiController} but does not initialize it. To set the object for use,
+     * call {@link #createController()} before calling any other methods.
+     * @param mainActivity the activity this was created with
+     * @param mainController the main orchestrator for all actions
+     */
     UiController(MainActivity mainActivity, MainController mainController) {
         this.mMainActivity = mainActivity;
         this.mainController = mainController;
@@ -436,13 +483,49 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
     }
 
+    /**
+     * Creates a UI controller. All other method calls can only be made after calling this method.
+     */
     void createController() {
         // Make the main view full screen, and listen for System UI visibility changes
         mDrawer = mMainActivity.findViewById(R.id.drawer_layout);
         mDrawer.setOnSystemUiVisibilityChangeListener(this);
+        View.OnClickListener drawerToggler = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mDrawer.isDrawerVisible(Gravity.START)) {
+                    mDrawer.closeDrawers();
+                } else {
+                    mDrawer.openDrawer(Gravity.START, true);
+                    showSystemUI();
+                }
+            }
+        };
 
+        final FloatingActionButton fab = mMainActivity.findViewById(R.id.fab);
+
+        fab.setOnClickListener(drawerToggler);
+        mMainActivity.findViewById(R.id.drawer_button_invi).setOnClickListener(drawerToggler);
+        showFab(fab);
+
+        setClickListener(R.id.next_button_invi, UiConstants.NEXT);
+        mNextFab = (FloatingActionButton) setClickListener(R.id.next, UiConstants.NEXT);
+        if (mNextFab != null) {
+            showFab(mNextFab);
+        }
+
+        setClickListener(R.id.prev_button_invi, UiConstants.PREV);
+        mPrevFab = (FloatingActionButton) setClickListener(R.id.prev, UiConstants.PREV);
+        if (mPrevFab != null) {
+            showFab(mPrevFab);
+        }
+
+        mToolbar = mMainActivity.findViewById(R.id.toolbar);
+        mMainActivity.setSupportActionBar(mToolbar);
+
+        // Hide the navigation after 7 seconds
+        final Toolbar toolbar = mToolbar;
         final AppBarLayout bar = mMainActivity.findViewById(R.id.app_bar);
-        final Toolbar toolbar = mMainActivity.findViewById(R.id.toolbar);
         Runnable hideBarAndToolbar = new Runnable() {
             @Override
             public void run() {
@@ -450,56 +533,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 toolbar.setVisibility(View.GONE);
             }
         };
-        final Runnable showFirstImage = new Runnable() {
-            @Override
-            public void run() {
-                mainController.updateImage(UiConstants.NEXT, false);
-            }
-        };
-
-        final FloatingActionButton fab = mMainActivity.findViewById(R.id.fab);
-        View.OnClickListener toolBarListener = new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (bar.getVisibility() == VISIBLE) {
-                    toolbar.setVisibility(GONE);
-                    bar.setVisibility(GONE);
-                } else {
-                    bar.setVisibility(VISIBLE);
-                    toolbar.setVisibility(View.VISIBLE);
-                }
-            }
-        };
-
-        View.OnClickListener drawerToggler = new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (mDrawer.isDrawerVisible(Gravity.LEFT)) {
-                    mDrawer.closeDrawers();
-                } else {
-                    mDrawer.openDrawer(Gravity.LEFT, true);
-                    showSystemUI();
-                }
-            }
-        };
-
-        fab.setOnClickListener(drawerToggler);
-        mMainActivity.findViewById(R.id.drawer_button_invi).setOnClickListener(drawerToggler);
-
-        showFab(fab);
-
-        mMainActivity.findViewById(R.id.next);
-
-        setClickListener(R.id.next_button_invi, UiConstants.NEXT);
-        mNextFab = (FloatingActionButton) setClickListener(R.id.next, UiConstants.NEXT);
-        showFab(mNextFab);
-
-        setClickListener(R.id.prev_button_invi, UiConstants.PREV);
-        mPrevFab = (FloatingActionButton) setClickListener(R.id.prev, UiConstants.PREV);
-        showFab(mPrevFab);
-
-        mToolbar = mMainActivity.findViewById(R.id.toolbar);
-        mMainActivity.setSupportActionBar(mToolbar);
+        mHandler.postDelayed(hideBarAndToolbar, 7000);
 
         mImageView = mMainActivity.findViewById(R.id.photoview);
         mImageView.setOnTouchListener(mDelegate);
@@ -515,9 +549,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         // Listen to our own Drawer element selection events.
         ((NavigationView) mMainActivity.findViewById(R.id.nav_view))
                 .setNavigationItemSelectedListener(this);
-
-        // Hide the navigation after 7 seconds
-        mHandler.postDelayed(hideBarAndToolbar, 7000);
     }
 
     /**
@@ -535,24 +566,33 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     /**
      * Sets the slideshow status, and returns the current status.
      *
-     * @param start true to start the show, false to stop
+     * This does not modify {@link #slideShowPlaying} so if the value is to be toggled, read
+     * {@link #slideShowPlaying}, invert it, and write it at the end.
+     *
+     * @param slideShow true to start the show, false to stop
+     * @param item possibly null, the MenuItem whose icon is to change to show current status
      * @return current status: true if started, false if stopped.
      */
-    public boolean setSlideshow(boolean start) {
-        if (start) {
+    public boolean setSlideshow(boolean slideShow, MenuItem item) {
+        if (slideShow) {
             // Start it in 300 ms from now.
             mHandler.postDelayed(mShowNext, 300);
         } else {
             mHandler.removeCallbacks(mShowNext);
         }
-        boolean status = start;
-        return status;
+        if (item == null) {
+            item = mMainActivity.findViewById(R.id.nav_slideshow);
+        }
+        item.setIcon(slideShowPlaying ? R.drawable.ic_pause : R.drawable.ic_play);
+        return slideShow;
     }
 
     /**
-     * @param resourceId
-     * @param action
-     * @return
+     * Utility method to assign the click listener to a resource ID: R.id.something.
+     * @param resourceId a valid R.id.X that we can expect non-null
+     *      {@link android.app.Activity#findViewById(int)}
+     * @param action either {@link UiConstants#NEXT} or {@link UiConstants#PREV} to assign.
+     * @return the view that corresponds to the resourceId provided here.
      */
     private View setClickListener(int resourceId, final int action) {
         if (action != UiConstants.NEXT && action != UiConstants.PREV) {

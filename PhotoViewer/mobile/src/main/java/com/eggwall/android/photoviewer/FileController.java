@@ -37,10 +37,22 @@ import static java.io.File.separatorChar;
 class FileController {
     /**
      * Name of the subdirectory in the main folder containing photos
-     * TODO: Change this.
+     * TODO: Change this to something more sane, or perhaps more glorious!
      */
     private final static String PICTURES_DIR = "eggwall";
     private static final String TAG = "FileController";
+
+    /**
+     * {@link Bundle} key for the album ID that is currently displayed.
+     */
+    public static final String SS_ALBUMID = "fc-albumId";
+
+    /**
+     * {@link Bundle} key for the offset of the image (index from start) that is currently
+     * displayed.
+     */
+    public static final String SS_IMAGEOFFSET = "fc-offset";
+    public static final int INVALID_ALBUMID = -1;
 
     /**
      * An instance of the database where I will include information about the files and albums.
@@ -48,7 +60,7 @@ class FileController {
     private AlbumDatabase albumDb;
 
     /**
-     * An instance of the database where I will include information about the files and albums.
+     * An instance of the database where I will include information about encryption keys.
      */
     private KeyDatabase keyDb;
 
@@ -68,13 +80,30 @@ class FileController {
      */
     private ArrayList<String> mCurrentGalleryList = null;
 
+    /**
+     * Index in the gallery that is guaranteed never to be valid.
+     */
     private static final int INVALID_INDEX = -1;
 
-    private final MainController mc;
     /**
-     * The index of the current file being viewed.
+     * A handle to the {@link MainController}. This is needed because the {@link FileController}
+     * cannot modify UI but needs to (when displaying an album, for instance). In these cases
+     * the {@link MainController} is our single reverse-delegate and correctly delegates all other
+     * methods on our behalf.
+     */
+    private final MainController mc;
+
+    /**
+     * The index of the current file being viewed. Point to {@link #INVALID_INDEX} if no index
+     * is known, or one cannot be set (in case an album can't be read)
      */
     private int mCurrentImageIndex = INVALID_INDEX;
+
+    /**
+     * Just for the purpose of saving state in {@link #onSaveInstanceState(Bundle)}, we need to
+     * remember what the current Album is.
+     */
+    private long mCurrentAlbumId;
 
     /**
      * Creates a new file controller and all the other objects it needs.
@@ -89,8 +118,7 @@ class FileController {
     }
 
     /**
-     * Returns the location of the music directory which is
-     * [sdcard]/pictures.
+     * Returns the location of the music directory which is [sdcard]/pictures.
      *
      * @return the file representing the music directory.
      */
@@ -125,7 +153,7 @@ class FileController {
                 String message = "Could not create a directory: " + galleryDir
                         + " Message:" + e.getMessage();
                 // Nothing is going to work here, so let's fail hard
-                MainController.crashHard(message);
+                AndroidRoutines.crashHard(message);
                 return null;
             }
             if (result) {
@@ -133,7 +161,7 @@ class FileController {
             } else {
                 String message = "FAILED to make a directory at " + galleryDir.getAbsolutePath();
                 // Nothing is going to work here, so let's fail hard
-                MainController.crashHard(message);
+                AndroidRoutines.crashHard(message);
                 return null;
             }
         }
@@ -148,74 +176,40 @@ class FileController {
         return mPicturesDir;
     }
 
-    private String getSubPath(String subpath) {
-        return PICTURES_DIR.concat("/").concat(subpath);
-    }
-
     /**
-     * Returns the names of all the galleries available to the user.
-     *
-     * @return list of all the galleries in the pictures directory.
+     * Given a relative path for the gallery, this prepares a path that is relative to the
+     * Android Pictures directory (like /sdcard/Pictures) that we will write to.
+     * @param galleryDir the directory where the current album will be housed
+     * @return the directory within the Pictures directory (like /sdcard/Pictures) where this
+     *          content is housed.
      */
-    ArrayList<String> getGalleriesList() {
-        // What we return when we don't find anything.
-        // It is safer to return a zero length array than null.
-        final ArrayList<String> foundNothing = new ArrayList<String>(0);
-
-        File picturesDir = getPicturesDir();
-
-        // We don't have a valid pictures directory.
-        if (picturesDir == null) {
-            return foundNothing;
-        }
-        Log.d(TAG, "Looking through directory " + picturesDir);
-        final String[] filenames = picturesDir.list();
-        ArrayList<String> galleryDirectories = foundNothing;
-        if (filenames == null || filenames.length <= 0) {
-            return foundNothing;
-        }
-        galleryDirectories = new ArrayList<>(Arrays.asList(filenames));
-        // Iterate over these to ensure they are directories
-        for (String name : filenames) {
-            final File galleryDir = new File(picturesDir, name);
-            if (!galleryDir.isDirectory()) {
-                // The directory doesn't exist, so remove it.
-                Log.e(TAG, name + " is not a directory.  Removing");
-                galleryDirectories.remove(name);
-            }
-        }
-
-        Log.e(TAG, "-- Start Gallery directories --");
-        for (String name : galleryDirectories) {
-            Log.e(TAG, name);
-        }
-        Log.e(TAG, "-- End -- ");
-
-        if (galleryDirectories.size() <= 0) {
-            Log.e(TAG, "Gallery directory has no files." + picturesDir);
-            return foundNothing;
-        }
-
-        return galleryDirectories;
+    private String getSubPath(String galleryDir) {
+        return PICTURES_DIR.concat("/").concat(galleryDir);
     }
 
     /**
      * Get an initial album. This could be the previous album that was specified in the bundle
      * or it could be the newest album specified earlier.
-     * @return
+     * @param icicle the saved instance state from a previous run, this argument can be null.
+     * @return the album that we should show. The choice here could be completely arbitrary, and
+     *          could also be null if there is no album we can show.
      */
     Album getInitial(Bundle icicle) {
         Album album = null;
         AlbumDao albumDao = albumDb.albumDao();
 
         if (icicle != null) {
-            long albumId = icicle.getLong("albumId", -1);
-            album = albumDao.findbyId(albumId);
-            if (album != null) {
-                return album;
+            mCurrentAlbumId = icicle.getLong(SS_ALBUMID, INVALID_ALBUMID);
+            if (mCurrentAlbumId != INVALID_ALBUMID) {
+                album = albumDao.findbyId(mCurrentAlbumId);
+                if (album != null) {
+                    // See if an offset exists, and read that.
+                    mCurrentImageIndex = icicle.getInt(SS_IMAGEOFFSET, INVALID_INDEX);
+                    return album;
+                }
+                // Oops, we had a saved instance state, but it pointed to a non-existent album
+                Log.d(TAG, "Nonexistent album with id=" + mCurrentAlbumId);
             }
-            // Oops, we had a saved instance state, but it pointed to a non-existent album
-            Log.d(TAG, "Nonexistent album with id=" + albumId);
             // Fallthrough to default behavior.
         }
         // Go through the album db, and find the most recent one.
@@ -223,45 +217,11 @@ class FileController {
         if (album == null) {
             // Ouch, the user has not downloaded anything. Show a generic splash screen.
             mc.showSplash();
-        }
-
-        Log.d(TAG, "getInitial: Returning album with id=" + album.getId()
+        } else {
+            Log.d(TAG, "getInitial: Returning album with id=" + album.getId()
                     + " at location = " + album.getLocalLocation());
+        }
         return album;
-    }
-
-    /**
-     * Sets the current directory to the name given here. The name is relative to the gallery
-     * directory.
-     *
-     * @param relativeDirectoryName name to set the directory to.
-     * @return whether setting the directory was a success
-     */
-    boolean showAlbum(String relativeDirectoryName) {
-        File picturesDir = getPicturesDir();
-
-        // Check that the given directory exists and has images
-        final File galleryDir = new File(picturesDir, relativeDirectoryName);
-        if (!galleryDir.isDirectory()) {
-            // The directory doesn't exist, so this is invalid.
-            Log.d(TAG, "showAlbum: non-existent dir: " + galleryDir.getAbsolutePath());
-            return false;
-        }
-        final String[] fileNames = galleryDir.list();
-        if (fileNames.length <= 0) {
-            // Empty directory.
-            Log.d(TAG, "showAlbum: empty dir: " + galleryDir.getAbsolutePath());
-            return false;
-        }
-        // TODO: I should check that the files that exist here are actually image files.
-
-        // Everything checks out, let's set our current directory here.
-        mCurrentGallery = galleryDir;
-        mCurrentGalleryList = new ArrayList<>(Arrays.asList(fileNames));
-        // Position the pointer just before the start (actually the very end), so the next call
-        // to getFile returns the 0th element.
-        mCurrentImageIndex = mCurrentGalleryList.size();
-        return true;
     }
 
     /**
@@ -273,7 +233,7 @@ class FileController {
      * @return true if the album was switched.
      */
     boolean showAlbum(Album album) {
-        MainController.checkBackgroundThread();
+        AndroidRoutines.checkBackgroundThread();
 
         // Check that the given directory exists and has images
         final File galleryDir = new File(album.getLocalLocation());
@@ -288,18 +248,24 @@ class FileController {
             Log.d(TAG, "showAlbum: empty dir: " + album.getLocalLocation());
             return false;
         }
-        // TODO: I should check that the files that exist here are actually image files.
-
         // Everything checks out, let's set our current directory here.
         mCurrentGallery = galleryDir;
+        mCurrentAlbumId = album.getId();
         mCurrentGalleryList = new ArrayList<>(Arrays.asList(fileNames));
         for (String file : mCurrentGalleryList) {
             Log.d(TAG, "Found file: " + file);
         }
 
-        // Position the pointer just before the start (actually the very end), so the next call
-        // to getFile returns the 0th element.
-        mCurrentImageIndex = mCurrentGalleryList.size();
+        // Check if the index is too far out or not initialized. If it is initialized, it could
+        // have been done in showInitial() where we read the index from an icicle, or from the
+        // previous gallery, in which case it is a random index. Just make sure it still points to
+        // a location in the current gallery.
+        int size = mCurrentGalleryList.size();
+        if (mCurrentImageIndex > size || mCurrentImageIndex == INVALID_INDEX) {
+            // Position the pointer just before the start (actually the very end), so the next call
+            // to getFile returns the 0th element.
+            mCurrentImageIndex = size;
+        }
         Log.d(TAG, "mCurrentImageIndex = " + mCurrentImageIndex);
 
         // Update the database to modify last-viewed-timestamp
@@ -370,6 +336,21 @@ class FileController {
         Log.d(TAG, "Inserted key with secret " + key.secretKey + ", name=" + key.name
                 + ", uuid=" + key.keyId + ", at location=" + i);
         mc.toast("Key imported. All good.");
+    }
+
+    /**
+     * Save any state that I might need in {@link #getInitial(Bundle)}.
+     * @param icicle guaranteed non-null
+     */
+    public void onSaveInstanceState(Bundle icicle) {
+        // The next time we load it, we'll advance it to the next image, so reverse back an image.
+        if (mCurrentImageIndex == 0) {
+            mCurrentImageIndex = mCurrentGalleryList.size();
+        } else {
+            mCurrentImageIndex--;
+        }
+        icicle.putInt(SS_IMAGEOFFSET, mCurrentImageIndex);
+        icicle.putLong(SS_ALBUMID, mCurrentAlbumId);
     }
 
     /**

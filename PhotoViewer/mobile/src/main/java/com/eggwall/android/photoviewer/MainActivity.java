@@ -21,8 +21,8 @@ import android.view.WindowManager;
  * TODO: Settings activity to change slideshow duration, auto-start newest, download frequency, etc
  * TODO: pinch-zoom on an image.
  * TODO: Diagnostics in the app to find what's wrong.
- * TODO: Remember offset in the album when rotating.
- * TODO: Remember if autoplay was on when rotating.
+ * DO:NE Remember offset in the album when rotating.
+ * DONE: Remember if autoplay was on when rotating.
  * DONE: Showing slideshow state, and allowing slideshow to stop.
  * DONE: Desktop application to create these image files.
  * DONE: Read keys and RSS-like locations from a bar code.
@@ -50,20 +50,6 @@ public class MainActivity extends AppCompatActivity {
      * we'll get in onRequestPermissionResult.
      */
     public final int REQUEST_READ_EXTERNAL_STORAGE = 81;
-
-    /**
-     * Key for the offset in the album that the application was showing when
-     * {@link #onSaveInstanceState(Bundle)} was called
-     */
-    public static final String KEY_OFFSET = "offset";
-
-    /**
-     * Key for the album that the application was showing when {@link #onSaveInstanceState(Bundle)}
-     * was called
-     */
-    public static final String KEY_ALBUMID = "albumid";
-    /** ID to expect when no known album was being viewed */
-    public static final int ALBUMID_NO_ALBUM = -1;
 
     // One side benefit of calling it Main Controller that the object itself is the MC.
     /** The object that orchestrates the other controllers. */
@@ -123,38 +109,38 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        mc.onSaveInstanceState(outState);
+    }
+
+    @Override
     protected void onCreate(final Bundle icicle) {
         super.onCreate(icicle);
 
-        // Try recovering the offset that the previous view was at.
-        if (icicle != null) {
-            int offset = icicle.getInt(KEY_OFFSET, 0);
-
-            // Album IDs are guaranteed to be 0 or higher, so -1 confirms that no album was being
-            // shown previously.
-            long albumId = icicle.getInt(KEY_ALBUMID, ALBUMID_NO_ALBUM);
-        }
-
         setContentView(R.layout.activity_main);
-
         if (keepScreenOn) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
 
-        requestReadExternalStoragePermission();
+        // TODO: Fix the errors this is causing in the logs. I think I am only permitted to show
+        // one of these screens at a time.
         requestWriteExternalStoragePermission();
+        requestReadExternalStoragePermission();
 
+        // Create the primary controller that orchestrates everything.
         mc = new MainController();
         if (!mc.create(this)) {
             // Nothing is going to work without a MainController.
-            MainController.crashHard("Could not construct a Main Controller");
+            AndroidRoutines.crashHard("Could not construct a Main Controller");
         }
 
+        // See if the program was asked to do something specific or was just started from Launcher
         int actionType = NetworkRoutines.getIntentType(getIntent());
         switch (actionType) {
             case NetworkRoutines.TYPE_IGNORE:
-                // Show the initial screen because nothing else can be done. But that can hit
-                // disk so do this in the background.
+                // Launched from launcher or without any specific request. Try to resume showing
+                // the previous album or show the most recently downloaded album.
                 final MainController mainController = mc;
                 new Thread(new Runnable() {
                     @Override
@@ -166,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
                 }).start();
                 break;
             case NetworkRoutines.TYPE_DOWNLOAD:
+                // Asked to download a package file
                 NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(getIntent());
                 if (album != NetworkRoutines.EMPTY) {
                     Log.d(TAG, "I'm going to download this URL now: " + album);
@@ -174,12 +161,17 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
             case NetworkRoutines.TYPE_SECRET_KEY:
+                // Asked to import a key for future use in decryption.
                 NetworkRoutines.KeyImportInfo key = NetworkRoutines.getKeyInfo(getIntent());
                 if (key != NetworkRoutines.EMPTY_KEY) {
                     Log.d(TAG, "I'm going to import this key now: " + key);
                     // Now download that URL and switch over to that screen.
                     mc.importKey(key);
                 }
+                break;
+            default:
+                // Should never happen since getIntentType only gives known values.
+                Log.wtf(TAG, "Unknown actionType: " + actionType);
                 break;
         }
     }
