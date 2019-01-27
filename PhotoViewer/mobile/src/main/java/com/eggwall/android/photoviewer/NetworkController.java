@@ -24,8 +24,6 @@ class NetworkController {
     private final DownloadManager downloadManager;
     private final Context ctx;
 
-    private int fileID = 1;
-
     /**
      * BroadcastReceiver that listens for a download request and updates when the request was done.
      *

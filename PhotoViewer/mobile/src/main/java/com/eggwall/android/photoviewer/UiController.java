@@ -6,6 +6,7 @@ import android.graphics.Matrix;
 import android.media.ExifInterface;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
@@ -26,7 +27,6 @@ import android.widget.Toast;
 
 import java.io.IOException;
 
-import static android.view.View.GONE;
 import static android.view.View.INVISIBLE;
 import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
 import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
@@ -121,7 +121,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * Show a diagnostic message.
      *
      * Call from any thread.
-     * @param message
+     * @param message any human readable message (unfortunately not localized!)
      */
     public void MakeText(final String message) {
         if (AndroidRoutines.isMainThread()) {
@@ -187,7 +187,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()) {
             case R.id.nav_camera:
                 // Handle the camera action
@@ -202,12 +202,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
             case R.id.nav_manage:
                 // TODO: make this pop out a dialog instead.
-                // Download a zip file from somewhere and unzip it.
-//            NetworkRoutines.DownloadInfo test = new NetworkRoutines.DownloadInfo(
-//                    Uri.parse("http://192.168.11.122/images.zip"),
-//                    "/sdcard/Pictures/test.zip", false,
-//                    null, 4000000, false, "", "test");
-//            mainController.download(test);
                 break;
 
             case R.id.nav_share:
@@ -225,9 +219,9 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     /**
      * Shows a Floating Action Button (FAB) immediately, and then fades it out in a few seconds.
      *
-     * @param fab
+     * @param fab the view that is the floating action bubble, cannot be null.
      */
-    private void showFab(final View fab) {
+    private void showFab(@NonNull final View fab) {
         // Show it
         fab.animate().alpha((float) 0.5).setDuration(350).start();
 
@@ -334,14 +328,16 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * @return A rotated bitmap
      */
     private Bitmap getRotated(Bitmap sourceBitmap, int degrees) {
-        Matrix matrix = new Matrix();
-        // Width and height here pertains to the bitmap
+        // Width and height here pertains to the bitmap, not the view that holds it.
         int height = sourceBitmap.getHeight();
         int width = sourceBitmap.getWidth();
+
+        // Create a matrix that will carry out the rotation operation.
+        Matrix matrix = new Matrix();
         matrix.postRotate(degrees, width / 2, height / 2);
-        Bitmap rotated = Bitmap.createBitmap(
-                sourceBitmap, 0, 0, width, height, matrix, true);
-        return rotated;
+
+        // Return the rotated bitmap.
+        return Bitmap.createBitmap(sourceBitmap, 0, 0, width, height, matrix, true);
     }
 
     /**
@@ -391,9 +387,9 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     /**
      * Sets the System Ui Visibility.  Only accepts two values: {@link #SYSUI_INVISIBLE} or
-     * {@link #SYSUI_VISIBLE}
+     *      * {@link #SYSUI_VISIBLE}
      *
-     * @param visibility
+     * @param visibility either {@link #SYSUI_INVISIBLE} or {@link #SYSUI_VISIBLE}
      */
     private void setSystemUiVisibility(int visibility) {
         if (visibility != SYSUI_VISIBLE && visibility != SYSUI_INVISIBLE) {
@@ -432,8 +428,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
         final boolean changed = newVis == mDrawer.getSystemUiVisibility();
 
-        // Unschedule any pending event to hide navigation if we are
-        // changing the visibility, or making the UI visible.
+        // Unschedule any pending event to hide navigation if we ar changing the visibility,
+        // or making the UI visible.
         if (changed || visible) {
             Handler h = mDrawer.getHandler();
             if (h != null) {
