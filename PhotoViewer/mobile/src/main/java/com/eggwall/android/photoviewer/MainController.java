@@ -41,7 +41,8 @@ public class MainController {
 
     /**
      * Verify that the object was created before use.
-     * @return false if created, true if everything is ok.
+     * Proceeds if created, and {@link AndroidRoutines#crashHard(String)} if the controller is used
+     * before creation because it signifies a huge problem.
      */
     private void creationCheck() {
         if (created) {
@@ -127,7 +128,7 @@ public class MainController {
      * Display this album if it exists, false if it doesn't.
      *
      * Call on the background thread, since this reads disk.
-     * @param album
+     * @param album An album to be displayed
      * @return true if the album was shown, false otherwise.
      */
     boolean showAlbum(Album album) {
@@ -139,7 +140,7 @@ public class MainController {
 
     /**
      * Allow window focus changes to be handled in an activity containing the UI.
-     * @param hasFocus
+     * @param hasFocus true when the window gets focus and false when it loses focus
      */
     void onWindowFocusChanged(boolean hasFocus) {
         creationCheck();
@@ -153,7 +154,7 @@ public class MainController {
      * Make a diagnostic message
      *
      * Call from any thread.
-     * @param message
+     * @param message any human readable message (unfortunately not localized!)
      */
     void toast(String message) {
         creationCheck();
@@ -179,7 +180,7 @@ public class MainController {
      * Import the key provided here into the correct database.
      *
      * Call from any thread.
-     * @param key
+     * @param key a key to be imported into the database
      */
     public void importKey(final NetworkRoutines.KeyImportInfo key) {
         creationCheck();
@@ -202,7 +203,7 @@ public class MainController {
     /**
      * Import the key, assuming that we are in a background thread. Can only be called
      * from {@link #importKey(NetworkRoutines.KeyImportInfo)}
-     * @param key
+     * @param key key to be imported
      */
     private void importKeyBackgroundThread(NetworkRoutines.KeyImportInfo key) {
         fileC.importKey(key);
@@ -274,8 +275,8 @@ public class MainController {
      *
      * Call from any thread.
      *
-     * @param offset  is either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
-     * @param showFab
+     * @param offset either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
+     * @param showFab True if the Floating Action Bar should be shown, false if it should be hidden.
      */
     void updateImage(final int offset, final boolean showFab) {
         creationCheck();
@@ -300,8 +301,8 @@ public class MainController {
     /**
      * Carry out the work of {@link #updateImage(int, boolean)}, but expect to be run from the
      * background thread. Can only be called from {@link #updateImage(int, boolean)}.
-     * @param offset
-     * @param showFab
+     * @param offset either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
+     * @param showFab True if the Floating Action Bar should be shown, false if it should be hidden.
      */
     private void updateImageBackgroundThread(final int offset, final boolean showFab) {
         if (offset != UiConstants.NEXT && offset != UiConstants.PREV) {

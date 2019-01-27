@@ -196,8 +196,8 @@ class NetworkController {
     /**
      * Download whatever is at this location, unzipping if required, to the default gallery
      * directory.
-     * @param unzipper
-     * @return
+     * @param unzipper an object that can unzip the file correctly once it is downloaded.
+     * @return true if the download was requested correctly
      */
     boolean requestURI(FileController.Unzipper unzipper) {
         NetworkRoutines.DownloadInfo dlInfo = unzipper.dlInfo;

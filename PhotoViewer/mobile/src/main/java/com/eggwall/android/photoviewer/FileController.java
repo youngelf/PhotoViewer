@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.eggwall.android.photoviewer.data.Album;
@@ -45,14 +46,14 @@ class FileController {
     /**
      * {@link Bundle} key for the album ID that is currently displayed.
      */
-    public static final String SS_ALBUMID = "fc-albumId";
+    private static final String SS_ALBUMID = "fc-albumId";
 
     /**
      * {@link Bundle} key for the offset of the image (index from start) that is currently
      * displayed.
      */
-    public static final String SS_IMAGEOFFSET = "fc-offset";
-    public static final int INVALID_ALBUMID = -1;
+    private static final String SS_IMAGEOFFSET = "fc-offset";
+    private static final int INVALID_ALBUMID = -1;
 
     /**
      * An instance of the database where I will include information about the files and albums.
@@ -107,8 +108,10 @@ class FileController {
 
     /**
      * Creates a new file controller and all the other objects it needs.
-     * @param context
-     * @param mainController
+     * @param context The context that the Activity was started with (Application context should
+     *                be fine as well)
+     * @param mainController the main orchestrator we can call for UI changes or other behavior
+     *                       that we can't do.
      */
     FileController(Context context, MainController mainController) {
         // TODO: These database calls read/write disk so I need to move them to a background thread
@@ -119,26 +122,34 @@ class FileController {
 
     /**
      * Returns the location of the music directory which is [sdcard]/pictures.
+     * If it cannot get a directory to read/write from, the entire gallery program is useless.
+     * As a result, this method will either return a valid directory or crash hard with a
+     * (hopefully) helpful error message that allows diagnosis for the problem.
      *
-     * @return the file representing the music directory.
+     * @return the file representing the music directory. Always returns non-null.
      */
-    public File getPicturesDir() {
+    private @NonNull File getPicturesDir() {
         if (mPicturesDir != null) {
             return mPicturesDir;
         }
+
+        // The root directory (guaranteed to exist on a UNIX filesystem)
+        // This is never used because we always crash hard when returning this, killing the program.
+        File EMPTY = new File("/");
+
         final String state = Environment.getExternalStorageState();
         if (!Environment.MEDIA_MOUNTED.equals(state)) {
             // If we don't have an SD card, cannot do anything here.
-            Log.e(TAG, "SD card root directory is not available");
-            return null;
+            AndroidRoutines.crashHard("SD card root directory is not available");
+            return EMPTY;
         }
 
         final File rootSdLocation =
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         if (rootSdLocation == null) {
             // Not a directory? Completely unexpected.
-            Log.e(TAG, "SD card root directory is NOT a directory and is NULL");
-            return null;
+            AndroidRoutines.crashHard("SD card root directory is NOT a directory and is NULL");
+            return EMPTY;
         }
         // Navigate over to the gallery directory.
         // TODO refactor this along with the same code in Unzipper.handleFile.
@@ -154,7 +165,7 @@ class FileController {
                         + " Message:" + e.getMessage();
                 // Nothing is going to work here, so let's fail hard
                 AndroidRoutines.crashHard(message);
-                return null;
+                return EMPTY;
             }
             if (result) {
                 Log.d(TAG, "Created a directory at " + galleryDir.getAbsolutePath());
@@ -162,16 +173,25 @@ class FileController {
                 String message = "FAILED to make a directory at " + galleryDir.getAbsolutePath();
                 // Nothing is going to work here, so let's fail hard
                 AndroidRoutines.crashHard(message);
-                return null;
+                return EMPTY;
             }
         }
-        // At this point, we must have a directory, but let's check again to be sure.
+        // At this point, we should have a directory, but let's confirm.
         if (!galleryDir.isDirectory()) {
-            // The directory doesn't exist, so fail now.
-            Log.d(TAG, "I thought I made a directory at " + galleryDir.getAbsolutePath()
-                    + " but " + "I couldn't");
-            return null;
+            // The directory still doesn't exist, we should fail as hard as possible.
+            // It cold be that directories that are created are not flushed, and therefore not
+            // available immediately. I've never seen this happen, but it could. Even so, downstream
+            // code relies on the existence of this directory, and we are better off crashing right
+            // away than failing.
+            // One possibility could be to wait for a second for the flash to settle down and
+            // check if the directory exists.
+            AndroidRoutines.crashHard(
+                    "Failed to make a directory at " + galleryDir.getAbsolutePath());
+            return EMPTY;
         }
+
+        // A valid, non-null, directory that exists, and we can write to. Remember this for the
+        // future.
         mPicturesDir = galleryDir;
         return mPicturesDir;
     }
@@ -195,7 +215,7 @@ class FileController {
      *          could also be null if there is no album we can show.
      */
     Album getInitial(Bundle icicle) {
-        Album album = null;
+        Album album;
         AlbumDao albumDao = albumDb.albumDao();
 
         if (icicle != null) {
@@ -320,7 +340,7 @@ class FileController {
      * Import this key.
      *
      * Call from the background thread.
-     * @param key
+     * @param key a key to import
      */
     public void importKey(NetworkRoutines.KeyImportInfo key) {
         KeyDao keyDao = keyDb.keyDao();
@@ -394,7 +414,7 @@ class FileController {
         @Override
         public void handleFile(String filename, ParcelFileDescriptor Uri) {
             // Check if we failed and the error handling should be invoked
-            if (filename == FILENAME_ERROR && Uri == PFD_ERROR) {
+            if (filename.equals(FILENAME_ERROR) && Uri == PFD_ERROR) {
                 // Modify the database to remove a record of the download.
                 albumDao.delete(album);
                 return;
@@ -442,7 +462,10 @@ class FileController {
             } catch (IOException e) {
                 e.printStackTrace();
                 Log.e(TAG, "Could not open file: " + toUnpack.getAbsolutePath(), e);
-                toUnpack.delete();
+                if (!toUnpack.delete()) {
+                    Log.d(TAG, "Could not delete the temporary file: "
+                            + toUnpack.getAbsolutePath());
+                }
                 return;
             }
 
@@ -499,7 +522,7 @@ class FileController {
                     }
                     BufferedOutputStream outputStream =
                             new BufferedOutputStream(new FileOutputStream(toWrite));
-                    int numBytes = 0;
+                    int numBytes;
                     while ((numBytes = inputStream.read(buffer)) > 0) {
                         Log.d(TAG, "Wrote " + numBytes + " bytes to " + name);
                         outputStream.write(buffer, 0, numBytes);
@@ -512,10 +535,8 @@ class FileController {
             }
 
             // Done with it, delete the original package file.
-            if (toUnpack != null) {
-                if (toUnpack.delete()) {
-                    Log.d(TAG, "Plain file deleted:" + toUnpack.getAbsolutePath());
-                }
+            if (toUnpack != null && toUnpack.delete()) {
+                Log.d(TAG, "Plain file deleted:" + toUnpack.getAbsolutePath());
             }
 
             // Has been downloaded right now.
@@ -530,12 +551,20 @@ class FileController {
 
         /** Hidden to force all creation through
          * {@link FileController#createUnzipper(NetworkRoutines.DownloadInfo)}
-         * @param dlInfo The dlInfo that this unzipper was created with.
-         * @param album
-         * @param dao
-         * @param keyDao
-         * @param mc
-         * @param mPicturesDir
+         * @param dlInfo The dlInfo that specifies the URI for the package, whether it should be
+         *               decrypted, which key ID to use when decrypting, whether it should be
+         *               unzipped, etc.
+         * @param album The album object from our database. This is needed in addition to the
+         *              dlInfo object because they have different information. This album object
+         *              knows what unique ID corresponds to this in the database, while only the
+         *              dlInfo object has the remote URL, and whether the album has to be
+         *              encrypted.
+         * @param dao The Data Access Object that allows us to access the Album DB.
+         * @param keyDao The Data Access Object that allows us access to the Key DB.
+         * @param mc the orchestrating main controller
+         * @param mPicturesDir the directory that we should unpack files into. This should be the
+         *                     output of {@link #getPicturesDir()} but since this is a static object
+         *                     it is cleaner to pass the picture directory.
          */
         private Unzipper(NetworkRoutines.DownloadInfo dlInfo, Album album,
                          AlbumDao dao, KeyDao keyDao, MainController mc, File mPicturesDir) {
@@ -560,6 +589,7 @@ class FileController {
     Unzipper createUnzipper(NetworkRoutines.DownloadInfo dlInfo) {
         // Check to see if we can hold the eventual file size
         File picturesDir = getPicturesDir();
+
         long available = picturesDir.getFreeSpace();
         if (available < dlInfo.extractedSize) {
             Log.d(TAG, "Out of disk space, cannot unzip: Expected: "
@@ -572,21 +602,19 @@ class FileController {
         // the database.
         Album album = new Album();
         album.setName(dlInfo.name);
-        Log.d(TAG, "dlInfo.name = " + dlInfo.name);
+
         String remoteLocation = dlInfo.location.toString();
         album.setRemoteLocation(remoteLocation);
-        Log.d(TAG, "dlInfo.remoteLocation = " + remoteLocation);
+
         // Only when we insert it do we get a unique ID. This is why this method needs to be called
         // from a background thread.
         long id = albumDb.albumDao().insert(album);
         // Now set that as the canonical ID for this
         album.setId(id);
-        Log.d(TAG, "dlInfo.id = " + id);
 
         String topLevel = picturesDir.getAbsolutePath().concat("/");
         String pathPrefix = "gal_" + String.format(Locale.US, "%04d", id);
         String localLocation = topLevel.concat(pathPrefix);
-        Log.d(TAG, "dlInfo.localLocation = " + localLocation);
 
         // This is the location where the zip file should be stored. This is why it is a bad
         // idea to read the original dlInfo object.
@@ -598,9 +626,12 @@ class FileController {
             fileName = pathPrefix.concat(".zip");
         }
         dlInfo.pathOnDisk = getSubPath(fileName);
-        Log.d(TAG, "dlInfo.pathOnDisk = " + fileName);
 
-        Log.d(TAG, "picturesDir = " + picturesDir.getAbsolutePath());
+        Log.d(TAG, "dlInfo.name = " + dlInfo.name
+                + "\n\t dlInfo.id = " + id  + ", dlInfo.remoteLocation = " + remoteLocation
+                + "\n\t dlInfo.localLocation = " + localLocation
+                + "\n\t dlInfo.pathOnDisk = " + fileName
+                + ", picturesDir = " + picturesDir.getAbsolutePath());
 
         album.setLocalLocation(localLocation);
         return new Unzipper(dlInfo, album, albumDb.albumDao(), keyDb.keyDao(), mc, picturesDir);

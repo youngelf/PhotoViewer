@@ -14,20 +14,20 @@ class NetworkRoutines {
     private static final String TAG = "NetworkRoutines";
 
     /** The scheme for the custom URI. */
-    public static final String SCHEME = "photoviewer";
+    private static final String SCHEME = "photoviewer";
 
     // One of the REQ_ keys need to be provided. None of these REQ_ keys should have the same value
     // as any of the KEY_ strings, because otherwise the optional param will be mistaken for the
     // required param.
     /** CGI param key: URL where the package is available. */
-    public static final String REQ_PACKAGE_SRC = "src";
+    private static final String REQ_PACKAGE_SRC = "src";
 
     /** CGI param key: URL where the package is available. */
-    public static final String REQ_SECRETKEY = "key";
+    private static final String REQ_SECRETKEY = "key";
 
 
     /** CGI param key: URL where the package is available. */
-    public static final String KEY_NAME = "name";
+    private static final String KEY_NAME = "name";
 
     /**
      * CGI param key: Unique ID for the key. This is a unique ID that corresponds to the key, and
@@ -38,38 +38,38 @@ class NetworkRoutines {
      * Any UUID that conforms to RFC 4122 is great.
      * https://www.ietf.org/rfc/rfc4122.txt
      */
-    public static final String KEY_UNIQUEID = "keyid";
+    private static final String KEY_UNIQUEID = "keyid";
 
     // Options that go along with REQ_PACKAGE_SRC
     /**
      * CGI param key: is this file encrypted with {@link CryptoRoutines#AES_CBC_PKCS5_PADDING}.
      * Provided as an option along with {@link #REQ_PACKAGE_SRC}
      */
-    public static final String KEY_ENCRYPTED = "encrypted";
+    private static final String KEY_ENCRYPTED = "encrypted";
 
     /**
      * CGI param key: Initialization vector as byte[]
      * Provided as an option along with {@link #REQ_PACKAGE_SRC}
      */
-    public static final String KEY_INITIALIZATION_VECTOR = "iv";
+    private static final String KEY_INITIALIZATION_VECTOR = "iv";
 
     /**
      * CGI param key: is this a zip archive?
      * Provided as an option along with {@link #REQ_PACKAGE_SRC}
      */
-    public static final String KEY_ZIPPED = "zipped";
+    private static final String KEY_ZIPPED = "zipped";
 
     /**
      * CGI param key: the unpacked size of the archive.
      * Provided as an option along with {@link #REQ_PACKAGE_SRC}
      */
-    public static final String KEY_SIZE = "size";
+    private static final String KEY_SIZE = "size";
 
     /**
      * CGI param key: Human readable dlInfo name
      * Provided as an option along with {@link #REQ_PACKAGE_SRC}
      */
-    public static final String KEY_ALBUMNAME = "name";
+    private static final String KEY_ALBUMNAME = "name";
 
 
     /**
@@ -142,6 +142,11 @@ class NetworkRoutines {
         }
     }
 
+    /**
+     * A download object that signifies we don't have enough information to actually download
+     * anything. This is safer than passing a null object, since we can still extract information
+     * from this, like the {@link java.net.URI}, for example, without a problem.
+     */
     public final static DownloadInfo EMPTY =
             new DownloadInfo(Uri.EMPTY, "", false, null, 0, false, "", "EMPTY");
 
@@ -186,14 +191,22 @@ class NetworkRoutines {
     public static final int TYPE_SECRET_KEY = 2;
 
     /**
-     * Get the URL to download from the intent this application was started from.
+     * Get the type of intent this application was started with.
      *
-     * This will create a URL of the kind
-     * from an intent where the Data has the URL: http://dropbox.com/slkdjf/al
-     * photoviewer://eggwall/test?q=this&src=http%3A%2F%2Fdropbox.com%2Fslkdjf%2Fal
+     * An application can get started by tapping on its icon in the Launcher, or because it is
+     * handling a custom URI.
+     *
+     * Here is a custom URL of the kind
+     * photoviewer://eggwall/download?src=http%3A%2F%2Fdropbox.com%2Fslkdjf%2Fal&zipped=y
+     * This is a request to download the URL: http://dropbox.com/slkdjf/al
+     *
+     * This method tells you what kind of Intent this is.
      * @param intent the Intent the application was started from. Usually obtained from
      *               {@link Activity#getIntent()}
-     * @return the URL if one is parsed, {@link Uri#EMPTY} otherwise.
+     * @return the type of Intent: {@link #TYPE_DOWNLOAD} for downloading a package,
+     *          {@link #TYPE_SECRET_KEY} to import a secret key, and {@link #TYPE_IGNORE} for all
+     *          other Android-related starts that we can safely ignore because we are not handling
+     *          any custom URI.
      */
     static int getIntentType(Intent intent) {
         if (intent == null) {
@@ -235,7 +248,8 @@ class NetworkRoutines {
     }
 
     /**
-     * Key to return when there is nothing to do.
+     * Key to return when there is nothing to do. This is still safer than a null object because
+     * individual objects make sense, an actual empty key, an empty name, for example
      */
     final static KeyImportInfo EMPTY_KEY = new KeyImportInfo("", "", "");
 
@@ -247,7 +261,8 @@ class NetworkRoutines {
      * photoviewer://eggwall/test?q=this&src=http%3A%2F%2Fdropbox.com%2Fslkdjf%2Fal
      * @param intent the Intent the application was started from. Usually obtained from
      *               {@link Activity#getIntent()}
-     * @return the URL if one is parsed, {@link Uri#EMPTY} otherwise.
+     * @return information that allows us to import a key if parsed correctly,
+     *          {@link #EMPTY_KEY} otherwise.
      */
     static KeyImportInfo getKeyInfo(Intent intent) {
         if (intent == null) {
@@ -311,7 +326,7 @@ class NetworkRoutines {
      * photoviewer://eggwall/test?q=this&src=http%3A%2F%2Fdropbox.com%2Fslkdjf%2Fal
      * @param intent the Intent the application was started from. Usually obtained from
      *               {@link Activity#getIntent()}
-     * @return the URL if one is parsed, {@link Uri#EMPTY} otherwise.
+     * @return download information if parsed correctly, {@link #EMPTY} otherwise.
      */
     static DownloadInfo getDownloadInfo(Intent intent) {
         String action = intent.getAction();
@@ -330,7 +345,7 @@ class NetworkRoutines {
         Log.d(TAG, "Path = " + path);
 
         // Confirm that this is a request to view, with the correct scheme and a non-empty path.
-        if (action.equals(Intent.ACTION_VIEW)
+        if (action != null && action.equals(Intent.ACTION_VIEW)
                 && scheme != null && scheme.equals(SCHEME)
                 && path != null) {
 
@@ -346,6 +361,11 @@ class NetworkRoutines {
         return EMPTY;
     }
 
+    /**
+     * Given a URL, unpack the CGI params into an object.
+     * @param uri a URI that was passed in an Intent.
+     * @return an object, possibly {@link #EMPTY} that tells what to download, from where, etc.
+     */
     private static DownloadInfo getDownloadInfo(Uri uri) {
         // All the components of the DownloadInfo object.
         // Assume URI is not specified.
@@ -415,7 +435,4 @@ class NetworkRoutines {
         return new DownloadInfo(uriR, null, isEncryptedR, initVectorR,
                 extractedSizeR, isZippedR, keyUid, albumNameR);
     }
-
-
-
 }

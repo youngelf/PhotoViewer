@@ -163,6 +163,15 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
     }
 
+    /**
+     * Detects left-to-right swipe (next image) and right-to-left swipe (previous image).
+     *
+     * It is rough, doesn't provide any feedback to the user that the action is going to complete
+     * and also doesn't show the next image (as you would with a ViewPager).
+     *
+     * Barely satisfactory, and it might have to be removed or redone when implementing
+     * pinch-to-zoom, which is more useful than swipe next/previous.
+     */
     private class FlingDetector extends GestureDetector.SimpleOnGestureListener {
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
@@ -469,7 +478,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     /**
      * Handler for window focus changes.
-     * @param hasFocus
+     * @param hasFocus true if this window has focus, false if it loses focus.
      */
     void onWindowFocusChanged(boolean hasFocus) {
         if (hasFocus) {

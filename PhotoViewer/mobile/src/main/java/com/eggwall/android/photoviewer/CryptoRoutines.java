@@ -22,6 +22,14 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+/**
+ * A collection of routines that are required to encrypt and decrypt a file. Most of this is
+ * not specific to Android, except for some String to Base64 encoding / decoding.
+ *
+ * There are routines here to encrypt and decrypt strings, but those are not required by this
+ * program. Their only use is to validate that encryption and decryption is possible on the platform
+ * and can be used as a user-visible test.
+ */
 public class CryptoRoutines {
     private static final String TAG = "CryptoRoutines";
 
@@ -155,18 +163,18 @@ public class CryptoRoutines {
     }
 
     /**
-     * Base64 encoding of input byte
-     * @param in
-     * @return
+     * Base64 encoding of input byte array
+     * @param in a byte array to transform to a String
+     * @return a String that can be printed, stored in a database, displayed on screens, etc.
      */
     public static String bToS(byte[] in) {
         return Base64.encodeToString(in, Base64.DEFAULT);
     }
 
     /**
-     * decode a string into its byte.
-     * @param in
-     * @return
+     * Decode a string into its byte array.
+     * @param in a String to be transformed
+     * @return a byte array that can be encrypted, decrypted or used as a secret key.
      */
     public static byte[] STob(String in) {
         return Base64.decode(in, Base64.DEFAULT);
@@ -240,12 +248,14 @@ public class CryptoRoutines {
 
     /**
      * Simple method to test encryption and decryption of a stream and show a result to the user.
+     *
+     * UNUSED but retained for the future.
      * @return true if the test passed
      */
-    public static boolean decryptFileTest() {
+    private static boolean decryptFileTest() {
         // Let's experiment with a given key.
         String keyHardcode="SOh7N8bl1R5ZoJrGLzhzjA==";
-
+        boolean wasSuccessful = false;
 
         // And let's try out encrypting and decrypting
         try {
@@ -259,9 +269,9 @@ public class CryptoRoutines {
             String cipherPath = Environment.getExternalStorageDirectory().getPath()
                     .concat(File.pathSeparator).concat("cipher.txt");
             // First, delete the file.
-//            if ((new File(cipherPath)).delete()) {
-//                Log.d(TAG, "Old cipher file deleted.");
-//            }
+            if ((new File(cipherPath)).delete()) {
+                Log.d(TAG, "Old cipher file deleted.");
+            }
 
             byte[] iv = encrypt(plainPath, skey, cipherPath);
             if (iv == null) {
@@ -279,11 +289,12 @@ public class CryptoRoutines {
                 return false;
             }
             // TODO: Check here to see if the file has some text in there.
-            return true;
+            wasSuccessful = true;
+            // Clean up for the next time the test is run.
+            (new File(cipherPath)).delete();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        // And now delete the file.
-        return false;
+        return wasSuccessful;
     }
 }
