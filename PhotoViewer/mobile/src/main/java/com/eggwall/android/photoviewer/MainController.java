@@ -15,6 +15,7 @@ package com.eggwall.android.photoviewer;
 // functionality here on its own merit.
 
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.Looper;
 import android.util.Log;
 
@@ -151,24 +152,37 @@ public class MainController {
 
     /**
      * Show the initial screen, load up the gallery list and show the first one.
-     * @return
+     * @return true if it found an album to show
      */
-    boolean showInitial() {
+    boolean showInitial(Bundle icicle) {
         creationCheck();
         checkBackgroundThread();
 
-        // File handling on the main thread. This is a bad idea.
-        // TODO: Change this so it reads a the album database, and in the background.
-        ArrayList<String> galleriesList = fileC.getGalleriesList();
-        if (galleriesList.size() >= 1) {
-            // Select the first directory.
-            fileC.setDirectory(galleriesList.get(0));
+        Album initial = fileC.getInitial(icicle);
+        if (initial != null) {
+            showAlbum(initial);
+            return true;
+        } else {
+            // What can we do here, if the first album is null? Perhaps the splash screen instead?
+            showSplash();
         }
-        Log.d(TAG, "The next file is: " + fileC.getFile(UiConstants.NEXT));
+        // Didn't show any album.
+        return false;
+    }
 
-        // And load the next image.
-        updateImage(UiConstants.NEXT, true);
-        return true;
+    /**
+     * Show a splash screen that explains what the program can do, and perhaps points the user
+     * to a key they can import (my external key) with some album they can download (something not
+     * private to me).
+     *
+     * Currently not implemented, but I can add to it.
+     */
+    void showSplash() {
+        creationCheck();
+        checkBackgroundThread();
+
+        // Show a generic splash screen, does nothing right now.
+        Log.d(TAG, "showSplash called without any implementation!", new Error());
     }
 
     /**
@@ -176,14 +190,13 @@ public class MainController {
      *
      * Call on the background thread, since this reads disk.
      * @param album
-     * @return
+     * @return true if the album was shown, false otherwise.
      */
     boolean showAlbum(Album album) {
         creationCheck();
         checkBackgroundThread();
 
-        fileC.setDirectory(album);
-        return true;
+        return fileC.showAlbum(album);
     };
 
     /**
@@ -192,8 +205,8 @@ public class MainController {
      */
     void onWindowFocusChanged(boolean hasFocus) {
         creationCheck();
-        // I think the UI thread calls this, but I don't really care.
-        checkAnyThread();
+        // I think the UI thread calls this, and we do UI modification, so let's enforce a UI thread
+        checkMainThread();
 
         uiC.onWindowFocusChanged(hasFocus);
     }

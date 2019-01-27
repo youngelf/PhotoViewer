@@ -1,6 +1,7 @@
 package com.eggwall.android.photoviewer;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
@@ -194,7 +195,39 @@ class FileController {
             Log.e(TAG, "Gallery directory has no files." + picturesDir);
             return foundNothing;
         }
+
         return galleryDirectories;
+    }
+
+    /**
+     * Get an initial album. This could be the previous album that was specified in the bundle
+     * or it could be the newest album specified earlier.
+     * @return
+     */
+    Album getInitial(Bundle icicle) {
+        Album album = null;
+        AlbumDao albumDao = albumDb.albumDao();
+
+        if (icicle != null) {
+            long albumId = icicle.getLong("albumId", -1);
+            album = albumDao.findbyId(albumId);
+            if (album != null) {
+                return album;
+            }
+            // Oops, we had a saved instance state, but it pointed to a non-existent album
+            Log.d(TAG, "Nonexistent album with id=" + albumId);
+            // Fallthrough to default behavior.
+        }
+        // Go through the album db, and find the most recent one.
+        album = albumDao.findRecent();
+        if (album == null) {
+            // Ouch, the user has not downloaded anything. Show a generic splash screen.
+            mc.showSplash();
+        }
+
+        Log.d(TAG, "getInitial: Returning album with id=" + album.getId()
+                    + " at location = " + album.getLocalLocation());
+        return album;
     }
 
     /**
@@ -204,20 +237,20 @@ class FileController {
      * @param relativeDirectoryName name to set the directory to.
      * @return whether setting the directory was a success
      */
-    boolean setDirectory(String relativeDirectoryName) {
+    boolean showAlbum(String relativeDirectoryName) {
         File picturesDir = getPicturesDir();
 
         // Check that the given directory exists and has images
         final File galleryDir = new File(picturesDir, relativeDirectoryName);
         if (!galleryDir.isDirectory()) {
             // The directory doesn't exist, so this is invalid.
-            Log.d(TAG, "setDirectory: non-existent dir: " + galleryDir.getAbsolutePath());
+            Log.d(TAG, "showAlbum: non-existent dir: " + galleryDir.getAbsolutePath());
             return false;
         }
         final String[] fileNames = galleryDir.list();
         if (fileNames.length <= 0) {
             // Empty directory.
-            Log.d(TAG, "setDirectory: empty dir: " + galleryDir.getAbsolutePath());
+            Log.d(TAG, "showAlbum: empty dir: " + galleryDir.getAbsolutePath());
             return false;
         }
         // TODO: I should check that the files that exist here are actually image files.
@@ -232,27 +265,27 @@ class FileController {
     }
 
     /**
-     * Show this album now. I need to rename this soon.
+     * Show this album now.
      *
      * This needs to be called on a background thread, since it processes files.
      *
      * @param album the album to show
      * @return true if the album was switched.
      */
-    boolean setDirectory(Album album) {
+    boolean showAlbum(Album album) {
         MainController.checkBackgroundThread();
 
         // Check that the given directory exists and has images
         final File galleryDir = new File(album.getLocalLocation());
         if (!galleryDir.isDirectory()) {
             // The directory doesn't exist, so this is invalid.
-            Log.d(TAG, "setDirectory: non-existent dir: " + album.getLocalLocation());
+            Log.d(TAG, "showAlbum: non-existent dir: " + album.getLocalLocation());
             return false;
         }
         final String[] fileNames = galleryDir.list();
         if (fileNames.length <= 0) {
             // Empty directory.
-            Log.d(TAG, "setDirectory: empty dir: " + album.getLocalLocation());
+            Log.d(TAG, "showAlbum: empty dir: " + album.getLocalLocation());
             return false;
         }
         // TODO: I should check that the files that exist here are actually image files.

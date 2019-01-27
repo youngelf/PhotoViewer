@@ -123,16 +123,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    protected void onCreate(final Bundle icicle) {
+        super.onCreate(icicle);
 
         // Try recovering the offset that the previous view was at.
-        if (savedInstanceState != null) {
-            int offset = savedInstanceState.getInt(KEY_OFFSET, 0);
+        if (icicle != null) {
+            int offset = icicle.getInt(KEY_OFFSET, 0);
 
             // Album IDs are guaranteed to be 0 or higher, so -1 confirms that no album was being
             // shown previously.
-            long albumId = savedInstanceState.getInt(KEY_ALBUMID, ALBUMID_NO_ALBUM);
+            long albumId = icicle.getInt(KEY_ALBUMID, ALBUMID_NO_ALBUM);
         }
 
         setContentView(R.layout.activity_main);
@@ -159,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        if (!mainController.showInitial()) {
+                        if (!mainController.showInitial(icicle)) {
                             mainController.toast("Could not show the first screen");
                         }
                     }

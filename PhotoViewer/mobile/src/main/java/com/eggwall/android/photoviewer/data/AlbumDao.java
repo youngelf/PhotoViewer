@@ -23,7 +23,7 @@ public interface AlbumDao {
      * @return
      */
     @Query("SELECT * FROM album WHERE id = :id")
-    Album findbyId(int id);
+    Album findbyId(long id);
 
     /**
      * Get a list of all the IDs that match any in the list provided
@@ -47,4 +47,10 @@ public interface AlbumDao {
     @Delete
     void delete(Album album);
 
+    /**
+     * Return the most recently viewed album.
+     * @return the most recently viewed album, null if database is empty
+     */
+    @Query("SELECT * FROM album ORDER BY last_viewed_time DESC LIMIT 1")
+    Album findRecent();
 }
