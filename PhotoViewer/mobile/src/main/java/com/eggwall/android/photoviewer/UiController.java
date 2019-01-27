@@ -1,5 +1,7 @@
 package com.eggwall.android.photoviewer;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -280,9 +282,20 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         final int imageViewHeight = mImageView.getHeight();
 
         // This calculates the sampling ratio for the image.
-        opts.inSampleSize = sampling(opts, imageViewWidth, imageViewHeight, isPortrait);
+        int sampleSize = sampling(opts, imageViewWidth, imageViewHeight, isPortrait);
+        Log.d(TAG, "updateImage sample size = " + sampleSize);
+        if (sampleSize > 100 || sampleSize < 1) {
+            // Something messed up, let's go with a safe, and small sample size for now
+            sampleSize = 4;
+        }
+        opts.inSampleSize = sampleSize;
 
         opts.inJustDecodeBounds = false;
+        ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+        ActivityManager man = (ActivityManager) mMainActivity.getSystemService(Context.ACTIVITY_SERVICE);
+        man.getMemoryInfo(mi);
+        Log.d(TAG, "updateImage called with free memory(bytes) = " + mi.availMem);
+
         Bitmap sourceBitmap = BitmapFactory.decodeFile(nextFile, opts);
 
         switch (orientation) {
