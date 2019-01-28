@@ -294,6 +294,7 @@ class FileController {
 
         // Now I need to ask the main controller to advance to next.
         mc.updateImage(UiConstants.NEXT, false);
+
         return true;
     }
 
@@ -342,7 +343,7 @@ class FileController {
      * Call from the background thread.
      * @param key a key to import
      */
-    public void importKey(NetworkRoutines.KeyImportInfo key) {
+    void importKey(NetworkRoutines.KeyImportInfo key) {
         KeyDao keyDao = keyDb.keyDao();
         if (keyDao.forUuid(key.keyId) != null) {
             // Key exists, so disallow imports.
@@ -362,7 +363,7 @@ class FileController {
      * Save any state that I might need in {@link #getInitial(Bundle)}.
      * @param icicle guaranteed non-null
      */
-    public void onSaveInstanceState(Bundle icicle) {
+    void onSaveInstanceState(Bundle icicle) {
         // The next time we load it, we'll advance it to the next image, so reverse back an image.
         if (mCurrentImageIndex == 0) {
             mCurrentImageIndex = mCurrentGalleryList.size();
@@ -396,8 +397,8 @@ class FileController {
         final KeyDao keyDao;
         private final MainController mc;
         final File mPicturesDir;
-        public static String FILENAME_ERROR = "";
-        public static ParcelFileDescriptor PFD_ERROR = null;
+        static String FILENAME_ERROR = "";
+        static ParcelFileDescriptor PFD_ERROR = null;
 
         private String createAbsolutePath(String relativePath) {
             return Environment.getExternalStoragePublicDirectory(

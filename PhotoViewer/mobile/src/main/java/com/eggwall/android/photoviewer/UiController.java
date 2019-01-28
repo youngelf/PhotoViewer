@@ -1,7 +1,5 @@
 package com.eggwall.android.photoviewer;
 
-import android.app.ActivityManager;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -18,6 +16,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.AppCompatImageView;
 import android.support.v7.widget.Toolbar;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
@@ -25,6 +24,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -70,7 +70,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     /**
      * {@link Bundle} key containing whether {@link #slideShowPlaying} is true.
      */
-    public static final String SS_AUTOPLAY = "uic-slideshowplaying";
+    private static final String SS_AUTOPLAY = "uic-slideshowplaying";
 
     /** Runnable to hide the System UI. */
     private final Runnable hideSysUi = new Runnable() {
@@ -199,12 +199,16 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        // I should find a way to get the recent albums listed at the start of the list, so the
+        // viewer doesn't have to click into Gallery, and then choose one from there. Showing two
+        // or three recent ones (including the current one, highlighted) should be good.
         switch (item.getItemId()) {
             case R.id.nav_camera:
                 // Handle the camera action
                 break;
-
             case R.id.nav_gallery:
+                // Show an activity listing all the albums, or easier, just swap out the layouts
+                // and show a Linear list adjacent to the images. Simpler is better.
                 break;
 
             case R.id.nav_slideshow:
@@ -212,13 +216,16 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 break;
 
             case R.id.nav_manage:
-                // TODO: make this pop out a dialog instead.
+                // TODO: Show a Settings Activity instead.
                 break;
 
             case R.id.nav_share:
+                // Perhaps scale the image and start a share dialog.
                 break;
 
             case R.id.nav_send:
+                // Send the URL to someone else? Maybe the image can be sent?
+                // Perhaps make the image really small and fire the email intent.
                 break;
 
         }
@@ -254,8 +261,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * @param showFab True if the Floating Action Bar should be shown, false if it should be hidden.
      */
     void updateImage(String nextFile, final int offset, final boolean showFab) {
-        // Calculate how big the bitmap is
         BitmapFactory.Options opts = new BitmapFactory.Options();
+
         // Just calculate how big the file is to learn the sizes
         opts.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(nextFile, opts);
@@ -278,42 +285,76 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                         || orientation == ExifInterface.ORIENTATION_ROTATE_270;
 
         // This is how big the image is:
-        final int imageViewWidth = mImageView.getWidth();
-        final int imageViewHeight = mImageView.getHeight();
+        final int imageViewWidth;
+        final int imageViewHeight;
+
+        // Check if Display metrics are a better source
+        if (mImageView.getWidth() == 0 || mImageView.getHeight() == 0) {
+            DisplayMetrics dm = new DisplayMetrics();
+            mMainActivity.getWindowManager().getDefaultDisplay().getMetrics(dm);
+            Log.d(TAG, "DM height = " + dm.heightPixels + ", width=" + dm.widthPixels);
+            // Use those instead since they are better.
+            // To be fair, dm is NOT the image view's height. dm might be bigger. In practice,
+            // this works great because
+            // (1) We need an estimate for sampling.
+            // (2) The application is in full-screen mode, so they should be very close.
+            // (3) The sampling factor might be identical either way.
+            imageViewHeight = dm.heightPixels;
+            imageViewWidth = dm.widthPixels;
+        } else {
+            imageViewWidth = mImageView.getWidth();
+            imageViewHeight = mImageView.getHeight();
+        }
 
         // This calculates the sampling ratio for the image.
         int sampleSize = sampling(opts, imageViewWidth, imageViewHeight, isPortrait);
         Log.d(TAG, "updateImage sample size = " + sampleSize);
+
+        // The sampling code is resilient now, but I'll keep this code around just in case.
+        // It is better to have this to clamp down the sampling, and never actually call it. The
+        // alternative is that the application crashes unexpectedly, which is never acceptable.
         if (sampleSize > 100 || sampleSize < 1) {
             // Something messed up, let's go with a safe, and small sample size for now
+            // Ideally I should calculate this on the size of the bitmap and the size of the screen
+            // and the available memory. But this will already cut down memory requirement by
+            // 16x (1/4 scaling in each dimension, and two dimensions). So a user might rarely see
+            // a tiny image, and then I can put more effort into calculating this correctly.
             sampleSize = 4;
         }
+        // Sample each dimension by this number. So 4 means 1/4 of the image dimension for height
+        // and 1/4 of the image dimension for width, resulting in 1/16 the memory usage.
         opts.inSampleSize = sampleSize;
-
+        // Don't just decode the bounds, actually decode the Bitmap and return it.
         opts.inJustDecodeBounds = false;
-        ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
-        ActivityManager man = (ActivityManager) mMainActivity.getSystemService(Context.ACTIVITY_SERVICE);
-        man.getMemoryInfo(mi);
-        Log.d(TAG, "updateImage called with free memory(bytes) = " + mi.availMem);
 
+        // Create the bitmap. If this line crashes, it might not even be out of memory! Decoding
+        // a large Bitmap requires contiguous memory that is allocated by the system, and the system
+        // might run out of contiguous memory. It is almost certainly a problem with a large file
+        // being read without sampling any dimensions. So the entire Bitmap is being loaded into
+        // memory after which the imageView has to do more work to actually fit the larger image
+        // into the smaller display.
         Bitmap sourceBitmap = BitmapFactory.decodeFile(nextFile, opts);
 
+        // Depending on the image orientation, rotate the bitmap for human-viewable display.
         switch (orientation) {
             case ExifInterface.ORIENTATION_NORMAL:
                 // Fall through
             case ExifInterface.ORIENTATION_UNDEFINED:
                 break;
             case ExifInterface.ORIENTATION_ROTATE_90:
+                // Clockwise rotation by 90 degrees.
                 if (sourceBitmap != null) {
                     sourceBitmap = getRotated(sourceBitmap, 90);
                 }
                 break;
             case ExifInterface.ORIENTATION_ROTATE_270:
+                // Clockwise rotation by 270 degrees, or an anticlockwise rotation by 90 degrees.
                 if (sourceBitmap != null) {
                     sourceBitmap = getRotated(sourceBitmap, 270);
                 }
                 break;
             case ExifInterface.ORIENTATION_ROTATE_180:
+                // Clockwise (also anti-clockwise) rotation by 180 degrees.
                 if (sourceBitmap != null) {
                     sourceBitmap = getRotated(sourceBitmap, 180);
                 }
@@ -322,12 +363,16 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 Log.wtf(TAG, "Exif interface showed unsupported orientation " + orientation);
         }
 
+        // This Bitmap has been rotated now, if required. We can just display it in the imageview
+        // which will letterbox the sides or tops if required.
         final Bitmap bMap = sourceBitmap;
-        // UI changes happen here.
+
+        // UI changes happen here, so post a runnable on a view to switch to the correct thread.
         mImageView.post(new Runnable() {
             @Override
             public void run() {
                 mImageView.setImageBitmap(bMap);
+                // Letterbox and put the image bang in the center. Scale to fit, if required.
                 mImageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
 
                 if (showFab) {
@@ -376,6 +421,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         // Raw height and width of image
         final float height;
         final float width;
+
         if (rotate) {
             // Switch height and width for images that ARE rotated.
             height = options.outWidth;
@@ -400,6 +446,13 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             }
         }
 
+        if (inSampleSize < 1 || inSampleSize > 256) {
+            // Something went wrong, let's print out how we got here.
+            Log.d(TAG, "reqWidth = " + reqWidth + ", reqHeight = " + reqHeight
+                    + ", opts.height=" + options.outHeight
+                    + ", opts.width=" + options.outWidth
+                    + ", inSampleSize = " + inSampleSize);
+        }
         return inSampleSize;
     }
 
@@ -565,18 +618,27 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         toggle.syncState();
 
         // Listen to our own Drawer element selection events.
-        ((NavigationView) mMainActivity.findViewById(R.id.nav_view))
-                .setNavigationItemSelectedListener(this);
+        NavigationView navView = (NavigationView) mMainActivity.findViewById(R.id.nav_view);
+        navView.setNavigationItemSelectedListener(this);
+
+        View m = new TextView(mMainActivity);
+        ((TextView) m).setText("Viki");
+
+        View m2 = new TextView(mMainActivity);
+        ((TextView) m).setText("Neh");
+        mDrawer.addView(m2);
+
     }
 
     /**
-     * Show the next image after 10,000 milliseconds.
+     * Show the next image after a delay.
      */
     private final Runnable mShowNext = new Runnable() {
         @Override
         public void run() {
             mainController.updateImage(UiConstants.NEXT, false);
             // New image every 10 seconds.
+            // TODO: Make this duration configurable.
             mHandler.postDelayed(this, 10000);
         }
     };
