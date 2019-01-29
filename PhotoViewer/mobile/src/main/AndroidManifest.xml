@@ -14,9 +14,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <!-- TODO: Enable full backup for the settings file. -->
-
     <!--
-
      usesClearTextTraffic="true" is required on newer versions of the Android platform where
      DownloadManager refuses to download http:// traffic. Safe on older version of Android
      where the attribute is unknown and therefore ignored.
@@ -25,17 +23,16 @@
      round icons I have seen only serve to enclose a non-round asset in a silly bubble.
      This cuts on overall usability since every icon looks the same and the user has to
      spend time looking carefully at what each icon really is.
-
     -->
     <application
         android:allowBackup="true"
+        android:fullBackupContent="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:fullBackupContent="true"
-        android:usesCleartextTraffic="true"
-        android:theme="@style/AppTheme.AppBarOverlay">
+        android:theme="@style/AppTheme.AppBarOverlay"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
@@ -45,14 +42,24 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="photoviewer" android:host="eggwall"/>
-            </intent-filter>
 
+                <data
+                    android:host="eggwall"
+                    android:scheme="photoviewer" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".AlbumListActivity"
+            android:label="@string/title_activity_album_list"
+            android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
         </activity>
     </application>
 

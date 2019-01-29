@@ -6,4 +6,5 @@
 
     <string name="action_settings">Settings</string>
     <string name="empty">Empty Item</string>
+    <string name="title_activity_album_list">Album List</string>
 </resources>

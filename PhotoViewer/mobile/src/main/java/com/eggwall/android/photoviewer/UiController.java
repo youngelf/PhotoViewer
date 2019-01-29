@@ -1,5 +1,6 @@
 package com.eggwall.android.photoviewer;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -209,6 +210,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             case R.id.nav_gallery:
                 // Show an activity listing all the albums, or easier, just swap out the layouts
                 // and show a Linear list adjacent to the images. Simpler is better.
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setClass(mMainActivity, AlbumListActivity.class);
+                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                mMainActivity.startActivityForResult(i, 2);
                 break;
 
             case R.id.nav_slideshow:
@@ -618,16 +623,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         toggle.syncState();
 
         // Listen to our own Drawer element selection events.
-        NavigationView navView = (NavigationView) mMainActivity.findViewById(R.id.nav_view);
+        NavigationView navView = mMainActivity.findViewById(R.id.nav_view);
         navView.setNavigationItemSelectedListener(this);
-
-        View m = new TextView(mMainActivity);
-        ((TextView) m).setText("Viki");
-
-        View m2 = new TextView(mMainActivity);
-        ((TextView) m).setText("Neh");
-        mDrawer.addView(m2);
-
     }
 
     /**
