@@ -62,8 +62,7 @@ public class AlbumListActivity extends Activity {
         public MyViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
             TextView v = (TextView) LayoutInflater.from(viewGroup.getContext())
                     .inflate(R.layout.list_item, viewGroup, false);
-            MyViewHolder vh = new MyViewHolder(v);
-            return vh;
+            return new MyViewHolder(v);
         }
 
         @Override

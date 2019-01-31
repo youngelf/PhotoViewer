@@ -570,26 +570,38 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             @Override
             public void onClick(View view) {
                 if (mDrawer.isDrawerVisible(Gravity.START)) {
+                    // Some item was clicked, so close the drawer.
                     mDrawer.closeDrawers();
                 } else {
+                    // The drawer isn't open, so this click is a request to open the drawer.
+                    // This is the case when it is called from the FAB or the invisible button.
                     mDrawer.openDrawer(Gravity.START, true);
+                    // While we are opening the drawer, show the system UI to allow the user to
+                    // situate themselves.
                     showSystemUI();
                 }
             }
         };
 
-        final FloatingActionButton fab = mMainActivity.findViewById(R.id.fab);
+        // What follows are the fab and their corresponding invisible buttons (that are considerably
+        // larger), and the handlers for both being tied to the same action.
 
+        // A sizable rectangle along the top to toggle the drawer
+        final FloatingActionButton fab = mMainActivity.findViewById(R.id.fab);
         fab.setOnClickListener(drawerToggler);
         mMainActivity.findViewById(R.id.drawer_button_invi).setOnClickListener(drawerToggler);
         showFab(fab);
 
+        // Half the screen (the right half) for advancing in one direction, arbitrarily called
+        // next.
         setClickListener(R.id.next_button_invi, UiConstants.NEXT);
         mNextFab = (FloatingActionButton) setClickListener(R.id.next, UiConstants.NEXT);
         if (mNextFab != null) {
             showFab(mNextFab);
         }
 
+        // Half the screen (the left half) for advancing in one direction, arbitrarily called
+        // previous.
         setClickListener(R.id.prev_button_invi, UiConstants.PREV);
         mPrevFab = (FloatingActionButton) setClickListener(R.id.prev, UiConstants.PREV);
         if (mPrevFab != null) {
@@ -616,11 +628,12 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         mDetector = new GestureDetectorCompat(mMainActivity, mGestureListener);
 
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                mMainActivity, mDrawer, mToolbar, R.string.navigation_drawer_open,
-                R.string.navigation_drawer_close);
-        mDrawer.setDrawerListener(toggle);
-        toggle.syncState();
+        // setDrawerListener() is deprecated, so let's throw this out, temporarily.
+//        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+//                mMainActivity, mDrawer, mToolbar, R.string.navigation_drawer_open,
+//                R.string.navigation_drawer_close);
+//        mDrawer.setDrawerListener(toggle);
+//        toggle.syncState();
 
         // Listen to our own Drawer element selection events.
         NavigationView navView = mMainActivity.findViewById(R.id.nav_view);

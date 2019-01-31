@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!-- A Drawer-based layout. The Drawer is on the "start" (tools:openDrawer) which is on the
+     left for English-like languages and right for Hebrew-like RTL languages. -->
 <android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -8,11 +11,15 @@
     android:fitsSystemWindows="false"
     tools:openDrawer="start">
 
+    <!-- The first layout here is the 'content' of the application. -->
     <include
         layout="@layout/app_bar_main"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- The second layout here is the 'drawer' of the application.
+         That's why you see an app:menu and app:HeaderLayout, and this is nearly
+         always a NavigationView, though you could create your own Drawer.-->
     <android.support.design.widget.NavigationView
         android:id="@+id/nav_view"
         android:layout_width="wrap_content"

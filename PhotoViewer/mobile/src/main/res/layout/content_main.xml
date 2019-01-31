@@ -9,6 +9,7 @@
     tools:context="com.eggwall.android.photoviewer.MainActivity"
     tools:showIn="@layout/app_bar_main">
 
+    <!-- The location where our image is shown. This is the core of the application. -->
     <android.support.v7.widget.AppCompatImageView
         android:layout_width="0dp"
         android:layout_height="match_parent"
@@ -20,9 +21,10 @@
         app:layout_constraintBottom_toBottomOf="parent"
         tools:layout_editor_absoluteX="0dp" />
 
+    <!-- Invisible buttons that opens the drawer. This corresponds to the FAB button 'settings' -->
     <Button
         android:id="@+id/drawer_button_invi"
-        android:layout_height="wrap_content"
+        android:layout_height="120dp"
         android:layout_width="match_parent"
         android:alpha="0"
         app:layout_constraintWidth_default="spread"
@@ -31,6 +33,9 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent" />
 
+    <!-- Invisible button that goes to the next image. This takes up the entire half
+         screen! This needs to be Left/Right rather than Start/End because it corresponds
+         to the FAB with actual arrows drawn on it. -->
     <Button
         android:id="@+id/prev_button_invi"
         android:layout_height="0dp"
@@ -43,6 +48,9 @@
         app:layout_constraintRight_toLeftOf="@+id/next_button_invi"
         />
 
+    <!-- Invisible button that goes to the previous image. This takes up the entire half
+         screen! This needs to be Left/Right rather than Start/End because it corresponds
+         to the FAB with actual arrows drawn on it. -->
     <Button
         android:id="@+id/next_button_invi"
         android:layout_height="0dp"
