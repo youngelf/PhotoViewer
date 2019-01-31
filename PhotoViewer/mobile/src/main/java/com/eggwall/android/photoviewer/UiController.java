@@ -14,7 +14,6 @@ import android.support.design.widget.NavigationView;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.AppCompatImageView;
 import android.support.v7.widget.Toolbar;
 import android.util.DisplayMetrics;
@@ -25,7 +24,6 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -106,6 +104,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     private AppCompatImageView mImageView;
     private Toolbar mToolbar;
     private DrawerLayout mDrawer;
+
+    private Bitmap image;
 
     /**
      * Current system UI visibility. Stored because we get UI visibility changes in different
@@ -332,13 +332,17 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         // Don't just decode the bounds, actually decode the Bitmap and return it.
         opts.inJustDecodeBounds = false;
 
+        // Try to reuse the older Bitmap
+        opts.inBitmap = image;
+
         // Create the bitmap. If this line crashes, it might not even be out of memory! Decoding
         // a large Bitmap requires contiguous memory that is allocated by the system, and the system
         // might run out of contiguous memory. It is almost certainly a problem with a large file
         // being read without sampling any dimensions. So the entire Bitmap is being loaded into
         // memory after which the imageView has to do more work to actually fit the larger image
         // into the smaller display.
-        Bitmap sourceBitmap = BitmapFactory.decodeFile(nextFile, opts);
+        final Bitmap oldImage = image;
+        image = BitmapFactory.decodeFile(nextFile, opts);
 
         // Depending on the image orientation, rotate the bitmap for human-viewable display.
         switch (orientation) {
@@ -348,20 +352,20 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 break;
             case ExifInterface.ORIENTATION_ROTATE_90:
                 // Clockwise rotation by 90 degrees.
-                if (sourceBitmap != null) {
-                    sourceBitmap = getRotated(sourceBitmap, 90);
+                if (image != null) {
+                    image = getRotated(image, 90);
                 }
                 break;
             case ExifInterface.ORIENTATION_ROTATE_270:
                 // Clockwise rotation by 270 degrees, or an anticlockwise rotation by 90 degrees.
-                if (sourceBitmap != null) {
-                    sourceBitmap = getRotated(sourceBitmap, 270);
+                if (image != null) {
+                    image = getRotated(image, 270);
                 }
                 break;
             case ExifInterface.ORIENTATION_ROTATE_180:
                 // Clockwise (also anti-clockwise) rotation by 180 degrees.
-                if (sourceBitmap != null) {
-                    sourceBitmap = getRotated(sourceBitmap, 180);
+                if (image != null) {
+                    image = getRotated(image, 180);
                 }
                 break;
             default:
@@ -370,7 +374,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         // This Bitmap has been rotated now, if required. We can just display it in the imageview
         // which will letterbox the sides or tops if required.
-        final Bitmap bMap = sourceBitmap;
+        final Bitmap bMap = image;
 
         // UI changes happen here, so post a runnable on a view to switch to the correct thread.
         mImageView.post(new Runnable() {
@@ -379,6 +383,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 mImageView.setImageBitmap(bMap);
                 // Letterbox and put the image bang in the center. Scale to fit, if required.
                 mImageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+
+                if (oldImage != null) {
+                    // oldImage.recycle();
+                }
 
                 if (showFab) {
                     // Show the correct FAB, and hide it after a while
@@ -389,6 +397,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                         showFab(mPrevFab);
                     }
                 }
+
+                // Still hitting occasional memory allocation errors. Let's GC after we have
+                // set the bitmap, and sweep up any unclaimed memory.
+                System.gc();
             }
         });
     }
