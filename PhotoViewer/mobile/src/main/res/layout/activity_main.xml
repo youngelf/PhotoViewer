@@ -2,7 +2,8 @@
 
 <!-- A Drawer-based layout. The Drawer is on the "start" (tools:openDrawer) which is on the
      left for English-like languages and right for Hebrew-like RTL languages. -->
-<android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.v4.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/drawer_layout"

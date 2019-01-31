@@ -254,8 +254,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 fab.animate().alpha(0).setDuration(700).start();
             }
         };
-        // Hide in in three seconds from now.
-        mHandler.postDelayed(fadeAway, 3000);
+        // Hide in in six seconds from now.
+        mHandler.postDelayed(fadeAway, 6000);
     }
 
     /**
@@ -461,10 +461,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         return inSampleSize;
     }
 
-    void setBaseSystemUiVisibility(int visibility) {
-        mSysUiVisibility = visibility;
-    }
-
     /**
      * Sets the System Ui Visibility.  Only accepts two values: {@link #SYSUI_INVISIBLE} or
      *      * {@link #SYSUI_VISIBLE}
@@ -508,12 +504,14 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
         final boolean changed = newVis == mDrawer.getSystemUiVisibility();
 
-        // Unschedule any pending event to hide navigation if we ar changing the visibility,
+        // Unschedule any pending event to hide navigation if we are changing the visibility,
         // or making the UI visible.
-        if (changed || visible) {
-            Handler h = mDrawer.getHandler();
-            if (h != null) {
+        Handler h = mDrawer.getHandler();
+        if (h != null) {
+            if (changed || visible) {
                 h.removeCallbacks(hideNav);
+            } else {
+                h.postDelayed(hideNav, 5000);
             }
         }
 
