@@ -87,6 +87,24 @@ public class MainController {
         return true;
     }
 
+    public void destroy() {
+        creationCheck();
+        AndroidRoutines.checkAnyThread();
+
+        // Destroy the object permanently.
+        fileC.destroy();
+        fileC = null;
+
+        uiC.destroy();
+        uiC = null;
+
+        networkC.destroy();
+        networkC = null;
+        
+        created = false;
+    }
+
+
     /**
      * Show the initial screen, load up the gallery list and show the first one.
      * @return true if it found an album to show

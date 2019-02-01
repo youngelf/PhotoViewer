@@ -177,6 +177,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        // Ask the controllers to give up their dependencies!
+        // This does not help with the Activities being retained, and I cannot imagine why the
+        // system keeps six Activity objects around.
+        mc.destroy();
+        mc = null;
+    }
+
+    @Override
     public void onBackPressed() {
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {

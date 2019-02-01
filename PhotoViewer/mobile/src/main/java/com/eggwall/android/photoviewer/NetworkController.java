@@ -22,7 +22,7 @@ class NetworkController {
     private static final String TAG = "NetworkController";
 
     private final DownloadManager downloadManager;
-    private final Context ctx;
+    private Context ctx;
 
     /**
      * BroadcastReceiver that listens for a download request and updates when the request was done.
@@ -192,6 +192,11 @@ class NetworkController {
         this.ctx = ctx;
         downloadManager = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
     }
+
+    void destroy() {
+        ctx = null;
+    }
+
 
     /**
      * Download whatever is at this location, unzipping if required, to the default gallery

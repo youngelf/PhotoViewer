@@ -88,10 +88,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     };
 
     /** The Activity that we are controlling and that created us. */
-    private final MainActivity mMainActivity;
+    private MainActivity mMainActivity;
 
     /** The orchestrator that will show next image or previous image based on button presses. */
-    private final MainController mainController;
+    private MainController mainController;
 
     private final Handler mHandler = new Handler();
 
@@ -108,7 +108,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     private Bitmap image;
 
     /**
-     * Current system UI visibility. Stored because we get UI visibility changes in different
+     * Current system UI visibility. Stored because we get UI visibility changes in dixfferent
      * methods and we need to keep track of the prior visibility.
      */
     private int mSysUiVisibility = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
@@ -332,16 +332,12 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         // Don't just decode the bounds, actually decode the Bitmap and return it.
         opts.inJustDecodeBounds = false;
 
-        // Try to reuse the older Bitmap
-        opts.inBitmap = image;
-
         // Create the bitmap. If this line crashes, it might not even be out of memory! Decoding
         // a large Bitmap requires contiguous memory that is allocated by the system, and the system
         // might run out of contiguous memory. It is almost certainly a problem with a large file
         // being read without sampling any dimensions. So the entire Bitmap is being loaded into
         // memory after which the imageView has to do more work to actually fit the larger image
         // into the smaller display.
-        final Bitmap oldImage = image;
         image = BitmapFactory.decodeFile(nextFile, opts);
 
         // Depending on the image orientation, rotate the bitmap for human-viewable display.
@@ -384,10 +380,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 // Letterbox and put the image bang in the center. Scale to fit, if required.
                 mImageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
 
-                if (oldImage != null) {
-                    // oldImage.recycle();
-                }
-
                 if (showFab) {
                     // Show the correct FAB, and hide it after a while
                     if (offset == UiConstants.NEXT) {
@@ -400,6 +392,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
                 // Still hitting occasional memory allocation errors. Let's GC after we have
                 // set the bitmap, and sweep up any unclaimed memory.
+                System.gc();
                 System.gc();
             }
         });
@@ -556,6 +549,13 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         this.mMainActivity = mainActivity;
         this.mainController = mainController;
     }
+
+    public void destroy() {
+        mHandler.removeCallbacks(mShowNext);
+        mMainActivity = null;
+        mainController = null;
+    }
+
 
     /**
      * Handler for window focus changes.

@@ -92,7 +92,7 @@ class FileController {
      * the {@link MainController} is our single reverse-delegate and correctly delegates all other
      * methods on our behalf.
      */
-    private final MainController mc;
+    private MainController mc;
 
     /**
      * The index of the current file being viewed. Point to {@link #INVALID_INDEX} if no index
@@ -119,6 +119,13 @@ class FileController {
         this.keyDb = KeyDatabase.getDatabase(context);
         this.mc = mainController;
     }
+
+    public void destroy() {
+        albumDb = null;
+        keyDb = null;
+        mc = null;
+    }
+
 
     /**
      * Returns the location of the music directory which is [sdcard]/pictures.
