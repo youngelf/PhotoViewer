@@ -244,6 +244,24 @@ public class MainController {
         uiC.onSaveInstanceState(icicle);
     }
 
+    void databasePurge() {
+        creationCheck();
+        AndroidRoutines.checkAnyThread();
+
+        // Enter a background thread and delete the databases
+        if (AndroidRoutines.isMainThread()) {
+            // Pop into a background thread: shouldn't do file handling from the main thread.
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    fileC.databasePurge();
+                }
+            }).start();
+        } else {
+            fileC.databasePurge();
+        }
+    }
+
     static class DownloadTask extends AsyncTask<Void, Void, Void> {
         NetworkRoutines.DownloadInfo dlInfo;
         final FileController fc;

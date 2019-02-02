@@ -180,15 +180,20 @@ class NetworkRoutines {
     /**
      * Ignore this Intent because it doesn't have anything to act upon.
      */
-    public static final int TYPE_IGNORE = 0;
+    static final int TYPE_IGNORE = 0;
     /**
      * This is an Intent to download a package, perhaps encrypted.
      */
-    public static final int TYPE_DOWNLOAD = 1;
+    static final int TYPE_DOWNLOAD = 1;
     /**
      * This is an Intent to import a secret key into the database.
      */
-    public static final int TYPE_SECRET_KEY = 2;
+    static final int TYPE_SECRET_KEY = 2;
+    /**
+     * During development only, we use this type to perform intrusive control (deleting databases,
+     * emptying directories, forcing permissions, etc)
+     */
+    static final int TYPE_DEV_CONTROL = 3;
 
     /**
      * Get the type of intent this application was started with.
@@ -207,6 +212,8 @@ class NetworkRoutines {
      *          {@link #TYPE_SECRET_KEY} to import a secret key, and {@link #TYPE_IGNORE} for all
      *          other Android-related starts that we can safely ignore because we are not handling
      *          any custom URI.
+     *          During Development only, we pass {@link #TYPE_DEV_CONTROL} to perform intrusive
+     *          control. This will be disabled during production.
      */
     static int getIntentType(Intent intent) {
         if (intent == null) {
@@ -244,8 +251,65 @@ class NetworkRoutines {
         if (lastPathSegment.equalsIgnoreCase("download")) {
             return TYPE_DOWNLOAD;
         }
+        if (lastPathSegment.equalsIgnoreCase("control")) {
+            if (AndroidRoutines.development) {
+                return TYPE_DEV_CONTROL;
+            } else {
+                Log.wtf(TAG, "Production build. Intrusive control disabled.");
+            }
+        }
         return TYPE_IGNORE;
     }
+
+    /**
+     * During development only, allow intrusive control of the internal data structures and
+     * functionality.
+     *
+     * Entirely compiled out during production.
+     *
+     * @param intent the intent that the application was opened with.
+     * @param mc The orchestrating controller that can do some pretty intrusive changes.
+     */
+    static void callControl(Intent intent, MainController mc) {
+        if (intent == null || !AndroidRoutines.development) {
+            return;
+        }
+
+        String action = intent.getAction();
+
+        // Unpack the actual URL from that data string
+        Uri uri = intent.getData();
+        // That could be empty because the starting intent could have no data associated. This
+        // happens when the user launched into it from All apps, or through commandline.
+        if (uri == null || action == null) {
+            return;
+        }
+
+        String scheme = uri.getScheme();
+        Log.d(TAG, "Scheme = " + scheme);
+        String path = uri.getPath();
+        Log.d(TAG, "Path = " + path);
+
+        String secretKey = "";
+        String name = "";
+        String keyId = "";
+
+        // Confirm that this is a request to view, with the correct scheme and a non-empty path.
+        if (action.equals(Intent.ACTION_VIEW)
+                && scheme != null && scheme.equals(SCHEME)
+                && path != null) {
+
+            // All the parameters, to find what kind we are looking at.
+            Set<String> names = uri.getQueryParameterNames();
+
+            // The strings themselves are included here to avoid compiling them in production builds
+            if (names.contains("databasePurge")) {
+                // Purge the entire database
+                mc.databasePurge();
+            }
+        }
+    }
+
 
     /**
      * Key to return when there is nothing to do. This is still safer than a null object because

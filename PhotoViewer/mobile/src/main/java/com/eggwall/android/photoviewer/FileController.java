@@ -67,7 +67,7 @@ class FileController {
 
     /**
      * The actual directory that corresponds to the external SD card.  But nobody is allowed to
-     * read this, this is only for {@link #getPicturesDir()} to reference.
+     * read or write this, this is only for {@link #getPicturesDir()} to reference.
      */
     private File mPicturesDir = null;
 
@@ -217,11 +217,16 @@ class FileController {
     /**
      * Get an initial album. This could be the previous album that was specified in the bundle
      * or it could be the newest album specified earlier.
+     *
+     * Needs to be called on a background thread since it reads disk.
+     *
      * @param icicle the saved instance state from a previous run, this argument can be null.
      * @return the album that we should show. The choice here could be completely arbitrary, and
      *          could also be null if there is no album we can show.
      */
     Album getInitial(Bundle icicle) {
+        AndroidRoutines.checkBackgroundThread();
+
         Album album;
         AlbumDao albumDao = albumDb.albumDao();
 
@@ -239,6 +244,12 @@ class FileController {
             }
             // Fallthrough to default behavior.
         }
+
+        // At the same time, let's get the pictures directory, creating one if required
+        File picturesDir = getPicturesDir();
+        Log.d(TAG, "Got Pictures dir = " + picturesDir.getAbsolutePath());
+
+
         // Go through the album db, and find the most recent one.
         album = albumDao.findRecent();
         if (album == null) {
@@ -379,6 +390,15 @@ class FileController {
         }
         icicle.putInt(SS_IMAGEOFFSET, mCurrentImageIndex);
         icicle.putLong(SS_ALBUMID, mCurrentAlbumId);
+    }
+
+    void databasePurge() {
+        // This doesn't not reset some metadata (auto-increment number, for example), and the tables
+        // exist, but they are empty. So this is not a good test to reset a device completely to
+        // scratch and start from there.
+        // To do that, test on emulator where you can become root and delete database files manually
+        albumDb.clearAllTables();
+        keyDb.clearAllTables();
     }
 
     /**

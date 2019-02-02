@@ -25,23 +25,31 @@ public class AndroidRoutines {
      * @return
      */
     public static void checkMainThread() {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            // This is the main thread. Do nothing.
-            return;
+        if (AndroidRoutines.development) {
+            // Only during development, as the checks should pass fine once we enter production and
+            // we confirm that all the static calls are made through the right codepaths.
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                // This is the main thread. Do nothing.
+                return;
+            }
+            Log.w(TAG, "Error. NOT main thread!", new Error());
         }
-        Log.w(TAG, "Error. NOT main thread!", new Error());
     }
-
+    
     /**
      * Confirm the current thread is NOT the main thread or not.
      * @return
      */
     public static void checkBackgroundThread() {
-        if (Looper.myLooper() != Looper.getMainLooper()) {
-            // This is the main thread. Do nothing.
-            return;
+        if (AndroidRoutines.development) {
+            // Only during development, as the checks should pass fine once we enter production and
+            // we confirm that all the static calls are made through the right codepaths.
+            if (Looper.myLooper() != Looper.getMainLooper()) {
+                // This is the main thread. Do nothing.
+                return;
+            }
+            Log.w(TAG, "Error. NOT background thread!", new Error());
         }
-        Log.w(TAG, "Error. NOT background thread!", new Error());
     }
 
     /**

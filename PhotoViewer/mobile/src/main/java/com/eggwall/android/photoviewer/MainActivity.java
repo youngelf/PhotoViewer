@@ -2,6 +2,7 @@ package com.eggwall.android.photoviewer;
 
 import android.Manifest;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
@@ -136,7 +137,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // See if the program was asked to do something specific or was just started from Launcher
-        int actionType = NetworkRoutines.getIntentType(getIntent());
+        Intent startIntent = getIntent();
+        int actionType = NetworkRoutines.getIntentType(startIntent);
         switch (actionType) {
             case NetworkRoutines.TYPE_IGNORE:
                 // Launched from launcher or without any specific request. Try to resume showing
@@ -153,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case NetworkRoutines.TYPE_DOWNLOAD:
                 // Asked to download a package file
-                NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(getIntent());
+                NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(startIntent);
                 if (album != NetworkRoutines.EMPTY) {
                     Log.d(TAG, "I'm going to download this URL now: " + album);
                     // Now download that URL and switch over to that screen.
@@ -162,13 +164,15 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case NetworkRoutines.TYPE_SECRET_KEY:
                 // Asked to import a key for future use in decryption.
-                NetworkRoutines.KeyImportInfo key = NetworkRoutines.getKeyInfo(getIntent());
+                NetworkRoutines.KeyImportInfo key = NetworkRoutines.getKeyInfo(startIntent);
                 if (key != NetworkRoutines.EMPTY_KEY) {
                     Log.d(TAG, "I'm going to import this key now: " + key);
                     // Now download that URL and switch over to that screen.
                     mc.importKey(key);
                 }
                 break;
+            case NetworkRoutines.TYPE_DEV_CONTROL:
+                NetworkRoutines.callControl(startIntent, mc);
             default:
                 // Should never happen since getIntentType only gives known values.
                 Log.wtf(TAG, "Unknown actionType: " + actionType);
