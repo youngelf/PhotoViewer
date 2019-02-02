@@ -105,7 +105,21 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     private Toolbar mToolbar;
     private DrawerLayout mDrawer;
 
-    private Bitmap image;
+    /**
+     * The bitmap we will populate in the future with next/previous image. This is never shown on
+     * the screen, but is passed to {@link BitmapFactory} for it to allocate space.
+     *
+     * I am doing this because my images are large: 24MB Bitmap byte arrays even after sampling.
+     * Even if the RAM exists, there is a huge risk of fragmentation as the previous array is
+     * not deleted fast enough and the new one is offset. As a result, I am keeping two Bitmap
+     * objects in memory: the one that was previously used and the {@link #current} Bitmap object.
+     * When creating the {@link #current} Bitmap, I ask {@link BitmapFactory} to reuse this
+     * object, if possible, and then that is assigned to {@link #current}
+     */
+    private Bitmap future;
+
+    /** The bitmap we are currently displaying */
+    private Bitmap current;
 
     /**
      * Current system UI visibility. Stored because we get UI visibility changes in dixfferent
@@ -159,10 +173,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             return;
         }
 
-        slideShowPlaying = icicle.getBoolean(SS_AUTOPLAY, false);
+        boolean startSlideshow = icicle.getBoolean(SS_AUTOPLAY, false);
         MenuItem item = mMainActivity.findViewById(R.id.nav_slideshow);
         if (item != null) {
-            setSlideshow(slideShowPlaying, item);
+            setSlideshow(startSlideshow, item);
         }
     }
 
@@ -217,7 +231,9 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 break;
 
             case R.id.nav_slideshow:
-                slideShowPlaying = setSlideshow(!slideShowPlaying, item);
+                // Toggle the current state.
+                boolean newState = !slideShowPlaying;
+                setSlideshow(newState, item);
                 break;
 
             case R.id.nav_manage:
@@ -326,11 +342,25 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             // a tiny image, and then I can put more effort into calculating this correctly.
             sampleSize = 4;
         }
+
+        // We will use the future Bitmap as a hint to BitmapFactory, for it to reuse the byte[]
+        // object from it. Then we allocate that to current. If we don't save a reference to the
+        // current Bitmap, we will lose it. Here, we hold on to a reference, and once the future
+        // object's byte[] has been reused, this can be assigned to future.
+        // As a result of that, we hold this object for the next allocation and never see any
+        // visual artifacts like rotations or decompression artifacts.
+        Bitmap oldReference = current;
+
         // Sample each dimension by this number. So 4 means 1/4 of the image dimension for height
         // and 1/4 of the image dimension for width, resulting in 1/16 the memory usage.
         opts.inSampleSize = sampleSize;
         // Don't just decode the bounds, actually decode the Bitmap and return it.
         opts.inJustDecodeBounds = false;
+
+        // Don't allocate another byte[] reference if one exists. Use the one from the future.
+        // If the future Bitmap is a null, this does nothing so it is safe
+        // Our past is our future.
+        opts.inBitmap = future;
 
         // Create the bitmap. If this line crashes, it might not even be out of memory! Decoding
         // a large Bitmap requires contiguous memory that is allocated by the system, and the system
@@ -338,7 +368,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         // being read without sampling any dimensions. So the entire Bitmap is being loaded into
         // memory after which the imageView has to do more work to actually fit the larger image
         // into the smaller display.
-        image = BitmapFactory.decodeFile(nextFile, opts);
+        current = BitmapFactory.decodeFile(nextFile, opts);
 
         // Depending on the image orientation, rotate the bitmap for human-viewable display.
         switch (orientation) {
@@ -348,20 +378,20 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 break;
             case ExifInterface.ORIENTATION_ROTATE_90:
                 // Clockwise rotation by 90 degrees.
-                if (image != null) {
-                    image = getRotated(image, 90);
+                if (current != null) {
+                    current = getRotated(current, 90);
                 }
                 break;
             case ExifInterface.ORIENTATION_ROTATE_270:
                 // Clockwise rotation by 270 degrees, or an anticlockwise rotation by 90 degrees.
-                if (image != null) {
-                    image = getRotated(image, 270);
+                if (current != null) {
+                    current = getRotated(current, 270);
                 }
                 break;
             case ExifInterface.ORIENTATION_ROTATE_180:
                 // Clockwise (also anti-clockwise) rotation by 180 degrees.
-                if (image != null) {
-                    image = getRotated(image, 180);
+                if (current != null) {
+                    current = getRotated(current, 180);
                 }
                 break;
             default:
@@ -370,12 +400,16 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         // This Bitmap has been rotated now, if required. We can just display it in the imageview
         // which will letterbox the sides or tops if required.
-        final Bitmap bMap = image;
+        final Bitmap bMap = current;
+
+        // This byte[] array has to be reused later, so let's remember it.
+        future = oldReference;
 
         // UI changes happen here, so post a runnable on a view to switch to the correct thread.
         mImageView.post(new Runnable() {
             @Override
             public void run() {
+                // This is the bitmap to use.
                 mImageView.setImageBitmap(bMap);
                 // Letterbox and put the image bang in the center. Scale to fit, if required.
                 mImageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -389,13 +423,9 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                         showFab(mPrevFab);
                     }
                 }
-
-                // Still hitting occasional memory allocation errors. Let's GC after we have
-                // set the bitmap, and sweep up any unclaimed memory.
-                System.gc();
-                System.gc();
             }
         });
+        // End of updateImage, the runnable above runs on the main thread and nothing more here.
     }
 
     /**
@@ -509,7 +539,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         }
         final boolean changed = newVis == mDrawer.getSystemUiVisibility();
 
-        // Unschedule any pending event to hide navigation if we are changing the visibility,
+        // Un-schedule any pending event to hide navigation if we are changing the visibility,
         // or making the UI visible.
         Handler h = mDrawer.getHandler();
         if (h != null) {
@@ -604,16 +634,30 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         // Half the screen (the right half) for advancing in one direction, arbitrarily called
         // next.
-        setClickListener(R.id.next_button_invi, UiConstants.NEXT);
-        mNextFab = (FloatingActionButton) setClickListener(R.id.next, UiConstants.NEXT);
+        View.OnClickListener next_handler = new View.OnClickListener() {
+            @Override
+            public void onClick(View ignore) {
+                mainController.updateImage(UiConstants.NEXT, true);
+            }
+        };
+        // Now assign it as a handler to these elements
+        setClickListener(R.id.next_button_invi, next_handler);
+        mNextFab = (FloatingActionButton) setClickListener(R.id.next, next_handler);
         if (mNextFab != null) {
             showFab(mNextFab);
         }
 
         // Half the screen (the left half) for advancing in one direction, arbitrarily called
         // previous.
-        setClickListener(R.id.prev_button_invi, UiConstants.PREV);
-        mPrevFab = (FloatingActionButton) setClickListener(R.id.prev, UiConstants.PREV);
+        View.OnClickListener prev_handler = new View.OnClickListener() {
+            @Override
+            public void onClick(View ignore) {
+                mainController.updateImage(UiConstants.PREV, true);
+            }
+        };
+        // Now assign it as a handler to these elements
+        setClickListener(R.id.prev_button_invi, prev_handler);
+        mPrevFab = (FloatingActionButton) setClickListener(R.id.prev, prev_handler);
         if (mPrevFab != null) {
             showFab(mPrevFab);
         }
@@ -638,13 +682,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         mDetector = new GestureDetectorCompat(mMainActivity, mGestureListener);
 
-        // setDrawerListener() is deprecated, so let's throw this out, temporarily.
-//        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-//                mMainActivity, mDrawer, mToolbar, R.string.navigation_drawer_open,
-//                R.string.navigation_drawer_close);
-//        mDrawer.setDrawerListener(toggle);
-//        toggle.syncState();
-
         // Listen to our own Drawer element selection events.
         NavigationView navView = mMainActivity.findViewById(R.id.nav_view);
         navView.setNavigationItemSelectedListener(this);
@@ -666,15 +703,18 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     /**
      * Sets the slideshow status, and returns the current status.
      *
-     * This does not modify {@link #slideShowPlaying} so if the value is to be toggled, read
-     * {@link #slideShowPlaying}, invert it, and write it at the end.
+     * Only this can modify {@link #slideShowPlaying} so if the value is to be toggled, read
+     * {@link #slideShowPlaying}, invert it, and pass it in, and <b>don't</b> modify the
+     * value of {@link #slideShowPlaying}.
      *
      * @param slideShow true to start the show, false to stop
      * @param item possibly null, the MenuItem whose icon is to change to show current status
-     * @return current status: true if started, false if stopped.
      */
-    public boolean setSlideshow(boolean slideShow, MenuItem item) {
-        if (slideShow) {
+    private void setSlideshow(boolean slideShow, MenuItem item) {
+        // Only this method allowed to set slideShowPlaying.
+        slideShowPlaying = slideShow;
+
+        if (slideShowPlaying) {
             // Start it in 300 ms from now.
             mHandler.postDelayed(mShowNext, 300);
         } else {
@@ -683,31 +723,22 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         if (item == null) {
             item = mMainActivity.findViewById(R.id.nav_slideshow);
         }
+        // Non-intuitive. If something is playing, then we want to show the PAUSE button, but
+        // if something is paused, then we want to show the play button!
         item.setIcon(slideShowPlaying ? R.drawable.ic_pause : R.drawable.ic_play);
-        return slideShow;
     }
 
     /**
      * Utility method to assign the click listener to a resource ID: R.id.something.
      * @param resourceId a valid R.id.X that we can expect non-null
      *      {@link android.app.Activity#findViewById(int)}
-     * @param action either {@link UiConstants#NEXT} or {@link UiConstants#PREV} to assign.
+     * @param action a click handler to assign.
      * @return the view that corresponds to the resourceId provided here.
      */
-    private View setClickListener(int resourceId, final int action) {
-        if (action != UiConstants.NEXT && action != UiConstants.PREV) {
-            Log.w(TAG, "setClickListener called with " + action);
-            return null;
-        }
-
+    private View setClickListener(int resourceId, final View.OnClickListener action) {
         View v = mMainActivity.findViewById(resourceId);
         if (v != null) {
-            v.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    mainController.updateImage(action, true);
-                }
-            });
+            v.setOnClickListener(action);
         }
         return v;
     }
