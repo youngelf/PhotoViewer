@@ -10,21 +10,20 @@ public class AndroidRoutines {
      * Set this to true for production to avoid crashing on trivial things that we can hobble
      * along with.
      */
-    public static final boolean development = true;
+    static final boolean development = true;
 
     /**
      * Checks if the current thread is the main thread or not.
-     * @return
+     * @return true if main thread
      */
-    public static boolean isMainThread() {
+    static boolean isMainThread() {
         return (Looper.myLooper() == Looper.getMainLooper());
     }
 
     /**
      * Checks if the current thread is the main thread or not.
-     * @return
      */
-    public static void checkMainThread() {
+    static void checkMainThread() {
         if (AndroidRoutines.development) {
             // Only during development, as the checks should pass fine once we enter production and
             // we confirm that all the static calls are made through the right codepaths.
@@ -35,12 +34,11 @@ public class AndroidRoutines {
             Log.w(TAG, "Error. NOT main thread!", new Error());
         }
     }
-    
+
     /**
      * Confirm the current thread is NOT the main thread or not.
-     * @return
      */
-    public static void checkBackgroundThread() {
+    static void checkBackgroundThread() {
         if (AndroidRoutines.development) {
             // Only during development, as the checks should pass fine once we enter production and
             // we confirm that all the static calls are made through the right codepaths.
@@ -56,11 +54,12 @@ public class AndroidRoutines {
      * Confirm that any thread is great.  Confirms that neither {@link #checkBackgroundThread()}
      * nor {@link #checkMainThread()} are needed here.
      */
-    public static void checkAnyThread() {
+    static void checkAnyThread() {
         // This is more for the programmer to read than for anything to be confirmed. The existence
         // of this method confirms that the programmer is certain that any thread is good, and that
         // they didn't forget to call one of checkBackgroundThread() or checkMainThreads().
-        return;
+
+        // Do nothing.
     }
 
     /**
@@ -70,7 +69,7 @@ public class AndroidRoutines {
      * If possible, try to recover from this, and only call this method when the entire program is
      * in danger of writing the wrong thing, or that it cannot proceed at all.
      */
-    public static void crashHard(String message) {
+    static void crashHard(String message) {
         Log.wtf(TAG, message, new Error());
         throw new RuntimeException();
     }

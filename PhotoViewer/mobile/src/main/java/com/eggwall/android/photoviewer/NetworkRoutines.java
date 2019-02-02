@@ -80,39 +80,39 @@ class NetworkRoutines {
         /**
          * Where to download the image package from
          */
-        public final Uri location;
+        final Uri location;
 
         /**
          * Where to download the image package to, relative to
          * {@link android.os.Environment#DIRECTORY_PICTURES}
          */
-        public String pathOnDisk;
+        String pathOnDisk;
 
         /**
          * True if the image package is encrypted with {@link CryptoRoutines#AES_CBC_PKCS5_PADDING}
          */
-        public final boolean isEncrypted;
+        final boolean isEncrypted;
 
         /**
          * If encrypted, the initialization vector.
          */
-        public final byte[] initializationVector;
+        final byte[] initializationVector;
 
         /**
          * Final size of the entire package when it is extracted.
          */
-        public final int extractedSize;
+        final int extractedSize;
 
         /**
          * True if the image package is a zip. This is the only format that is supported.
          */
-        public final boolean isZipped;
+        final boolean isZipped;
 
         /**
          * The unique id: the UUID of the key that allows us to look it up, NOT the integer
          * id of the key in the database.
          */
-        public final String keyUid;
+        final String keyUid;
 
         /**
          * Human-readable name of the dlInfo. This can contain spaces, and be longer than 8
@@ -130,15 +130,6 @@ class NetworkRoutines {
             this.isZipped = isZipped;
             this.keyUid = keyUid;
             this.name = name;
-
-            Log.d(TAG, "Created dlInfo: location = " + location
-                    + " isEncrypted = " + isEncrypted
-                    + " initializationVector = " + (initializationVector != null
-                            ? initializationVector : "null")
-                    + " size = " + extractedSize
-                    + " isZipped = " + isZipped
-                    + " name = " + name
-            );
         }
     }
 
@@ -147,7 +138,7 @@ class NetworkRoutines {
      * anything. This is safer than passing a null object, since we can still extract information
      * from this, like the {@link java.net.URI}, for example, without a problem.
      */
-    public final static DownloadInfo EMPTY =
+    final static DownloadInfo EMPTY =
             new DownloadInfo(Uri.EMPTY, "", false, null, 0, false, "", "EMPTY");
 
     /**
@@ -158,11 +149,11 @@ class NetworkRoutines {
         /**
          * The key itself, as a Base64 encoding of the byte array.
          */
-        public final String secretKey;
+        final String secretKey;
         /**
          * Which keyId this key corresponds to.
          */
-        public final String keyId;
+        final String keyId;
         /**
          * A helpful, human-readable name for the user to call this.
          */
@@ -172,8 +163,6 @@ class NetworkRoutines {
             this.secretKey = secretKey;
             this.keyId = keyId;
             this.name = name;
-            Log.d(TAG, "Received a new key: (id=" + keyId + ", name = " + name
-                    + ", secret = " + secretKey);
         }
     }
 
@@ -290,10 +279,6 @@ class NetworkRoutines {
         String path = uri.getPath();
         Log.d(TAG, "Path = " + path);
 
-        String secretKey = "";
-        String name = "";
-        String keyId = "";
-
         // Confirm that this is a request to view, with the correct scheme and a non-empty path.
         if (action.equals(Intent.ACTION_VIEW)
                 && scheme != null && scheme.equals(SCHEME)
@@ -305,7 +290,9 @@ class NetworkRoutines {
             // The strings themselves are included here to avoid compiling them in production builds
             if (names.contains("databasePurge")) {
                 // Purge the entire database
+                Log.w(TAG, "databasePurge invoked! clearing all tables");
                 mc.databasePurge();
+                mc.toast("Database tables cleared!");
             }
         }
     }
