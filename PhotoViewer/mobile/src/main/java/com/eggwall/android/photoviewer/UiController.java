@@ -16,6 +16,7 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.AppCompatImageView;
 import android.support.v7.widget.Toolbar;
+import android.text.util.Linkify;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -24,9 +25,12 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static android.view.View.INVISIBLE;
 import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
@@ -106,6 +110,12 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     private DrawerLayout mDrawer;
 
     /**
+     * This tells you if we are showing an introduction (true) or if we are showing images
+     * (false).
+     */
+    private boolean showingIntroduction = false;
+
+    /**
      * The bitmap we will populate in the future with next/previous image. This is never shown on
      * the screen, but is passed to {@link BitmapFactory} for it to allocate space.
      *
@@ -122,7 +132,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     private Bitmap current;
 
     /**
-     * Current system UI visibility. Stored because we get UI visibility changes in dixfferent
+     * Current system UI visibility. Stored because we get UI visibility changes in different
      * methods and we need to keep track of the prior visibility.
      */
     private int mSysUiVisibility = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
@@ -177,27 +187,83 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         MenuItem item = mMainActivity.findViewById(R.id.nav_slideshow);
         if (item != null) {
             setSlideshow(startSlideshow, item);
-            showPhoto();
+            if (showingIntroduction) {
+                showPhoto();
+            }
         }
     }
 
     /**
      * Show a splash screen to introduce how to use the program.
+     *
+     * Needs to be called from the main thread since it modifies UI.
      */
     void showSplash() {
-        mMainActivity.findViewById(R.id.spash_info).setVisibility(View.VISIBLE);
+        if (showingIntroduction) {
+            // Nothing to do.
+            return;
+        }
+
+        TextView splashView = mMainActivity.findViewById(R.id.splash_info);
+        splashView.setVisibility(View.VISIBLE);
+        // Linkify the URL in there
+        Pattern linkText = Pattern.compile("my website");
+        // TODO My test URL for now, publish both the key and a sample gallery externally
+        String url = "http://192.168.11.122/test.html";
+        Linkify.TransformFilter removeTrailing = new Linkify.TransformFilter() {
+            @Override
+            public String transformUrl(Matcher match, String url) {
+                return "";
+            }
+        };
+        Linkify.addLinks(splashView, linkText, url, null, removeTrailing);
+
+        // Hide all the photo related buttons
         mMainActivity.findViewById(R.id.photoview).setVisibility(View.GONE);
+
+        // This messes with tapping on the links.
+        mMainActivity.findViewById(R.id.drawer_button_invi).setVisibility(View.GONE);
+        mMainActivity.findViewById(R.id.next_button_invi).setVisibility(View.GONE);
+        mMainActivity.findViewById(R.id.prev_button_invi).setVisibility(View.GONE);
         // TODO: Make this invisible when an album is shown.
+
+        // Remove all callbacks to the runnable
+        mHandler.removeCallbacks(mShowNext);
+
+        // Remove the fling detector so it doesn't accidentally want to show next/previous
+        mImageView.setOnTouchListener(null);
+
+
+        showingIntroduction = true;
     }
 
     /**
-     * Hide the splash screen and show photos.
+     * Hide the splash screen and show photos. This is called when we show photos finally, so
+     * no external consumer needs to call it.
+     *
+     * Needs to be called from the main thread, since it modifies UI.
      */
-    void showPhoto() {
-        mMainActivity.findViewById(R.id.spash_info).setVisibility(View.VISIBLE);
+    private void showPhoto() {
+        if (!showingIntroduction) {
+            // Nothing to do
+            return;
+        }
+        mMainActivity.findViewById(R.id.splash_info).setVisibility(View.VISIBLE);
+
+        mMainActivity.findViewById(R.id.drawer_button_invi).setVisibility(View.VISIBLE);
+        mMainActivity.findViewById(R.id.next_button_invi).setVisibility(View.VISIBLE);
+        mMainActivity.findViewById(R.id.prev_button_invi).setVisibility(View.VISIBLE);
+
         mMainActivity.findViewById(R.id.photoview).setVisibility(View.GONE);
-        // TODO: Make this invisible when an album is shown.
+
+        // Instantiate the fling listener again.
+        mImageView.setOnTouchListener(flingListener);
+
+        // Instantiate the runnable here perhaps?
+
+        showingIntroduction = false;
     }
+
     /**
      * Detects left-to-right swipe (next image) and right-to-left swipe (previous image).
      *
@@ -573,7 +639,11 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         mToolbar.setVisibility(visible ? VISIBLE : INVISIBLE);
     }
 
-    private View.OnTouchListener mDelegate = new View.OnTouchListener() {
+    /**
+     * Listens to touch events to fire next/previous on flings, and also to show the System UI
+     * when a touch event happens.
+     */
+    private View.OnTouchListener flingListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent motionEvent) {
             mDetector.onTouchEvent(motionEvent);
@@ -598,7 +668,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         this.mainController = mainController;
     }
 
-    public void destroy() {
+    /** Remove all references from this object, to allow them to be garbage collected. */
+    void destroy() {
         mHandler.removeCallbacks(mShowNext);
         mMainActivity = null;
         mainController = null;
@@ -696,7 +767,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         mHandler.postDelayed(hideBarAndToolbar, 7000);
 
         mImageView = mMainActivity.findViewById(R.id.photoview);
-        mImageView.setOnTouchListener(mDelegate);
+        mImageView.setOnTouchListener(flingListener);
 
         mDetector = new GestureDetectorCompat(mMainActivity, mGestureListener);
 

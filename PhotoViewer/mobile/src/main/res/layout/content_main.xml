@@ -25,9 +25,9 @@
     <TextView
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:id="@+id/spash_info"
+        android:id="@+id/splash_info"
         android:background="@android:color/white"
-        android:text="Visit eggwall.com/ to get some albums."
+        android:text="\n\nVisit my website to get some albums."
         android:textSize="48dp"
         android:textAlignment="center"
         android:visibility="gone"
