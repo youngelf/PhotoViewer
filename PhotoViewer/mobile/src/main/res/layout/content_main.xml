@@ -21,6 +21,22 @@
         app:layout_constraintBottom_toBottomOf="parent"
         tools:layout_editor_absoluteX="0dp" />
 
+    <!-- Informational display at start. Shown at start when we can't show anything else. -->
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:id="@+id/spash_info"
+        android:background="@android:color/white"
+        android:text="Visit eggwall.com/ to get some albums."
+        android:textSize="48dp"
+        android:textAlignment="center"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:layout_editor_absoluteX="0dp" />
+
     <!-- Invisible buttons that opens the drawer. This corresponds to the FAB button 'settings' -->
     <Button
         android:id="@+id/drawer_button_invi"

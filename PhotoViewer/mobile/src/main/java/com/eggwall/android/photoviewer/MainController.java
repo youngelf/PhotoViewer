@@ -139,7 +139,7 @@ public class MainController {
         AndroidRoutines.checkBackgroundThread();
 
         // Show a generic splash screen, does nothing right now.
-        Log.d(TAG, "showSplash called without any implementation!", new Error());
+        uiC.showSplash();
     }
 
     /**

@@ -140,7 +140,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * Call from any thread.
      * @param message any human readable message (unfortunately not localized!)
      */
-    public void MakeText(final String message) {
+    void MakeText(final String message) {
         if (AndroidRoutines.isMainThread()) {
             // Just create a toast, and be done with it.
             Toast.makeText(mMainActivity, message, Toast.LENGTH_LONG).show();
@@ -159,7 +159,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * Save any instance state that might be needed later.
      * @param icicle guaranteed non-null
      */
-    public void onSaveInstanceState(Bundle icicle) {
+    void onSaveInstanceState(Bundle icicle) {
         icicle.putBoolean(SS_AUTOPLAY, slideShowPlaying);
     }
 
@@ -167,7 +167,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * Load up any instance state saved earlier.
      * @param icicle perhaps null
      */
-    public void loadInitial(Bundle icicle) {
+    void loadInitial(Bundle icicle) {
         if (icicle == null) {
             // This method can only work if the icicle exists.
             return;
@@ -177,9 +177,27 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         MenuItem item = mMainActivity.findViewById(R.id.nav_slideshow);
         if (item != null) {
             setSlideshow(startSlideshow, item);
+            showPhoto();
         }
     }
 
+    /**
+     * Show a splash screen to introduce how to use the program.
+     */
+    void showSplash() {
+        mMainActivity.findViewById(R.id.spash_info).setVisibility(View.VISIBLE);
+        mMainActivity.findViewById(R.id.photoview).setVisibility(View.GONE);
+        // TODO: Make this invisible when an album is shown.
+    }
+
+    /**
+     * Hide the splash screen and show photos.
+     */
+    void showPhoto() {
+        mMainActivity.findViewById(R.id.spash_info).setVisibility(View.VISIBLE);
+        mMainActivity.findViewById(R.id.photoview).setVisibility(View.GONE);
+        // TODO: Make this invisible when an album is shown.
+    }
     /**
      * Detects left-to-right swipe (next image) and right-to-left swipe (previous image).
      *
