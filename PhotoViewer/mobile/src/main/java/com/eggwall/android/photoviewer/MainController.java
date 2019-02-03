@@ -15,7 +15,7 @@ import com.eggwall.android.photoviewer.data.Album;
  * This separation should help reduce complexity in individual controllers, and also allow them
  * to do threading right: either stay in the background thread or in the main thread.
  */
-public class MainController {
+class MainController {
     private static final String TAG = "MainController";
 
     /**
@@ -59,7 +59,7 @@ public class MainController {
      * public calls are valid.
      *
      * Can be called from any thread, though it is called from onCreate() usually.
-     * @return
+     * @return true if a controller was created, false otherwise (should never happen in production)
      */
     boolean create(MainActivity mainActivity) {
         // Should NOT call creationCheck(), because this method creates!
@@ -87,7 +87,7 @@ public class MainController {
         return true;
     }
 
-    public void destroy() {
+    void destroy() {
         creationCheck();
         AndroidRoutines.checkAnyThread();
 
@@ -139,7 +139,7 @@ public class MainController {
         AndroidRoutines.checkBackgroundThread();
 
         // Show a generic splash screen, does nothing right now.
-        uiC.showSplash();
+        uiC.showIntroScreen();
     }
 
     /**
@@ -154,7 +154,7 @@ public class MainController {
         AndroidRoutines.checkBackgroundThread();
 
         return fileC.showAlbum(album);
-    };
+    }
 
     /**
      * Allow window focus changes to be handled in an activity containing the UI.
@@ -200,7 +200,7 @@ public class MainController {
      * Call from any thread.
      * @param key a key to be imported into the database
      */
-    public void importKey(final NetworkRoutines.KeyImportInfo key) {
+    void importKey(final NetworkRoutines.KeyImportInfo key) {
         creationCheck();
         AndroidRoutines.checkAnyThread();
 
@@ -232,7 +232,7 @@ public class MainController {
      * be passed in {@link #showInitial(Bundle)}
      * @param icicle A bundle to save state in, possibly null
      */
-    public void onSaveInstanceState(Bundle icicle) {
+    void onSaveInstanceState(Bundle icicle) {
         creationCheck();
         AndroidRoutines.checkMainThread();
 

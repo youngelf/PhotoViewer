@@ -187,9 +187,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         MenuItem item = mMainActivity.findViewById(R.id.nav_slideshow);
         if (item != null) {
             setSlideshow(startSlideshow, item);
-            if (showingIntroduction) {
-                showPhoto();
-            }
+            dismissIntroScreen();
         }
     }
 
@@ -198,7 +196,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      *
      * Needs to be called from the main thread since it modifies UI.
      */
-    void showSplash() {
+    void showIntroScreen() {
         if (showingIntroduction) {
             // Nothing to do.
             return;
@@ -243,7 +241,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      *
      * Needs to be called from the main thread, since it modifies UI.
      */
-    private void showPhoto() {
+    private void dismissIntroScreen() {
         if (!showingIntroduction) {
             // Nothing to do
             return;
@@ -366,6 +364,9 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * @param showFab True if the Floating Action Bar should be shown, false if it should be hidden.
      */
     void updateImage(String nextFile, final int offset, final boolean showFab) {
+        // Dismiss the intro screen, if necessary
+        dismissIntroScreen();
+
         BitmapFactory.Options opts = new BitmapFactory.Options();
 
         // Just calculate how big the file is to learn the sizes
