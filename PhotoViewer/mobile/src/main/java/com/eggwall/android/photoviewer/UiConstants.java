@@ -3,14 +3,13 @@ package com.eggwall.android.photoviewer;
 /**
  * Collection of common constants that aren't specific to any one controller or functionality.
  */
-
 class UiConstants {
     /**
-     * Show the next image.
+     * Show the next image. Used as a constant for the next (right) button.
      */
     static final int NEXT = 1;
     /**
-     * Show the previous image.
+     * Show the previous image. Used as a constant for the previous (left) button
      */
     static final int PREV = -1;
 
