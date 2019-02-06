@@ -3,6 +3,16 @@ package com.eggwall.android.photoviewer;
 import android.os.Looper;
 import android.util.Log;
 
+/**
+ * A collection of Android-specific routines that help either debug, or check threading, or
+ * crash.
+ *
+ * During development, it is safest to turn all crashes on. During production, the crashes are
+ * turned off, but the logging is retained.
+ *
+ * To turn development on, set the flag {@link #development} to true. Remember to turn back to
+ * false to remove all the recoverable crashes, and to disallow secret development-only behavior.
+ */
 public class AndroidRoutines {
     public static final String TAG = "AndroidRoutines";
 
@@ -21,7 +31,8 @@ public class AndroidRoutines {
     }
 
     /**
-     * Checks if the current thread is the main thread or not.
+     * During development: crashes if the current thread is NOT the main thread.
+     * In production, logs aberrations, but doesn't crash.
      */
     static void checkMainThread() {
         if (AndroidRoutines.development) {
@@ -31,12 +42,13 @@ public class AndroidRoutines {
                 // This is the main thread. Do nothing.
                 return;
             }
-            Log.w(TAG, "Error. NOT main thread!", new Error());
         }
+        crashDuringDev("Error. NOT main thread!");
     }
 
     /**
-     * Confirm the current thread is NOT the main thread or not.
+     * During development: Crashes if the current thread is NOT the background thread.
+     * In production, logs aberrations, but doesn't crash.
      */
     static void checkBackgroundThread() {
         if (AndroidRoutines.development) {
@@ -46,8 +58,8 @@ public class AndroidRoutines {
                 // This is the main thread. Do nothing.
                 return;
             }
-            Log.w(TAG, "Error. NOT background thread!", new Error());
         }
+        crashDuringDev("Error. NOT background thread!");
     }
 
     /**
@@ -63,7 +75,7 @@ public class AndroidRoutines {
     }
 
     /**
-     * Utility method to print an error, and crash hard. This will print the message, a backtrace
+     * Print an error, and crash hard. This will print the message, a backtrace
      * and then close the entire program.
      *
      * If possible, try to recover from this, and only call this method when the entire program is
@@ -75,7 +87,7 @@ public class AndroidRoutines {
     }
 
     /**
-     * Utility method to print an error, and crash only during development.
+     * During development: Print an error, and crash.
      *
      * This will print the message, a backtrace and then close the entire program during development
      * and will log a severe warning during production but try to continue.
@@ -83,11 +95,12 @@ public class AndroidRoutines {
      * If possible, try to recover from this, and only call this method when the entire program is
      * in danger of writing the wrong thing, or that it cannot proceed at all.
      */
-    public static void crashDuringDev(String message) {
-        // Log always
+    static void crashDuringDev(String message) {
+        // Always log
         Log.wtf(TAG, message, new Error());
+
+        // Crash only during development
         if (development) {
-            // Crash during development
             throw new RuntimeException();
         }
     }

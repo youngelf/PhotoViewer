@@ -24,6 +24,7 @@ import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,6 +45,7 @@ import static android.view.View.VISIBLE;
  *** Make the Action bar play well with the System UI.  Right now they are disconnected.
  *** Hide all the elements (all fabs, and all navigation) on the same runnable.
  *** Show a progress indicator for the gallery.
+ *
  *** Read this:
  *** * https://developer.android.com/topic/performance/graphics/load-bitmap
  *** * to ensure that the bitmaps don't take too much RAM.
@@ -163,6 +165,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 }
             });
         }
+        // Also show the message in the logs
+        Log.w(TAG, message, new Error());
     }
 
     /**
@@ -378,6 +382,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             exif = new ExifInterface(nextFile);
         } catch (IOException e) {
             e.printStackTrace();
+            mainController.toast("Failed to open file: " + nextFile);
+            return;
         }
         int orientation = ExifInterface.ORIENTATION_NORMAL;
         if (exif != null) {
@@ -593,7 +599,12 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                     "Your value of " + visibility + " was ignored");
             return;
         }
-        mMainActivity.getWindow().getDecorView().setSystemUiVisibility(visibility);
+        if (mMainActivity != null) {
+            Window window = mMainActivity.getWindow();
+            if (window != null) {
+                window.getDecorView().setSystemUiVisibility(visibility);
+            }
+        }
     }
 
     /**

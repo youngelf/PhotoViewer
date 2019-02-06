@@ -1,6 +1,5 @@
 package com.eggwall.android.photoviewer;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -87,6 +86,11 @@ class MainController {
         return true;
     }
 
+    /**
+     * Destroy the object and remove all references so objects can be Garbage Collected. I started
+     * adding this code when memory allocation was an issue. Since then memory allocation has
+     * been solved but I want to keep this because this makes the onDestroy() code much cleaner.
+     */
     void destroy() {
         creationCheck();
         AndroidRoutines.checkAnyThread();
@@ -191,7 +195,48 @@ class MainController {
         AndroidRoutines.checkAnyThread();
 
         // Needs to be done in the background.
-        (new DownloadTask(album, fileC, networkC)).execute();
+        if (AndroidRoutines.isMainThread()) {
+            // Start a background thread to import the actual key.
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    downloadBackgroundThread(album);
+                }
+            }).start();
+        } else {
+            downloadBackgroundThread(album);
+
+        }
+    }
+
+    /**
+     * Actually run the download in the background thread. This downloads from the information
+     * provided here, that should have been picked up from the URL.
+     * @param album
+     */
+    private void downloadBackgroundThread(NetworkRoutines.DownloadInfo album) {
+        // Once a download is finished, we need to handle the file. The filecontroller handles
+        // that via a new unzipper object.
+        FileController.Unzipper unzipper = fileC.createUnzipper(album);
+
+        if (unzipper == null) {
+            // This should never really happen in production.
+            AndroidRoutines.crashDuringDev("Got a null unzipper");
+            return;
+        }
+
+        // Creating the unzipper changes album, so let's use the updated reference instead.
+        // In practice, the only thing we need is the albumId, but let's pick it all up, and start
+        // from scratch. Rewriting the input parameter forces all downstream code to only use the
+        // updated reference.
+        album = unzipper.dlInfo;
+        boolean status = networkC.requestURI(unzipper);
+        if (!status) {
+            Log.e(TAG, "Could not download file " + album.location);
+            return;
+        }
+        // We can't do anything else since we need to wait for the download to complete.
+        Log.d(TAG, "Download for " + album.location + " queued.");
     }
 
     /**
@@ -244,6 +289,10 @@ class MainController {
         uiC.onSaveInstanceState(icicle);
     }
 
+    /**
+     * Development only: Purge all databases. This is pretty intrusive and should never be allowed
+     * during production.
+     */
     void databasePurge() {
         creationCheck();
         AndroidRoutines.checkAnyThread();
@@ -262,59 +311,17 @@ class MainController {
         }
     }
 
-    static class DownloadTask extends AsyncTask<Void, Void, Void> {
-        NetworkRoutines.DownloadInfo dlInfo;
-        final FileController fc;
-        final NetworkController nc;
-        boolean didSucceed = false;
-
-        DownloadTask(NetworkRoutines.DownloadInfo dlInfo, FileController fc, NetworkController nc) {
-            this.dlInfo = dlInfo;
-            this.fc = fc;
-            this.nc = nc;
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            // Once a download is finished, we need to handle the file. The filecontroller handles
-            // that via a new unzipper object.
-            FileController.Unzipper unzipper = fc.createUnzipper(dlInfo);
-
-            if (unzipper == null) {
-                Log.d(TAG, "Got a null unzipper");
-                didSucceed = false;
-                return null;
-            }
-
-            // Creating the unzipper changes dlInfo, so let's use its reference instead.
-            dlInfo = unzipper.dlInfo;
-            boolean status = nc.requestURI(unzipper);
-            if (!status) {
-                Log.e(TAG, "Could not download file " + dlInfo.location);
-                didSucceed = false;
-                return null;
-            }
-            // We can't do anything else since we need to wait for the download to complete.
-            Log.d(TAG, "Download for " + dlInfo.location + " queued.");
-            didSucceed = true;
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-        }
-    }
-
     /**
-     * Update the image by providing an offset
+     * Show the next image in the direction indicated. You can show the next or the previous
+     * image, and indicate whether the floating action buttons should be displayed (when a user
+     * taps the screen) or continue to be hidden (when auto-advancing)
      *
      * Call from any thread.
      *
-     * @param offset either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
+     * @param direction either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
      * @param showFab True if the Floating Action Bar should be shown, false if it should be hidden.
      */
-    void updateImage(final int offset, final boolean showFab) {
+    void updateImage(final int direction, final boolean showFab) {
         creationCheck();
         AndroidRoutines.checkAnyThread();
 
@@ -325,32 +332,32 @@ class MainController {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    updateImageBackgroundThread(offset, showFab);
+                    updateImageBackgroundThread(direction, showFab);
                 }
             }).start();
         } else {
             // Already background thread, carry on.
-            updateImageBackgroundThread(offset, showFab);
+            updateImageBackgroundThread(direction, showFab);
         }
     }
 
     /**
      * Carry out the work of {@link #updateImage(int, boolean)}, but expect to be run from the
      * background thread. Can only be called from {@link #updateImage(int, boolean)}.
-     * @param offset either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
+     * @param direction either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
      * @param showFab True if the Floating Action Bar should be shown, false if it should be hidden.
      */
-    private void updateImageBackgroundThread(final int offset, final boolean showFab) {
-        if (offset != UiConstants.NEXT && offset != UiConstants.PREV) {
-            AndroidRoutines.crashHard("updateImage: Incorrect offset provided: " + offset);
+    private void updateImageBackgroundThread(final int direction, final boolean showFab) {
+        if (direction != UiConstants.NEXT && direction != UiConstants.PREV) {
+            AndroidRoutines.crashHard("updateImage: Incorrect direction: " + direction);
             return;
         }
 
-        String nextFile = fileC.getFile(offset);
+        String nextFile = fileC.getFile(direction);
         Log.d(TAG, "updateImage: next file is: " + nextFile);
 
         // Now switch to a foreground thread to update the UI.
-        uiC.updateImage(nextFile, offset, showFab);
+        uiC.updateImage(nextFile, direction, showFab);
     }
 
 }

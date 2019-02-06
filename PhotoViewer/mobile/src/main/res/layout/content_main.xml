@@ -27,7 +27,7 @@
         android:layout_height="match_parent"
         android:id="@+id/splash_info"
         android:background="@android:color/white"
-        android:text="\n\nVisit my website to get some albums."
+        android:text="\nVisit my website to get some albums."
         android:textSize="48dp"
         android:textAlignment="center"
         android:visibility="gone"

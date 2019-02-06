@@ -193,6 +193,7 @@ class NetworkController {
         downloadManager = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
     }
 
+    /** Remove all references to internal datastructures */
     void destroy() {
         ctx = null;
     }

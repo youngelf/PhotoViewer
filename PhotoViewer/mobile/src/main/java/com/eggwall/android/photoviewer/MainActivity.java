@@ -22,7 +22,7 @@ import android.view.WindowManager;
  * TODO: Settings activity to change slideshow duration, auto-start newest, download frequency, etc
  * TODO: pinch-zoom on an image.
  * TODO: Diagnostics in the app to find what's wrong.
- * DO:NE Remember offset in the album when rotating.
+ * DONE: Remember offset in the album when rotating.
  * DONE: Remember if autoplay was on when rotating.
  * DONE: Showing slideshow state, and allowing slideshow to stop.
  * DONE: Desktop application to create these image files.
