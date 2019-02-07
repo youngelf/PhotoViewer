@@ -1,16 +1,14 @@
 package com.eggwall.android.photoviewer;
 
-import android.os.Bundle;
 import android.app.Activity;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
-import java.util.List;
 
 /**
  * An Activity to show the list of Albums, and have the user pick out a single one.
@@ -40,29 +38,40 @@ public class AlbumListActivity extends Activity {
         MyAdapter adapter = new MyAdapter(array);
         m.setAdapter(adapter);
 
+        m.setClickable(true);
     }
 
     public static class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
         private String[] mDataset;
 
-        public static class MyViewHolder extends RecyclerView.ViewHolder {
-            public TextView mTV;
-            public MyViewHolder(TextView v) {
+        static class MyViewHolder extends RecyclerView.ViewHolder {
+            TextView mTV;
+            // The object this refers to.
+            String albumId;
+
+            MyViewHolder(TextView v, String albumId) {
                 super(v);
                 mTV = v;
+                this.albumId = albumId;
             }
         }
 
-        public MyAdapter(String[] dataset) {
+        MyAdapter(String[] dataset) {
             mDataset = dataset;
+        }
+
+        @Override
+        public void registerAdapterDataObserver(@NonNull RecyclerView.AdapterDataObserver observer) {
+            super.registerAdapterDataObserver(observer);
         }
 
         @NonNull
         @Override
         public MyViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
+            // We are giving out TextView objects, change these to more appealing View objects.
             TextView v = (TextView) LayoutInflater.from(viewGroup.getContext())
                     .inflate(R.layout.list_item, viewGroup, false);
-            return new MyViewHolder(v);
+            return new MyViewHolder(v, mDataset[i]);
         }
 
         @Override
