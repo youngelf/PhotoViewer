@@ -9,7 +9,7 @@ android {
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
@@ -21,29 +21,29 @@ android {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
+    androidTestImplementation('androidx.test.espresso:espresso-core:3.1.2-alpha01', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     testImplementation 'junit:junit:4.12'
-    implementation 'com.android.support:appcompat-v7:28.0.0'
-    implementation 'com.android.support:design:28.0.0'
-    implementation 'com.android.support:support-v4:28.0.0'
-    implementation 'com.google.android.gms:play-services-wearable:16.0.1'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
-
+    implementation 'androidx.appcompat:appcompat:1.1.0-alpha01'
+    implementation 'com.google.android.material:material:1.1.0-alpha03'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    androidTestImplementation 'com.google.android.gms:play-services-wearable:16.0.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.0-alpha3'
     // Dependencies for the Room SQLite abstraction layer.
     def room_version = "1.1.1"
-
-    implementation "android.arch.persistence.room:runtime:$room_version"
-    annotationProcessor "android.arch.persistence.room:compiler:$room_version"
+    implementation 'androidx.room:room-runtime:2.1.0-alpha04'
+    annotationProcessor 'androidx.room:room-compiler:2.1.0-alpha04'
     // use kapt for Kotlin
-
     // optional - RxJava support for Room
-    implementation "android.arch.persistence.room:rxjava2:$room_version"
-
+    implementation 'androidx.room:room-rxjava2:2.1.0-alpha04'
     // optional - Guava support for Room, including Optional and ListenableFuture
-    implementation "android.arch.persistence.room:guava:$room_version"
+    implementation 'androidx.room:room-guava:2.1.0-alpha04'
 
     // Test helpers
-    testImplementation "android.arch.persistence.room:testing:$room_version"
+    testImplementation 'androidx.room:room-testing:2.1.0-alpha04'
+}
+
+configurations.all {
+    exclude group: 'com.google.guava', module: 'listenablefuture'
 }
