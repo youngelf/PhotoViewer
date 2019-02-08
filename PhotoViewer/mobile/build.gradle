@@ -40,10 +40,16 @@ dependencies {
     // optional - Guava support for Room, including Optional and ListenableFuture
     implementation 'androidx.room:room-guava:2.1.0-alpha04'
 
+
+    implementation 'androidx.recyclerview:recyclerview-selection:1.1.0-alpha01'
+
     // Test helpers
     testImplementation 'androidx.room:room-testing:2.1.0-alpha04'
 }
 
+// Need to exclude listenable future. Otherwise something is pulling in the older
+// dependency for listenable future, which disallows the implementation from androidx,
+// which disallows all of androidx from being linked in.
 configurations.all {
     exclude group: 'com.google.guava', module: 'listenablefuture'
 }

@@ -460,6 +460,27 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         // memory after which the imageView has to do more work to actually fit the larger image
         // into the smaller display.
         current = BitmapFactory.decodeFile(nextFile, opts);
+        if (current == null) {
+            // Try to use more memory. Ignore the previous memory, and allocate a fresh new
+            // space. In practice, this should be fine, since we will possibly do two large
+            // allocations. This is required on wide or tall screens where there is a lot of
+            // letter-boxing and so some images are shown at a very high sampling rate, and others
+            // won't fit with a lower degree of sampling.
+            opts.inBitmap = null;
+            current = BitmapFactory.decodeFile(nextFile, opts);
+            if (current != null) {
+                Log.d(TAG, "Fixed on the second try: using more memory!");
+            } else {
+                // Still failed. Try increasing the scaling factor and see if that fixes
+                // the problem.
+                opts.inSampleSize *= 2;
+                current = BitmapFactory.decodeFile(nextFile, opts);
+
+                if (current != null) {
+                    Log.d(TAG, "Fixed on the third try: lower quality / sampling!");
+                }
+            }
+        }
 
         // Depending on the image orientation, rotate the bitmap for human-viewable display.
         switch (orientation) {
@@ -493,7 +514,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         // which will letterbox the sides or tops if required.
         final Bitmap bMap = current;
 
-        // This byte[] array has to be reused later, so let's remember it.
+        // This byte[] array has to be reused later, so let's remember it. If the previous
+        // bitmap array was too small, then it is forgotten, clearing future
         future = oldReference;
 
         // UI changes happen here, so post a runnable on a view to switch to the correct thread.
@@ -710,13 +732,13 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         View.OnClickListener drawerToggler = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (mDrawer.isDrawerVisible(Gravity.START)) {
+                if (mDrawer.isDrawerVisible(GravityCompat.START)) {
                     // Some item was clicked, so close the drawer.
                     mDrawer.closeDrawers();
                 } else {
                     // The drawer isn't open, so this click is a request to open the drawer.
                     // This is the case when it is called from the FAB or the invisible button.
-                    mDrawer.openDrawer(Gravity.START, true);
+                    mDrawer.openDrawer(GravityCompat.START, true);
                     // While we are opening the drawer, show the system UI to allow the user to
                     // situate themselves.
                     showSystemUI();

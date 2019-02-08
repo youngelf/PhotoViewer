@@ -3,12 +3,14 @@ package com.eggwall.android.photoviewer;
 import android.app.Activity;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import androidx.recyclerview.selection.SelectionTracker;
 
 /**
  * An Activity to show the list of Albums, and have the user pick out a single one.
@@ -17,7 +19,7 @@ import android.widget.TextView;
  * it is to be deleted soon, etc.) But for now, a LinearLayout that is both ugly and functional
  * at the same time would be sufficient.
  */
-public class AlbumListActivity extends Activity {
+public class AlbumListActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
