@@ -377,19 +377,18 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         opts.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(nextFile, opts);
 
-        ExifInterface exif = null;
+        ExifInterface exif;
         try {
             exif = new ExifInterface(nextFile);
         } catch (IOException e) {
-            e.printStackTrace();
-            mainController.toast("Failed to open file: " + nextFile);
+            String message = "Failed to open file: " + nextFile;
+            mainController.toast(message);
+            AndroidRoutines.crashDuringDev(message + e.toString());
             return;
         }
-        int orientation = ExifInterface.ORIENTATION_NORMAL;
-        if (exif != null) {
-            orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,
-                    ExifInterface.ORIENTATION_NORMAL);
-        }
+
+        int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL);
 
         // Width and height have to get swapped for rotated images.
         final boolean isPortrait =
