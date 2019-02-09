@@ -58,127 +58,132 @@ class NetworkController {
             // We are never getting called again, so let's just unregister ourselves first.
             context.unregisterReceiver(this);
 
-            // Call execute on this if anything bad happens to let the callback know we are done
-            // but that we failed to download anything.
-            FileTask errorTask = new FileTask(mUnzipper,
-                    FileController.Unzipper.FILENAME_ERROR, FileController.Unzipper.PFD_ERROR);
+            // Ideally all this should happen in a background thread because onReceive happens
+            // on the main thread.
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    // Call execute on this if anything bad happens to let the callback know we are done
+                    // but that we failed to download anything.
+                    FileTask errorTask = new FileTask(mUnzipper,
+                            FileController.Unzipper.FILENAME_ERROR, FileController.Unzipper.PFD_ERROR);
 
-            // check if the broadcast message is for our enqueued download
-            long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+                    // check if the broadcast message is for our enqueued download
+                    long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
 
-            if (referenceId != mRequestId) {
-                String message = "DownloadManager response mismatch! Expected = " + mRequestId
-                        + "Received = " + referenceId;
-                Log.e(TAG, message);
-                mc.toast(message);
-                errorTask.execute();
-                return;
-            }
-            // Query the download manager to confirm the file was correctly downloaded
-            Cursor cursor = downloadManager.query(
-                    new DownloadManager.Query().setFilterById(mRequestId));
-
-            // Ensure at least one result.
-            if (cursor == null || !cursor.moveToFirst()) {
-                String message = "DownloadManager does not know about file: " + mLocation;
-                Log.e(TAG, message);
-                mc.toast(message);
-                errorTask.execute();
-                return;
-            }
-
-            // Ensure exactly one result, and log otherwise.
-            if (cursor.getCount() != 1) {
-                String message = "DownloadManager returned two entries for file: " + mLocation;
-                Log.e(TAG, message);
-                mc.toast(message);
-            }
-
-            int statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
-            int status = cursor.getInt(statusIdx);
-            if (status != DownloadManager.STATUS_SUCCESSFUL) {
-                String message = "Failed to download file: " + mLocation;
-                Log.e(TAG, message
-                        + " Status = " + status
-                        + ". Values at https://developer.android.com/reference/android/app/"
-                        + "DownloadManager.html#STATUS_SUCCESSFUL");
-                mc.toast(message);
-
-                // Delete the entry from the album list, or at least remember the failure.
-                errorTask.execute();
-                return;
-            }
-
-            // File downloaded successfully.
-            Log.d(TAG, "Downloaded: " + mLocation);
-
-            // Get the canonical name the DownloadManager has for it
-            int uriIdx = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
-            final String dmUri = cursor.getString(uriIdx);
-
-            final Uri u = android.net.Uri.parse(dmUri);
-            final ContentResolver resolver = context.getContentResolver();
-            int retryCount = 0;
-            try {
-                long size = 0;
-                do {
-                    try {
-                        // Poll every second till the file is non-empty.
-                        //
-                        // This is needed! Maybe my CPU is too busy showing images and I need to
-                        // pause the screen, or I need to check periodically and see if the
-                        // file size is nonzero. Clearly the file is created, it is just empty.
-                        Thread.sleep(1000);
-                        retryCount++;
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    ParcelFileDescriptor pfd = resolver.openFileDescriptor(u, "r");
-                    if (pfd == null) {
-                        String message = "ParcelFileDescriptor null!";
-                        Log.e(TAG, message);
-                        mc.toast(message);
-                        errorTask.execute();
+                    if (referenceId != mRequestId) {
+                        logToastExecute(errorTask, "DownloadManager response mismatch!"
+                                + " Expected = " + mRequestId
+                                + " Received = " + referenceId);
                         return;
                     }
-                    size = pfd.getStatSize();
-                    // Modify this check to look for the expected size of bytes, not just nonzero.
-                } while (size == 0 && retryCount < 100);
-                Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri + " of size " + size);
+                    // Query the download manager to confirm the file was correctly downloaded
+                    Cursor cursor = downloadManager.query(
+                            new DownloadManager.Query().setFilterById(mRequestId));
 
-            } catch (FileNotFoundException e) {
-                String message = "File not found! " + e.getMessage();
-                Log.e(TAG, message);
-                mc.toast(message);
-            }
+                    // Ensure at least one result.
+                    if (cursor == null || !cursor.moveToFirst()) {
+                        logToastExecute(errorTask, "DownloadManager does not know about file: "
+                                + mLocation);
+                        return;
+                    }
 
-            // Retry count could have been 100, so I need to check file-size again.
-            try {
-                final ParcelFileDescriptor pfd = resolver.openFileDescriptor(u, "r");
-                if (pfd == null) {
-                    String message = "ParcelFileDescriptor null!";
-                    Log.e(TAG, message);
-                    mc.toast(message);
+                    // Ensure exactly one result, and log otherwise.
+                    if (cursor.getCount() != 1) {
+                        logToastExecute(errorTask,"DownloadManager returned two entries for file: "
+                                + mLocation);
+                        return;
+                    }
+
+                    int statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
+                    int status = cursor.getInt(statusIdx);
+                    if (status != DownloadManager.STATUS_SUCCESSFUL) {
+                        logToastExecute(errorTask, "Failed to download file: " + mLocation);
+                        Log.e(TAG, "Status = " + status
+                                + ". Values at https://developer.android.com/reference/android/app/"
+                                + "DownloadManager.html#STATUS_SUCCESSFUL");
+                        return;
+                    }
+
+                    // File downloaded successfully.
+                    Log.d(TAG, "Downloaded: " + mLocation);
+
+                    // Get the canonical name the DownloadManager has for it
+                    int uriIdx = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
+                    final String dmUri = cursor.getString(uriIdx);
+
+                    final Uri u = android.net.Uri.parse(dmUri);
+                    final ContentResolver resolver = context.getContentResolver();
+                    int retryCount = 0;
+                    try {
+                        long size = 0;
+                        do {
+                            try {
+                                // Poll every second till the file is non-empty.
+                                //
+                                // This is needed! Maybe my CPU is too busy showing images and I need to
+                                // pause the screen, or I need to check periodically and see if the
+                                // file size is nonzero. Clearly the file is created, it is just empty.
+                                Thread.sleep(1000);
+                                retryCount++;
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                                // But ignore it because we can try reading the file.
+                            }
+                            ParcelFileDescriptor pfd = resolver.openFileDescriptor(u, "r");
+                            if (pfd == null) {
+                                logToastExecute(errorTask, "ParcelFileDescriptor null!");
+                                return;
+                            }
+                            size = pfd.getStatSize();
+                            // Modify this check to look for the expected size of bytes, not just nonzero.
+                        } while (size == 0 && retryCount < 100);
+                        Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri
+                                + " of size " + size);
+
+                    } catch (FileNotFoundException e) {
+                        logToastExecute(errorTask, "File not found! " + e.getMessage());
+                        return;
+                    }
+
+                    // Retry count could have been 100, so I need to check file-size again.
+                    try {
+                        final ParcelFileDescriptor pfd = resolver.openFileDescriptor(u, "r");
+                        if (pfd == null) {
+                            logToastExecute(errorTask, "ParcelFileDescriptor null!");
+                            return;
+                        }
+                        // Print out information about the pfd
+                        long size = pfd.getStatSize();
+                        Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri
+                                + " of size " + size);
+                        if (mUnzipper != null) {
+                            // Asynchronously, handle the file.
+
+                            (new FileTask(mUnzipper, mFilename, pfd)).execute();
+                            return;
+                        }
+                    } catch (FileNotFoundException e) {
+                        logToastExecute(errorTask, "File not found! " + e.getMessage());
+                        return;
+                    }
+                    // In case we did not return correctly, for any reason, let the error handler know.
                     errorTask.execute();
-                    return;
+
                 }
-                // Print out information about the pfd
-                long size = pfd.getStatSize();
-                Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri
-                        + " of size " + size);
-                if (mUnzipper != null) {
-                    // Asynchronously, handle the file.
-                    (new FileTask(mUnzipper, mFilename, pfd)).execute();
-                    return;
-                }
-            } catch (FileNotFoundException e) {
-                String message = "File not found! " + e.getMessage();
-                Log.e(TAG, message);
-                mc.toast(message);
-                errorTask.execute();
-                return;
-            }
-            // In case we did not return correctly, for any reason, let the error handler know.
+            }).start();
+        }
+
+        /**
+         * Log an error, show a toast with a message, and execute the error task so that the
+         * album entry is cleaned up appropriately.
+         * @param errorTask a task that specifies what to do when the download fails.
+         * @param message a human-readable message to show (and log with
+         *                  {@link Log#e(String, String)} to indicate the problem
+         */
+        private void logToastExecute(FileTask errorTask, String message) {
+            Log.e(TAG, message);
+            mc.toast(message);
             errorTask.execute();
         }
     }
