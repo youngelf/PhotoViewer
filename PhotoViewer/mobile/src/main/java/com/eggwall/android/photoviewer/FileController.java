@@ -531,8 +531,9 @@ class FileController {
                     CryptoRoutines.decrypt(createAbsolutePath(filename),
                             dlInfo.initializationVector, KEY, plainPath);
                 } catch (Exception e) {
-                    Log.e(TAG, "Error while decryption", e);
-                    mc.toast("Error during decryption. Check logcat for details");
+                    String message = "Error during decryption";
+                    mc.toast(message);
+                    Log.e(TAG, message, e);
                     return;
                 }
                 toUnpack = new File(plainPath);
@@ -546,8 +547,9 @@ class FileController {
             try {
                 inputZipped = new ZipFile(toUnpack);
             } catch (IOException e) {
-                e.printStackTrace();
-                Log.e(TAG, "Could not open file: " + toUnpack.getAbsolutePath(), e);
+                String message = "Could not open file: " + toUnpack.getAbsolutePath();
+                mc.toast(message);
+                Log.e(TAG, message, e);
                 if (!toUnpack.delete()) {
                     Log.d(TAG, "Could not delete the temporary file: "
                             + toUnpack.getAbsolutePath());
@@ -561,14 +563,18 @@ class FileController {
             try {
                 result = freshGalleryDir.mkdir();
             } catch (Exception e) {
-                mc.toast("Could not create a directory " + freshGalleryDir.getAbsolutePath());
+                String message = "Could not create a directory " + freshGalleryDir.getAbsolutePath();
+                mc.toast(message);
+                Log.e(TAG, message, e);
                 return;
             }
 
             if (result) {
                 Log.d(TAG, "Created directory: " + freshGalleryDir.getAbsolutePath());
             } else {
-                mc.toast("FAILED to make directory: " + freshGalleryDir.getAbsolutePath());
+                String message = "FAILED to make directory: " + freshGalleryDir.getAbsolutePath();
+                mc.toast(message);
+                Log.e(TAG, message);
                 return;
             }
 
@@ -603,7 +609,9 @@ class FileController {
                     File toWrite = new File(freshGalleryDir, name);
                     boolean createStatus = toWrite.createNewFile();
                     if (!createStatus) {
-                        mc.toast("Could not create file " + name);
+                        String message = "Could not create file " + name;
+                        mc.toast(message);
+                        Log.e(TAG, message);
                         continue;
                     }
                     BufferedOutputStream outputStream =
@@ -616,14 +624,15 @@ class FileController {
                     outputStream.close();
                     inputStream.close();
                 } catch (IOException e) {
-                    Log.e(TAG, "Error while unzipping", e);
-                    mc.toast("Error during unzipping. Check logcat for details");
+                    String message = "Error while unzipping";
+                    mc.toast(message);
+                    Log.e(TAG, message, e);
                     return;
                 }
             }
 
             // Done with it, delete the original package file.
-            if (toUnpack != null && toUnpack.delete()) {
+            if (toUnpack.delete()) {
                 Log.d(TAG, "Plain file deleted:" + toUnpack.getAbsolutePath());
             }
 
@@ -684,8 +693,10 @@ class FileController {
 
         long available = picturesDir.getFreeSpace();
         if (available < dlInfo.extractedSize) {
-            mc.toast("Out of disk space: Expected: " + dlInfo.extractedSize
-                    + " Available: " + available);
+            String message = "Out of disk space: Expected: " + dlInfo.extractedSize
+                    + " Available: " + available;
+            mc.toast(message);
+            Log.e(TAG, message);
             return null;
         }
 
