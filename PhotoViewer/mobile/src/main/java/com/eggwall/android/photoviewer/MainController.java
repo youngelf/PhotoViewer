@@ -79,7 +79,7 @@ class MainController {
         uiC = new UiController(mainActivity, this);
         uiC.createController();
 
-        networkC = new NetworkController(mainActivity);
+        networkC = new NetworkController(mainActivity, this);
 
         // Now this object can be used.
         created = true;

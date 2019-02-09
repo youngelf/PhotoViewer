@@ -22,6 +22,8 @@ class NetworkController {
     private static final String TAG = "NetworkController";
 
     private final DownloadManager downloadManager;
+    /** The orchestrator */
+    private MainController mc;
     private Context ctx;
 
     /**
@@ -65,8 +67,10 @@ class NetworkController {
             long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
 
             if (referenceId != mRequestId) {
-                Log.e(TAG, "DownloadManager response mismatch! Expected = " + mRequestId
-                    + "Received = " + referenceId);
+                String message = "DownloadManager response mismatch! Expected = " + mRequestId
+                        + "Received = " + referenceId;
+                Log.e(TAG, message);
+                mc.toast(message);
                 errorTask.execute();
                 return;
             }
@@ -76,23 +80,29 @@ class NetworkController {
 
             // Ensure at least one result.
             if (cursor == null || !cursor.moveToFirst()) {
-                Log.e(TAG, "DownloadManager does not know about file: " + mLocation);
+                String message = "DownloadManager does not know about file: " + mLocation;
+                Log.e(TAG, message);
+                mc.toast(message);
                 errorTask.execute();
                 return;
             }
 
             // Ensure exactly one result, and log otherwise.
             if (cursor.getCount() != 1) {
-                Log.e(TAG, "DownloadManager returned two entries for file: " + mLocation);
+                String message = "DownloadManager returned two entries for file: " + mLocation;
+                Log.e(TAG, message);
+                mc.toast(message);
             }
 
             int statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
             int status = cursor.getInt(statusIdx);
             if (status != DownloadManager.STATUS_SUCCESSFUL) {
-                Log.e(TAG, "Failed to download file: " + mLocation
+                String message = "Failed to download file: " + mLocation;
+                Log.e(TAG, message
                         + " Status = " + status
                         + ". Values at https://developer.android.com/reference/android/app/"
                         + "DownloadManager.html#STATUS_SUCCESSFUL");
+                mc.toast(message);
 
                 // Delete the entry from the album list, or at least remember the failure.
                 errorTask.execute();
@@ -125,7 +135,9 @@ class NetworkController {
                     }
                     ParcelFileDescriptor pfd = resolver.openFileDescriptor(u, "r");
                     if (pfd == null) {
-                        Log.d(TAG, "ParcelFileDescriptor null!");
+                        String message = "ParcelFileDescriptor null!";
+                        Log.e(TAG, message);
+                        mc.toast(message);
                         errorTask.execute();
                         return;
                     }
@@ -133,15 +145,20 @@ class NetworkController {
                     // Modify this check to look for the expected size of bytes, not just nonzero.
                 } while (size == 0 && retryCount < 100);
                 Log.d(TAG, "opened file with ParcelFileDescriptor " + dmUri + " of size " + size);
+
             } catch (FileNotFoundException e) {
-                e.printStackTrace();
+                String message = "File not found! " + e.getMessage();
+                Log.e(TAG, message);
+                mc.toast(message);
             }
 
             // Retry count could have been 100, so I need to check file-size again.
             try {
                 final ParcelFileDescriptor pfd = resolver.openFileDescriptor(u, "r");
                 if (pfd == null) {
-                    Log.d(TAG, "ParcelFileDescriptor null!");
+                    String message = "ParcelFileDescriptor null!";
+                    Log.e(TAG, message);
+                    mc.toast(message);
                     errorTask.execute();
                     return;
                 }
@@ -155,7 +172,9 @@ class NetworkController {
                     return;
                 }
             } catch (FileNotFoundException e) {
-                e.printStackTrace();
+                String message = "File not found! " + e.getMessage();
+                Log.e(TAG, message);
+                mc.toast(message);
                 errorTask.execute();
                 return;
             }
@@ -188,14 +207,16 @@ class NetworkController {
         }
     }
 
-    NetworkController(Context ctx) {
+    NetworkController(Context ctx, MainController mainController) {
         this.ctx = ctx;
+        this.mc = mainController;
         downloadManager = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
     }
 
     /** Remove all references to internal datastructures */
     void destroy() {
         ctx = null;
+        mc = null;
     }
 
 
