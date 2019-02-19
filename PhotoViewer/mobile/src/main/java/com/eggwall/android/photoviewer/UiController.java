@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.util.Linkify;
@@ -171,7 +172,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * Save any instance state that might be needed later.
      * @param icicle guaranteed non-null
      */
-    void onSaveInstanceState(Bundle icicle) {
+    void onSaveInstanceState(@NonNull  Bundle icicle) {
         icicle.putBoolean(SS_AUTOPLAY, slideShowPlaying);
     }
 
@@ -789,6 +790,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         // Listen to our own Drawer element selection events.
         NavigationView navView = mMainActivity.findViewById(R.id.nav_view);
         navView.setNavigationItemSelectedListener(this);
+
+        // Experiment with removing the Navigation Bar and Status Bar.
     }
 
     /**

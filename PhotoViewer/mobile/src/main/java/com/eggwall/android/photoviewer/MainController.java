@@ -5,6 +5,8 @@ import android.util.Log;
 
 import com.eggwall.android.photoviewer.data.Album;
 
+import androidx.annotation.NonNull;
+
 /**
  * Class that orchestrates the entire application. It has a {@link FileController}, a
  * {@link UiController}, and a {@link NetworkController} and orchestrates their behavior.
@@ -120,7 +122,9 @@ class MainController {
         Album initial = fileC.getInitial(icicle);
         if (initial != null) {
             // I have some album to show, and one that hopefully loads.
-            showAlbum(initial);
+            if (!showAlbum(initial)) {
+                Log.d(TAG, "Could not show initial album!", new Error());
+            }
             uiC.loadInitial(icicle);
             return true;
         }
@@ -212,7 +216,7 @@ class MainController {
     /**
      * Actually run the download in the background thread. This downloads from the information
      * provided here, that should have been picked up from the URL.
-     * @param album
+     * @param album information required to download the album.
      */
     private void downloadBackgroundThread(NetworkRoutines.DownloadInfo album) {
         // Once a download is finished, we need to handle the file. The filecontroller handles
@@ -277,13 +281,10 @@ class MainController {
      * be passed in {@link #showInitial(Bundle)}
      * @param icicle A bundle to save state in, possibly null
      */
-    void onSaveInstanceState(Bundle icicle) {
+    void onSaveInstanceState(@NonNull Bundle icicle) {
         creationCheck();
         AndroidRoutines.checkMainThread();
 
-        if (icicle == null) {
-            return;
-        }
         // Currently, the File controller and the UI controller are the only two who need this.
         fileC.onSaveInstanceState(icicle);
         uiC.onSaveInstanceState(icicle);

@@ -418,7 +418,7 @@ class FileController {
      *
      * @param icicle guaranteed non-null
      */
-    void onSaveInstanceState(Bundle icicle) {
+    void onSaveInstanceState(@NonNull  Bundle icicle) {
         // The next time we load it, we'll advance it to the next image, so reverse back an image.
         if (mCurrentImageIndex == 0) {
             mCurrentImageIndex = mCurrentGalleryList.size();
@@ -523,7 +523,11 @@ class FileController {
                     if (x == null) {
                         mc.toast("Did NOT find key with uuid = " + dlInfo.keyUid);
                         // Try to clean the existing file and return.
-                        (new File(createAbsolutePath(filename))).delete();
+                        File toDelete = new File(createAbsolutePath(filename));
+                        boolean status = toDelete.delete();
+                        if (status) {
+                            Log.d(TAG, "Cleaned up the file: " + filename);
+                        }
                         return;
                     }
                     Log.d(TAG, "Found key with uuid = " + dlInfo.keyUid);
@@ -643,7 +647,9 @@ class FileController {
             albumDao.update(album);
 
             // Ideally here I should display this image, but there is no good way to do that.
-            mc.showAlbum(album);
+            if (!mc.showAlbum(album)) {
+                Log.d(TAG, "Could not show album!", new Error());
+            }
         }
 
         /** Hidden to force all creation through

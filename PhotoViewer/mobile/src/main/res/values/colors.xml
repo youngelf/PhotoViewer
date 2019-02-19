@@ -3,4 +3,6 @@
     <color name="colorPrimary">#91a1f5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#ca5100</color>
+    <!-- Transparent, alpha is zero so everything else is immaterial.-->
+    <color name="transparent">#00000000</color>
 </resources>
