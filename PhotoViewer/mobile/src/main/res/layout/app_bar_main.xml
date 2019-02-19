@@ -6,23 +6,8 @@
     android:layout_height="match_parent"
     tools:context="com.eggwall.android.photoviewer.MainActivity">
 
-    <!-- We put an application bar but then we hide it. Experiment with removing it. -->
-    <com.google.android.material.appbar.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/app_bar"
-        android:visibility="gone"
-        android:theme="@style/AppTheme.NoActionBar">
-
-        <!-- A toolbar, that is also hidden on launch. -->
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            app:popupTheme="@style/AppTheme.AppBarOverlay" />
-    </com.google.android.material.appbar.AppBarLayout>
-
+    <!-- Removed the ActionBar and the Toolbar. They weren't adding anything. It is in the git
+         history if it is to be brought back. -->
 
     <include layout="@layout/content_main" />
 

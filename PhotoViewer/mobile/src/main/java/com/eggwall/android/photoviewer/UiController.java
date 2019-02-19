@@ -19,7 +19,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 
@@ -34,12 +33,10 @@ import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
-import static android.view.View.INVISIBLE;
 import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
 import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
 import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
 import static android.view.View.SYSTEM_UI_FLAG_LOW_PROFILE;
-import static android.view.View.VISIBLE;
 
 /* While this class is fine, some cleanup can be done here.
  *** Remove the gesture listening code now that I have onscreen buttons.
@@ -670,7 +667,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         // Set the new desired visibility.
         mDrawer.setSystemUiVisibility(newVis);
-        mToolbar.setVisibility(visible ? VISIBLE : INVISIBLE);
     }
 
     /**
@@ -784,21 +780,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         if (mPrevFab != null) {
             showFab(mPrevFab);
         }
-
-        mToolbar = mMainActivity.findViewById(R.id.toolbar);
-        mMainActivity.setSupportActionBar(mToolbar);
-
-        // Hide the navigation after 7 seconds
-        final Toolbar toolbar = mToolbar;
-        final AppBarLayout bar = mMainActivity.findViewById(R.id.app_bar);
-        Runnable hideBarAndToolbar = new Runnable() {
-            @Override
-            public void run() {
-                bar.setVisibility(View.GONE);
-                toolbar.setVisibility(View.GONE);
-            }
-        };
-        mHandler.postDelayed(hideBarAndToolbar, 7000);
 
         mImageView = mMainActivity.findViewById(R.id.photoview);
         mImageView.setOnTouchListener(flingListener);
