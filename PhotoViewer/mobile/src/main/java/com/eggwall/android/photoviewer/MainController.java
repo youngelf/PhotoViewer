@@ -5,6 +5,8 @@ import android.util.Log;
 
 import com.eggwall.android.photoviewer.data.Album;
 
+import java.util.List;
+
 import androidx.annotation.NonNull;
 
 /**
@@ -119,6 +121,9 @@ class MainController {
         creationCheck();
         AndroidRoutines.checkBackgroundThread();
 
+        // Ask the UiController to show the album list if it has any
+        uiC.addAlbumList();
+
         Album initial = fileC.getInitial(icicle);
         if (initial != null) {
             // I have some album to show, and one that hopefully loads.
@@ -148,6 +153,20 @@ class MainController {
 
         // Show a generic splash screen, does nothing right now.
         uiC.showIntroScreen();
+    }
+
+    /**
+     * Returns a list of all albums that can be displayed.
+     *
+     * TODO: This needs to happen on a background thread since it reads disk, but it is happening
+     * on the main thread right now.
+     * @return a list of albums, possibly empty but never null.
+     */
+    @NonNull List<Album> getALbumList() {
+        creationCheck();
+        AndroidRoutines.checkAnyThread();
+
+        return fileC.getAlbumList();
     }
 
     /**

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -278,6 +279,17 @@ class FileController {
                     + " at location = " + album.getLocalLocation());
         }
         return album;
+    }
+
+    /**
+     * Returns a list of albums, in some sort order. These are the elements on which you
+     * can call {@link #showAlbum(Album)}
+     *
+     * Call this on a background thread because it reads a database, which could be time consuming.
+     * @return a list of albums, possibly empty but never null.
+     */
+    @NonNull List<Album> getAlbumList() {
+        return albumDb.albumDao().getAll();
     }
 
     /**

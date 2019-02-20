@@ -19,10 +19,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.eggwall.android.photoviewer.data.Album;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -190,6 +192,24 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         if (item != null) {
             setSlideshow(startSlideshow, item);
             dismissIntroScreen();
+        }
+
+    }
+
+    void addAlbumList() {
+        // Add albums to the drawer programmatically.
+        NavigationView navView = mMainActivity.findViewById(R.id.nav_view);
+        Menu x = navView.getMenu();
+        if (x != null) {
+            List<Album> l = mainController.getALbumList();
+            int itemId = 1001;
+            for (Album p : l) {
+                MenuItem m = x.add(1, itemId++, 1, p.getName());
+                // TODO: Add last used-time, and sort by recency...?
+                if (m != null) {
+                    m.setIcon(R.drawable.ic_menu_gallery);
+                }
+            }
         }
 
     }
@@ -777,14 +797,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         // Experiment with removing the Navigation Bar and Status Bar.
 
-        // Add an element to the drawer programmatically.
-        Menu x = navView.getMenu();
-        if (x != null) {
-            MenuItem m = x.add(1, 1001, 1, "Album name");
-            if (m != null) {
-                m.setIcon(R.drawable.ic_menu_gallery);
-            }
-        }
     }
 
     /**
