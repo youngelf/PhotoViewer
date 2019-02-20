@@ -9,12 +9,12 @@
         android:pivotX="6"
         android:pivotY="6"
         android:scaleX="1.5">
-        <!-- This path draws two green stroked vertical pause bars. -->
+        <!-- This path draws two black stroked vertical pause bars. -->
         <path
             android:name="pause_path"
             android:pathData="M 4,2.5 L 4,9.5 M 8,2.5 L 8,9.5"
             android:strokeWidth="2"
-            android:strokeColor="#0F9D58" />
+            android:strokeColor="#000000" />
     </group>
 
 </vector>

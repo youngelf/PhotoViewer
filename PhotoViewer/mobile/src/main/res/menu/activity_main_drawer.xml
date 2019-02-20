@@ -1,36 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <group android:checkableBehavior="single">
-        <item
-            android:id="@+id/nav_camera"
-            android:icon="@drawable/ic_menu_camera"
-            android:title="Import" />
-        <item
-            android:id="@+id/nav_gallery"
-            android:icon="@drawable/ic_menu_gallery"
-            android:title="Gallery" />
+    <!--
+       A list of all previously viewed albums. These are populated in
+       UiController.createController() right now.
+     -->
+
+    <!--
+     Album, album will be shown here. Much later in the page will the rest be shown
+    -->
+
+
+    <!-- Actions that can be taken upon this album. -->
+    <group android:checkableBehavior="single"
+        android:id="@+id/actions_menu">
+        <!--
+          Slideshow start/stop icon
+        -->
         <item
             android:id="@+id/nav_slideshow"
-            android:icon="@drawable/ic_menu_slideshow"
-            android:title="Slideshow" />
+            android:icon="@drawable/ic_play"
+            android:title="Slideshow"
+            android:menuCategory="secondary" />
+
+        <!--
+          Options menu. Lesser used.
+        -->
         <item
             android:id="@+id/nav_manage"
             android:icon="@drawable/ic_menu_manage"
-            android:title="Tools" />
+            android:title="Tools"
+            android:menuCategory="secondary" />
+        <!--
+         Show the import icon the last because most people will just click
+         on a link directly.
+        -->
+        <item
+            android:id="@+id/nav_import"
+            android:icon="@drawable/ic_menu_camera"
+            android:title="Import"
+            android:menuCategory="secondary"/>
     </group>
-
-    <item android:title="Communicate">
-        <menu>
-            <item
-                android:id="@+id/nav_share"
-                android:icon="@drawable/ic_menu_share"
-                android:title="Share" />
-            <item
-                android:id="@+id/nav_send"
-                android:icon="@drawable/ic_menu_send"
-                android:title="Send" />
-        </menu>
-    </item>
 
 </menu>

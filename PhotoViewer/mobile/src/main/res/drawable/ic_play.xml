@@ -4,13 +4,10 @@
     android:viewportWidth="12"
     android:viewportHeight="12">
 
-    <!-- Translate the canvas, then rotate, then scale, then draw the play icon. -->
-    <group android:translateX="2">
-        <!-- This path draws an orange triangular play icon. -->
-        <path
-            android:name="play_path"
-            android:fillColor="#FF9800"
-            android:pathData="M 4,2.5 L 4,9.5 L 9.5,6 Z" />
-    </group>
+    <!-- This path draws a black triangular play icon. -->
+    <path
+        android:name="play_path"
+        android:fillColor="#000000"
+        android:pathData="M 4,2.5 L 4,9.5 L 9.5,6 Z" />
 
 </vector>

@@ -1,17 +1,16 @@
 package com.eggwall.android.photoviewer;
 
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.util.Linkify;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
@@ -192,6 +191,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             setSlideshow(startSlideshow, item);
             dismissIntroScreen();
         }
+
     }
 
     /**
@@ -303,37 +303,21 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         // viewer doesn't have to click into Gallery, and then choose one from there. Showing two
         // or three recent ones (including the current one, highlighted) should be good.
         switch (item.getItemId()) {
-            case R.id.nav_camera:
-                // Handle the camera action
-                break;
-            case R.id.nav_gallery:
-                // Show an activity listing all the albums, or easier, just swap out the layouts
-                // and show a Linear list adjacent to the images. Simpler is better.
-                Intent i = new Intent(Intent.ACTION_VIEW);
-                i.setClass(mMainActivity, AlbumListActivity.class);
-                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                mMainActivity.startActivityForResult(i, 2);
-                break;
-
             case R.id.nav_slideshow:
                 // Toggle the current state.
                 boolean newState = !slideShowPlaying;
                 setSlideshow(newState, item);
                 break;
 
+            case R.id.nav_import:
+                // TODO: Import a new gallery.
+                mainController.toast("Not implemented yet.");
+                break;
+
             case R.id.nav_manage:
                 // TODO: Show a Settings Activity instead.
+                mainController.toast("Not implemented yet.");
                 break;
-
-            case R.id.nav_share:
-                // Perhaps scale the image and start a share dialog.
-                break;
-
-            case R.id.nav_send:
-                // Send the URL to someone else? Maybe the image can be sent?
-                // Perhaps make the image really small and fire the email intent.
-                break;
-
         }
         // Since the user clicked on some item, dismiss the drawer (if open)
         mDrawer.closeDrawer(GravityCompat.START);
@@ -792,6 +776,15 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         navView.setNavigationItemSelectedListener(this);
 
         // Experiment with removing the Navigation Bar and Status Bar.
+
+        // Add an element to the drawer programmatically.
+        Menu x = navView.getMenu();
+        if (x != null) {
+            MenuItem m = x.add(1, 1001, 1, "Album name");
+            if (m != null) {
+                m.setIcon(R.drawable.ic_menu_gallery);
+            }
+        }
     }
 
     /**
