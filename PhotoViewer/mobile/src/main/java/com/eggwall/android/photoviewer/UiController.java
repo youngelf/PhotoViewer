@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.text.util.Linkify;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,14 +25,12 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatImageView;
-import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -109,7 +108,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     private FloatingActionButton mNextFab;
     private FloatingActionButton mPrevFab;
     private AppCompatImageView mImageView;
-    private Toolbar mToolbar;
     private DrawerLayout mDrawer;
 
     /**
@@ -146,6 +144,9 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     private int mLastSystemUiVis = 0;
     private GestureDetectorCompat mDetector;
+
+    /** A map of menu ID elements to Album ID elements */
+    private final SparseArray<Album> menuIdToAlbum = new SparseArray<>();
 
     /**
      * Show a diagnostic message.
@@ -197,9 +198,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     }
 
-    /** A map of menu ID elements to Album ID elements */
-    HashMap<Integer, Album> menuIdToAlbum = new HashMap<>();
-
     /**
      * Adds albums to the drawer. This needs to be called from the background thread, though
      * it is being called on the foreground thread right now.
@@ -226,7 +224,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             }
             MenuItem m = drawerMenu.add(1, itemId, 1, album.getName());
             menuIdToAlbum.put(itemId, album);
-            Log.d(TAG, "Adding menu with item id =" + itemId);
+            Log.d(TAG, "Adding menu with item id = " + itemId
+                        + " and Album = " + album.toString());
 
 
             // TODO: Add last used-time, and sort by recency...?

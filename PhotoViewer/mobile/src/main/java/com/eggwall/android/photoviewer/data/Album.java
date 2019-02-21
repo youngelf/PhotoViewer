@@ -89,7 +89,8 @@ public class Album {
 
     @Override
     public String toString() {
-        return "Album: " + name + ", id: " + id + ", from " + remoteLocation;
+        return "Album: " + name + ", id: " + id + ", from " + remoteLocation
+                + " localLocation = " + localLocation + " lastViewed = " + lastViewedTimeMs;
     }
 
     public String getLocalLocation() {
