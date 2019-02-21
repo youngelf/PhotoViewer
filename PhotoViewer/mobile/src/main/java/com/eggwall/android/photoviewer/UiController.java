@@ -24,6 +24,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -196,22 +197,45 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     }
 
+    /** A map of menu ID elements to Album ID elements */
+    HashMap<Integer, Album> menuIdToAlbum = new HashMap<>();
+
+    /**
+     * Adds albums to the drawer. This needs to be called from the background thread, though
+     * it is being called on the foreground thread right now.
+     */
     void addAlbumList() {
-        // Add albums to the drawer programmatically.
+        // Get the top-level menu, or return early if we can't find one.
         NavigationView navView = mMainActivity.findViewById(R.id.nav_view);
-        Menu x = navView.getMenu();
-        if (x != null) {
-            List<Album> l = mainController.getALbumList();
-            int itemId = 1001;
-            for (Album p : l) {
-                MenuItem m = x.add(1, itemId++, 1, p.getName());
-                // TODO: Add last used-time, and sort by recency...?
-                if (m != null) {
-                    m.setIcon(R.drawable.ic_menu_gallery);
-                }
-            }
+        if (navView == null) {
+            return;
         }
 
+        Menu drawerMenu = navView.getMenu();
+        if (drawerMenu == null) {
+            return;
+        }
+
+        // Get a full list of all albums, this is in no particular sort order right now.
+        List<Album> aLbumList = mainController.getALbumList();
+        int itemId = 1001;
+        for (Album album : aLbumList) {
+            // Ensure that the item ID doesn't exist.
+            while (drawerMenu.findItem(itemId) != null) {
+                itemId++;
+            }
+            MenuItem m = drawerMenu.add(1, itemId, 1, album.getName());
+            menuIdToAlbum.put(itemId, album);
+            Log.d(TAG, "Adding menu with item id =" + itemId);
+
+
+            // TODO: Add last used-time, and sort by recency...?
+            if (m != null) {
+                m.setIcon(R.drawable.ic_menu_gallery);
+            }
+
+            itemId++;
+        }
     }
 
     /**
@@ -338,6 +362,23 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 // TODO: Show a Settings Activity instead.
                 mainController.toast("Not implemented yet.");
                 break;
+            default:
+                // This must be an album instead. Get its id, and ask the filecontroller
+                // to display this album.
+                int id = item.getItemId();
+                Log.d(TAG, "Looking for menu with item id =" + id);
+                final Album album = menuIdToAlbum.get(id);
+                if (album == null) {
+                    mainController.toast("Got null album!");
+                } else {
+                    // Run the showAlbum in the background since it processes disk.
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mainController.showAlbum(album);
+                        }
+                    }).start();
+                }
         }
         // Since the user clicked on some item, dismiss the drawer (if open)
         mDrawer.closeDrawer(GravityCompat.START);

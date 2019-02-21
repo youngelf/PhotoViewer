@@ -122,7 +122,7 @@ class MainController {
         AndroidRoutines.checkBackgroundThread();
 
         // Ask the UiController to show the album list if it has any
-        uiC.addAlbumList();
+            uiC.addAlbumList();
 
         Album initial = fileC.getInitial(icicle);
         if (initial != null) {

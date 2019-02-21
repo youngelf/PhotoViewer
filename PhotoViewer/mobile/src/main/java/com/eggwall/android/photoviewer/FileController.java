@@ -304,16 +304,22 @@ class FileController {
         AndroidRoutines.checkBackgroundThread();
 
         // Check that the given directory exists and has images
-        final File galleryDir = new File(album.getLocalLocation());
+        String location = album.getLocalLocation();
+        if (location == null) {
+            // The directory doesn't exist, so this is invalid.
+            mc.toast("showAlbum: null dir");
+            return false;
+        }
+        final File galleryDir = new File(location);
         if (!galleryDir.isDirectory()) {
             // The directory doesn't exist, so this is invalid.
-            mc.toast("showAlbum: non-existent dir: " + album.getLocalLocation());
+            mc.toast("showAlbum: non-existent dir: " + location);
             return false;
         }
         final String[] fileNames = galleryDir.list();
         if (fileNames.length <= 0) {
             // Empty directory.
-            mc.toast("showAlbum: empty dir: " + album.getLocalLocation());
+            mc.toast("showAlbum: empty dir: " + location);
             return false;
         }
         // Everything checks out, let's set our current directory here.
