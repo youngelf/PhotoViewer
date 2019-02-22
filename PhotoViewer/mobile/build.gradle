@@ -5,7 +5,7 @@ android {
     buildToolsVersion '28.0.3'
     defaultConfig {
         applicationId "com.eggwall.android.photoviewer"
-        minSdkVersion 21
+        minSdkVersion 17
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
@@ -16,6 +16,8 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+    productFlavors {
     }
 }
 
@@ -39,10 +41,7 @@ dependencies {
     implementation 'androidx.room:room-rxjava2:2.1.0-alpha04'
     // optional - Guava support for Room, including Optional and ListenableFuture
     implementation 'androidx.room:room-guava:2.1.0-alpha04'
-
-
     implementation 'androidx.recyclerview:recyclerview-selection:1.1.0-alpha01'
-
     // Test helpers
     testImplementation 'androidx.room:room-testing:2.1.0-alpha04'
 }
