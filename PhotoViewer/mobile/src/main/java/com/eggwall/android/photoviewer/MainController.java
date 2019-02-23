@@ -122,7 +122,7 @@ class MainController {
         AndroidRoutines.checkBackgroundThread();
 
         // Ask the UiController to show the album list if it has any
-            uiC.addAlbumList();
+        refreshAlbumList();
 
         Album initial = fileC.getInitial(icicle);
         if (initial != null) {
@@ -167,6 +167,28 @@ class MainController {
         AndroidRoutines.checkAnyThread();
 
         return fileC.getAlbumList();
+    }
+
+    /**
+     * Refresh the album list in the drawer and anywhere else that might need it.
+     * Can be called on any thread.
+     */
+    void refreshAlbumList() {
+        creationCheck();
+        AndroidRoutines.checkAnyThread();
+
+        // Needs to be done in the background.
+        if (AndroidRoutines.isMainThread()) {
+            // Start a background thread to import the actual key.
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    uiC.refreshAlbumList();
+                }
+            }).start();
+        } else {
+            uiC.refreshAlbumList();
+        }
     }
 
     /**

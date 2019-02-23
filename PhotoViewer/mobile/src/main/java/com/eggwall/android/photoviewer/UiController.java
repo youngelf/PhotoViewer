@@ -199,10 +199,9 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     }
 
     /**
-     * Adds albums to the drawer. This needs to be called from the background thread, though
-     * it is being called on the foreground thread right now.
+     * Adds albums to the drawer. This needs to be called from the background thread.
      */
-    void addAlbumList() {
+    void refreshAlbumList() {
         // Get the top-level menu, or return early if we can't find one.
         NavigationView navView = mMainActivity.findViewById(R.id.nav_view);
         if (navView == null) {

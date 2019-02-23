@@ -664,6 +664,9 @@ class FileController {
             // Here I should modify the database to tell the file has been correctly pulled.
             albumDao.update(album);
 
+            // And tell the orchestrating controller to refresh the album list.
+            mc.refreshAlbumList();
+
             // Ideally here I should display this image, but there is no good way to do that.
             if (!mc.showAlbum(album)) {
                 Log.d(TAG, "Could not show album!", new Error());
