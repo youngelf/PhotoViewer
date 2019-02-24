@@ -20,10 +20,10 @@ import android.view.WindowManager;
  * TODO: Delete oldest file: LRU cache.
  * TODO: Periodically poll the RSS feed for new content.
  * TODO:    GCM cloud messaging to avoid polling.
- * TODO: A UI to show all the albums (today only one is shown)
  * TODO: Settings activity to change slideshow duration, auto-start newest, download frequency, etc
  * TODO: pinch-zoom on an image.
- * TODO: Diagnostics in the app to find what's wrong.
+ * DONE: Diagnostics in the app to find what's wrong.
+ * DONE: A UI to show all the albums (today only one is shown)
  * DONE: Remember offset in the album when rotating.
  * DONE: Remember if autoplay was on when rotating.
  * DONE: Showing slideshow state, and allowing slideshow to stop.
@@ -31,6 +31,7 @@ import android.view.WindowManager;
  * DONE: Read keys and RSS-like locations from a bar code.
  * DONE: Store keys and associated information in the database.
  * DONE: Some unique ID to separate two feeds from one another.
+ * DONE: The common_google_play_services stuff needs to be removed and real wording introduced.
  */
 
 /**
@@ -58,8 +59,6 @@ public class MainActivity extends AppCompatActivity {
     /** The object that orchestrates the other controllers. */
     private MainController mc;
 
-    // TODO: The common_google_play_services stuff here is bad, and needs to be removed and real
-    // wording introduced.
 
     // Temporarily, all permissions on creation
     private void requestWriteExternalStoragePermission() {
@@ -67,8 +66,8 @@ public class MainActivity extends AppCompatActivity {
         if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
             new AlertDialog.Builder(this)
-                    .setTitle("Inform and request")
-                    .setMessage("You need to enable permissions, bla bla bla")
+                    .setTitle("Write to disk")
+                    .setMessage("This program needs to download images and write them to disk.")
                     .setPositiveButton(R.string.app_name,
                             new DialogInterface.OnClickListener() {
                         @Override
@@ -92,8 +91,8 @@ public class MainActivity extends AppCompatActivity {
         if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                 Manifest.permission.READ_EXTERNAL_STORAGE)) {
             new AlertDialog.Builder(this)
-                    .setTitle("Inform and request")
-                    .setMessage("You need to enable permissions, bla bla bla")
+                    .setTitle("Read from disk")
+                    .setMessage("This program needs to read images to display, from disk.")
                     .setPositiveButton(R.string.app_name,
                             new DialogInterface.OnClickListener() {
                         @Override

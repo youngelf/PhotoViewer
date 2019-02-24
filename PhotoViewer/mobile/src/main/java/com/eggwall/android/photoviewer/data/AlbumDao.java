@@ -13,26 +13,26 @@ public interface AlbumDao {
     // TODO: run a process to prune the database when there is no local_location for a week or so.
     /**
      * Returns all the albums in the database that have some local location.
-     * @return
+     * @return all the albums that can realistically be displayed.
      */
     @Query("SELECT * FROM album WHERE local_location not null")
     List<Album> getAll();
 
     /**
      * Find a single ID in the database.
-     * @param id
-     * @return
+     * @param id an id to look for.
+     * @return an Album which has the ID provided here
      */
     @Query("SELECT * FROM album WHERE id = :id")
     Album findbyId(long id);
 
-    /**
-     * Get a list of all the IDs that match any in the list provided
-     * @param ids
-     * @return
-     */
-    @Query("SELECT * FROM album WHERE id in (:ids)")
-    List<Album> findByIdArray(int[] ids);
+//    /**
+//     * Get a list of all the IDs that match any in the list provided
+//     * @param ids an array of IDs to look for
+//     * @return a list of albums for all the albums that exist for the ids provided in the arry.
+//     */
+//    @Query("SELECT * FROM album WHERE id in (:ids)")
+//    List<Album> findByIdArray(int[] ids);
 
     /**
      * Insert a new Album into the database

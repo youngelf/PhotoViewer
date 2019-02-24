@@ -132,13 +132,6 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     /** The bitmap we are currently displaying */
     private Bitmap current;
 
-    /**
-     * Current system UI visibility. Stored because we get UI visibility changes in different
-     * methods and we need to keep track of the prior visibility.
-     */
-    private int mSysUiVisibility = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-            SYSTEM_UI_FLAG_LAYOUT_STABLE;
-
     /** True if the slide show is currently on auto-play mode. */
     private boolean slideShowPlaying = false;
 
@@ -265,6 +258,9 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             }
         };
         mDrawer.post(refreshAlbums);
+        // If that doesn't work, then refreshAlbums.run() will do the job in the current thread,
+        // though it is a bad idea to modify the UI on a background thread since the Android
+        // UI code is not thread safe.
     }
 
     /**
@@ -626,7 +622,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
         // Create a matrix that will carry out the rotation operation.
         Matrix matrix = new Matrix();
-        matrix.postRotate(degrees, width / 2, height / 2);
+        // Divide by 2 is the same as left shift by one, since these are integers. Keeps the
+        // Android Studio UI quiet as well, because it thinks that division by 2 is somehow
+        // wrong for integers.
+        matrix.postRotate(degrees, width >> 1, height >> 1);
 
         // Return the rotated bitmap.
         return Bitmap.createBitmap(sourceBitmap, 0, 0, width, height, matrix, true);
@@ -723,7 +722,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * @param visible true if the navigation bar is to be shown.
      */
     private void setNavVisibility(boolean visible) {
-        int newVis = mSysUiVisibility;
+        // We want to hide the system UI.
+        int newVis = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | SYSTEM_UI_FLAG_LAYOUT_STABLE;
         if (!visible) {
             newVis |= SYSTEM_UI_FLAG_LOW_PROFILE | SYSTEM_UI_FLAG_FULLSCREEN;
         }
