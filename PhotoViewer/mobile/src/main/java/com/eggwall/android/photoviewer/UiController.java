@@ -1,5 +1,6 @@
 package com.eggwall.android.photoviewer;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -380,7 +381,11 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
             case R.id.nav_import:
                 // TODO: Import a new gallery.
-                mainController.toast("Not implemented yet.");
+                // Call an activity that parses the string, and fires the appropriate intent.
+                Intent importActivity = new Intent(Intent.ACTION_VIEW);
+                importActivity.setClass(mMainActivity, ImportActivity.class);
+
+                mMainActivity.startActivity(importActivity);
                 break;
 
             case R.id.nav_manage:

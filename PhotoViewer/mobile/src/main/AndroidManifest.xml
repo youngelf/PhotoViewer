@@ -13,16 +13,17 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
-    <!-- TODO: Enable full backup for the settings file. -->
     <!--
-     usesClearTextTraffic="true" is required on newer versions of the Android platform where
-     DownloadManager refuses to download http:// traffic. Safe on older version of Android
-     where the attribute is unknown and therefore ignored.
+     Attribute usesClearTextTraffic specifies that we are ok with plain http://
+     requests, rather than forcing https:// requests. The justification is that
+     the user has the option of encrypting the full zip file, and they can use https://
+     in addition to http. Many enthusiasts will host content on their own home systems
+     and their own home networks (192.168...) those will be fine going over http.
 
-     Also, round icons are stupid, so let's use the non-round icons across all systems. Most
-     round icons I have seen only serve to enclose a non-round asset in a silly bubble.
-     This cuts on overall usability since every icon looks the same and the user has to
-     spend time looking carefully at what each icon really is.
+     That directive only exists for sdk 23 or higher. For lower sdks, the default is
+     to allow http:// in addition to https://. Also, keeping a directive like this
+     is safe for older versions of the platform which ignores directives that it doesn't know
+     about.
     -->
     <application
         android:allowBackup="true"
@@ -33,14 +34,37 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme.AppBarOverlay"
         android:usesCleartextTraffic="true">
+
+        <!--
+         Importing a gallery. This doesn't need a full activity because you could use
+         the custom photoviewer:// URL scheme. But this is helpful for two reasons:
+         1. It works if the custom photoviewer:// URL scheme might not, like chromebooks
+         2. It allows us to show a helpful UI explaining what the program does.
+        -->
+        <activity
+            android:name=".ImportActivity"
+            android:label="@string/title_activity_import"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.eggwall.android.photoviewer.MainActivity" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+         The default screen, the PhotoViewer, and also the drawer, etc.
+        -->
         <activity
             android:name=".MainActivity"
-            android:label="@string/app_name"
             android:configChanges="orientation|screenSize"
+            android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter>
@@ -54,12 +78,19 @@
                     android:scheme="photoviewer" />
             </intent-filter>
         </activity>
+
+        <!--
+         Shows a list of albums. Not currently hooked in, since the drawer shows
+         recent albums. I intend to revive this as an Album management activity at
+         some point in the future, so keeping it around. Hopefully proguard strips it
+         all away.
+        -->
         <activity
             android:name=".AlbumListActivity"
             android:label="@string/title_activity_album_list"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
-            <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.VIEW" />
             </intent-filter>
         </activity>
     </application>

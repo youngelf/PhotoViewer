@@ -7,6 +7,8 @@ import android.util.Log;
 
 import java.util.Set;
 
+import androidx.annotation.NonNull;
+
 /**
  * Collection of assorted network routines that can be called in isolation.
  */
@@ -131,6 +133,17 @@ class NetworkRoutines {
             this.keyUid = keyUid;
             this.name = name;
         }
+
+        @NonNull
+        String debugString() {
+            return  "Location = " + location
+                    + " pathOnDisk = " + pathOnDisk
+                    + " isEncrypted = " + isEncrypted
+                    + " extractedSize = " + extractedSize
+                    + " isZipped = " + isZipped
+                    + " keyUUID = " + keyUid
+                    + " name = " + name;
+        }
     }
 
     /**
@@ -223,8 +236,7 @@ class NetworkRoutines {
         String path = uri.getPath();
 
         // Confirm that this is a request to view, with the correct scheme and a non-empty path.
-        if (scheme == null || !scheme.equals(SCHEME)
-                || path == null) {
+        if (scheme == null || !scheme.equals(SCHEME) || path == null) {
             return TYPE_IGNORE;
         }
 
@@ -417,7 +429,7 @@ class NetworkRoutines {
      * @param uri a URI that was passed in an Intent.
      * @return an object, possibly {@link #EMPTY} that tells what to download, from where, etc.
      */
-    private static DownloadInfo getDownloadInfo(Uri uri) {
+    static DownloadInfo getDownloadInfo(Uri uri) {
         // All the components of the DownloadInfo object.
         // Assume URI is not specified.
         Uri uriR = Uri.EMPTY;
