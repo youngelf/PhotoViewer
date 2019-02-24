@@ -208,32 +208,63 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             return;
         }
 
-        Menu drawerMenu = navView.getMenu();
+        final Menu drawerMenu = navView.getMenu();
         if (drawerMenu == null) {
             return;
         }
+        Log.d(TAG, "refreshAlbumList called.");
 
         // Get a full list of all albums, this is in no particular sort order right now.
-        List<Album> aLbumList = mainController.getALbumList();
-        int itemId = 1001;
-        for (Album album : aLbumList) {
-            // Ensure that the item ID doesn't exist.
-            while (drawerMenu.findItem(itemId) != null) {
-                itemId++;
+        final List<Album> albumList = mainController.getALbumList();
+
+        // Update the UI on the main thread. Surprisingly, that is not working, and modifying
+        // this in the background works great!? Unexpected.
+        // TODO: Make this run on the main thread, or test this on other devices to see what
+        // the impact here is.
+
+        // With more testing, this works on Android devices, and failed on the Fire device. Sounds
+        // like a bug with Fire devices that I should just ignore.
+        Runnable refreshAlbums = new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "Runnable called");
+                // If there are existing elements we added, remove them first
+                for (int i = 0, size = menuIdToAlbum.size(); i < size; i++) {
+                    int itemId = menuIdToAlbum.keyAt(i);
+                    Log.d(TAG, "Removed element with ID: " + itemId);
+                    drawerMenu.removeItem(itemId);
+                }
+                // All elements removed, so clear the map
+                menuIdToAlbum.clear();
+
+                // Now add an element for every new album we found in the list. We could get
+                // fancy and diff the two lists but it is much simpler, and cleaner to throw
+                // out the previous list and add the entire new list.
+
+                // This is arbitrary, we could start anywhere, but hopefully 1001 is a high number
+                // that it doesn't conflict with any existing menu items.
+                int itemId = 1001;
+                for (Album album : albumList) {
+                    // Ensure that the item ID doesn't exist. If it does, just increment it till
+                    // we find something that doesn't conflict. It is important for the item IDs to
+                    // be unique, as they tell us which element was clicked on.
+                    while (drawerMenu.findItem(itemId) != null) {
+                        itemId++;
+                    }
+                    MenuItem m = drawerMenu.add(1, itemId, 1, album.getName());
+                    menuIdToAlbum.put(itemId, album);
+                    Log.d(TAG, "Adding menu with item id = " + itemId
+                            + " and Album = " + album.toString());
+
+                    // TODO: Add last used-time, and sort by recency...?
+                    if (m != null) {
+                        m.setIcon(R.drawable.ic_menu_gallery);
+                    }
+                    itemId++;
+                }
             }
-            MenuItem m = drawerMenu.add(1, itemId, 1, album.getName());
-            menuIdToAlbum.put(itemId, album);
-            Log.d(TAG, "Adding menu with item id = " + itemId
-                        + " and Album = " + album.toString());
-
-
-            // TODO: Add last used-time, and sort by recency...?
-            if (m != null) {
-                m.setIcon(R.drawable.ic_menu_gallery);
-            }
-
-            itemId++;
-        }
+        };
+        mDrawer.post(refreshAlbums);
     }
 
     /**
