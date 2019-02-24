@@ -385,7 +385,11 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 Intent importActivity = new Intent(Intent.ACTION_VIEW);
                 importActivity.setClass(mMainActivity, ImportActivity.class);
 
-                mMainActivity.startActivity(importActivity);
+                // Ask the Import Activity to import a download URI.
+                mMainActivity.startActivityForResult(importActivity,
+                        ImportActivity.REQUEST_DOWNLOAD);
+
+                // The result comes in MainActivity.onActivityResult();
                 break;
 
             case R.id.nav_manage:

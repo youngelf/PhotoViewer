@@ -1,11 +1,11 @@
 package com.eggwall.android.photoviewer;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.app.Activity;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 
@@ -32,7 +32,13 @@ import android.widget.EditText;
  */
 public class ImportActivity extends Activity implements TextWatcher {
     public static final String TAG = "ImportActivity";
+
+    public static final int REQUEST_DOWNLOAD = 12;
+    /** The key that holds */
+    public static final String KEY_URI = "users_input";
+
     // TODO: Handle batch import for albums and keys.
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,15 +59,19 @@ public class ImportActivity extends Activity implements TextWatcher {
     public void importAction(View ignored) {
         EditText inputArea = findViewById(R.id.input_area);
         String input = inputArea.getText().toString();
-        Log.d(TAG, "I got: " + input);
 
         // Now call back to the Activity with this intent. This is tricky because I want
         // to remove the previous activity.
         Uri in = Uri.parse(input);
 
-        // Examine what we got.
-        NetworkRoutines.DownloadInfo d = NetworkRoutines.getDownloadInfo(in);
-        Log.d(TAG, "Download Info = " + d.debugString());
+        // Now we are done, and we should signal that the activity is done
+        Intent result = new Intent();
+        result.putExtra(KEY_URI, in);
+        setResult(RESULT_OK, result);
+
+        // And we are done. This signals to the caller that their onActivityResult should
+        // be called and the intent provided previously is given back to them.
+        finish();
     }
 
     @Override

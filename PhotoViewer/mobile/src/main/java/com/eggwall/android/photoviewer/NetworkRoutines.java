@@ -134,15 +134,20 @@ class NetworkRoutines {
             this.name = name;
         }
 
+        /** String to print out what this object represents. Debugging only. */
         @NonNull
         String debugString() {
-            return  "Location = " + location
-                    + " pathOnDisk = " + pathOnDisk
-                    + " isEncrypted = " + isEncrypted
-                    + " extractedSize = " + extractedSize
-                    + " isZipped = " + isZipped
-                    + " keyUUID = " + keyUid
-                    + " name = " + name;
+            if (AndroidRoutines.development) {
+                return "Location = " + location
+                        + " pathOnDisk = " + pathOnDisk
+                        + " isEncrypted = " + isEncrypted
+                        + " extractedSize = " + extractedSize
+                        + " isZipped = " + isZipped
+                        + " initializationVector = " + initializationVector
+                        + " keyUUID = " + keyUid
+                        + " name = " + name;
+            }
+            return "Download Info object";
         }
     }
 

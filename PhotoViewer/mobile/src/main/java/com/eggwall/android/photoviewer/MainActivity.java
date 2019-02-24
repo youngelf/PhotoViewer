@@ -3,18 +3,22 @@ package com.eggwall.android.photoviewer;
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+
+import static com.eggwall.android.photoviewer.AndroidRoutines.logDuringDev;
 
 /*
  * TODO: Delete oldest file: LRU cache.
@@ -179,6 +183,34 @@ public class MainActivity extends AppCompatActivity {
                 Log.wtf(TAG, "Unknown actionType: " + actionType);
                 break;
         }
+    }
+
+    /**
+     * Called when any sub-Activity is started with {@link #startActivityForResult(Intent, int)}
+     * and they {@link #finish()}. Their result is picked up here.
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // Read the parameters and see if we receive them.
+        AndroidRoutines.logDuringDev(TAG, "Requestcode = " + requestCode);
+
+        // Can't do anything if the return value was poor. In theory, this will always be non-null
+        // as we will provide an empty Uri if nothing else.
+        if (data == null) {
+            return;
+        }
+
+        // Get the parsed URI, it is a parcelable.
+        Uri in = data.getParcelableExtra(ImportActivity.KEY_URI);
+
+        // Examine what we got.
+        NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(in);
+        logDuringDev(TAG, "Download Request = " + album.debugString());
+
+        // And download that album.
+        mc.download(album);
     }
 
     @Override

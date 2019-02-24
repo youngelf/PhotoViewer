@@ -104,4 +104,15 @@ public class AndroidRoutines {
             throw new RuntimeException();
         }
     }
+
+    /**
+     * Print a message to {@link Log#d(String, String)} only during development.
+     * @param inTag a tag to use for the logging.
+     * @param message a message to print out.
+     */
+    static void logDuringDev(String inTag, String message) {
+        if (development) {
+            Log.d(inTag, message);
+        }
+    }
 }
