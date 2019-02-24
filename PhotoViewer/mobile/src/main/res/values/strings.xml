@@ -7,4 +7,10 @@
     <string name="action_settings">Settings</string>
     <string name="empty">Empty Item</string>
     <string name="title_activity_album_list">Album List</string>
+    <string name="aim_logo_contentdes">Aim logo</string>
+    <string name="drawer_title">Aim for life</string>
+    <string name="attribution_viki">By Viki</string>
+    <string name="slideshow">Slideshow</string>
+    <string name="tools">Tools</string>
+    <string name="import_gallery">Import</string>
 </resources>

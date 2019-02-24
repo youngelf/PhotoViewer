@@ -1,5 +1,6 @@
 package com.eggwall.android.photoviewer.data;
 
+import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
@@ -47,20 +48,24 @@ public class Album {
     @ColumnInfo(name = "download_time")
     private long downloadTimeMs;
 
+    long getLastViewedTimeMs() {
+        return lastViewedTimeMs;
+    }
+
+    long getDownloadTimeMs() {
+        return downloadTimeMs;
+    }
+
+    String getRemoteLocation() {
+        return remoteLocation;
+    }
+
     public long getId() {
         return id;
     }
 
-    public String getRemoteLocation() {
-        return remoteLocation;
-    }
-
     public String getName() {
         return name;
-    }
-
-    public long getLastViewedTimeMs() {
-        return lastViewedTimeMs;
     }
 
     public void setId(long id) {
@@ -78,15 +83,11 @@ public class Album {
     public void setLastViewedTimeMs(long lastViewedTimeMs) {
         this.lastViewedTimeMs = lastViewedTimeMs;
     }
-
-    public long getDownloadTimeMs() {
-        return downloadTimeMs;
-    }
-
     public void setDownloadTimeMs(long downloadTimeMs) {
         this.downloadTimeMs = downloadTimeMs;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "Album: " + name + ", id: " + id + ", from " + remoteLocation
