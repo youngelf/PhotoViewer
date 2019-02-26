@@ -172,34 +172,49 @@ class FileController {
         }
 
         // Navigate over to the gallery directory.
-        // TODO refactor this along with the same code in Unzipper.handleFile.
         final File galleryDir = new File(rootSdLocation, PICTURES_DIR);
-        if (!galleryDir.isDirectory()) {
-            // The directory doesn't exist, so try creating one.
-            Log.e(TAG, "Gallery directory does not exist: " + rootSdLocation);
-            boolean result;
-            try {
-                result = galleryDir.mkdir();
-            } catch (Exception e) {
-                String message = "Could not create a directory: " + galleryDir
-                        + " Message:" + e.getMessage();
+        String error = mkdir(galleryDir);
+        if (error.length() > 0) {
                 // Nothing is going to work here, so let's fail hard
-                mc.toast(message);
-                AndroidRoutines.crashHard(message);
+                mc.toast(error);
+                AndroidRoutines.crashHard(error);
                 return ROOT_UNUSED;
-            }
-            if (result) {
-                Log.d(TAG, "Created a directory at " + galleryDir.getAbsolutePath());
-            } else {
-                String message = "FAILED to make a directory at " + galleryDir.getAbsolutePath();
-                // Nothing is going to work here, so let's fail hard
-                mc.toast(message);
-                AndroidRoutines.crashHard(message);
-                return ROOT_UNUSED;
-            }
         }
+
+        // A valid, non-null, directory that exists, and we can write to. Remember this for the
+        // future.
+        mPicturesDir = galleryDir;
+        return mPicturesDir;
+    }
+
+    /**
+     * Create the directory indicated here, returning only when it exists.
+     * @param dir the directory to create
+     * @return a string message containing an error if it fails, and an empty string if it succeeds.
+     *          To check if all went well, check if the return value has zero length.
+     */
+    private static @NonNull String mkdir(File dir) {
+        if (dir.isDirectory()) {
+            return "";
+        }
+
+        // The directory doesn't exist, so try creating one.
+        boolean result;
+        try {
+            result = dir.mkdir();
+        } catch (Exception e) {
+            return "Could not create a directory " + dir.getAbsolutePath()
+                    + " Message: " + e.getMessage();
+        }
+
+        if (result) {
+            Log.d(TAG, "Created directory: " + dir.getAbsolutePath());
+        } else {
+            return "FAILED to make directory: " + dir.getAbsolutePath();
+        }
+
         // At this point, we should have a directory, but let's confirm.
-        if (!galleryDir.isDirectory()) {
+        if (!dir.isDirectory()) {
             // The directory still doesn't exist, we should fail as hard as possible.
             // It cold be that directories that are created are not flushed, and therefore not
             // available immediately. I've never seen this happen, but it could. Even so, downstream
@@ -207,16 +222,10 @@ class FileController {
             // away than failing.
             // One possibility could be to wait for a second for the flash to settle down and
             // check if the directory exists.
-            String message = "Failed to make a directory at " + galleryDir.getAbsolutePath();
-            mc.toast(message);
-            AndroidRoutines.crashHard(message);
-            return ROOT_UNUSED;
+            return "Failed to make a directory at " + dir.getAbsolutePath();
         }
 
-        // A valid, non-null, directory that exists, and we can write to. Remember this for the
-        // future.
-        mPicturesDir = galleryDir;
-        return mPicturesDir;
+        return "";
     }
 
     /**
@@ -582,22 +591,10 @@ class FileController {
 
             // Create a directory to hold it all
             final File freshGalleryDir = new File (album.getLocalLocation());
-            boolean result;
-            try {
-                result = freshGalleryDir.mkdir();
-            } catch (Exception e) {
-                String message = "Could not create a directory " + freshGalleryDir.getAbsolutePath();
-                mc.toast(message);
-                Log.e(TAG, message, e);
-                return;
-            }
-
-            if (result) {
-                Log.d(TAG, "Created directory: " + freshGalleryDir.getAbsolutePath());
-            } else {
-                String message = "FAILED to make directory: " + freshGalleryDir.getAbsolutePath();
-                mc.toast(message);
-                Log.e(TAG, message);
+            String error = mkdir(freshGalleryDir);
+            if (error.length() > 0) {
+                mc.toast(error);
+                Log.e(TAG, error);
                 return;
             }
 
