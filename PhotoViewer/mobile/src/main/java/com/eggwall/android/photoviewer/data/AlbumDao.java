@@ -26,7 +26,16 @@ public interface AlbumDao {
     @Query("SELECT * FROM album WHERE id = :id")
     Album findbyId(long id);
 
-//    /**
+    /**
+     * Find an album (if any) in the database with the specified name and remote location
+     * @param remoteLocation the URL that was downloaded for this album.
+     * @param name a human readable name
+     * @return an Album, if one is found, and null otherwise.
+     */
+    @Query("SELECT * FROM album WHERE name = :name AND remote_location = :remoteLocation")
+    Album find(String remoteLocation, String name);
+
+    //    /**
 //     * Get a list of all the IDs that match any in the list provided
 //     * @param ids an array of IDs to look for
 //     * @return a list of albums for all the albums that exist for the ids provided in the arry.

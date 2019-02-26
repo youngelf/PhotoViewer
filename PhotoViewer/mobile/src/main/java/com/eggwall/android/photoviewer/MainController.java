@@ -197,7 +197,7 @@ class MainController {
      * @param album An album to be displayed
      * @return true if the album was shown, false otherwise.
      */
-    boolean showAlbum(Album album) {
+    boolean showAlbum(@NonNull Album album) {
         creationCheck();
         AndroidRoutines.checkBackgroundThread();
 
@@ -259,15 +259,17 @@ class MainController {
      * @param album information required to download the album.
      */
     private void downloadBackgroundThread(NetworkRoutines.DownloadInfo album) {
-        // Once a download is finished, we need to handle the file. The filecontroller handles
-        // that via a new unzipper object.
-        FileController.Unzipper unzipper = fileC.createUnzipper(album);
+        FileController.Perm perm = fileC.checkConditionsForDownload(album);
 
-        if (unzipper == null) {
-            // This should never really happen in production.
-            AndroidRoutines.crashDuringDev("Got a null unzipper");
+        if (perm.hasError) {
+            toast(perm.errorMessage);
+            // We can't create an Unzipper with this degenerate object.
             return;
         }
+
+        // Once a download is finished, we need to handle the file. The filecontroller handles
+        // that via a new unzipper object.
+        FileController.Unzipper unzipper = fileC.createUnzipper(perm);
 
         // Creating the unzipper changes album, so let's use the updated reference instead.
         // In practice, the only thing we need is the albumId, but let's pick it all up, and start

@@ -300,7 +300,7 @@ class FileController {
      * @param album the album to show
      * @return true if the album was switched.
      */
-    boolean showAlbum(Album album) {
+    boolean showAlbum(@NonNull Album album) {
         AndroidRoutines.checkBackgroundThread();
 
         // Check that the given directory exists and has images
@@ -471,8 +471,9 @@ class FileController {
      * A constructor could be added to encode information it needs from the parent
      * {@link FileController} object.
      *
-     * To create an object, call {@link FileController#createUnzipper(NetworkRoutines.DownloadInfo)}
-     * rather than directly calling the constructor.
+     * To create an object, call {@link FileController#createUnzipper(Perm)}
+     * rather than directly calling the constructor. Examine the remaining object for
+     *
      *
      * The critical method here is {@link #handleFile(String, ParcelFileDescriptor)}.
      *
@@ -673,8 +674,12 @@ class FileController {
             }
         }
 
-        /** Hidden to force all creation through
-         * {@link FileController#createUnzipper(NetworkRoutines.DownloadInfo)}
+        /**
+         * Hidden to force all creation through {@link FileController#createUnzipper(Perm)}
+         *
+         * Create a new unzipper object specifying all the information we need to download a file
+         * and handle it after the download.
+         *
          * @param dlInfo The dlInfo that specifies the URI for the package, whether it should be
          *               decrypted, which key ID to use when decrypting, whether it should be
          *               unzipped, etc.
@@ -702,42 +707,123 @@ class FileController {
     }
 
     /**
-     * Creates a new {@link Unzipper} object including any member-specified information.
-     * Needs to be called from a background thread because it modifies databases.
+     * A permission class that enforces that calls to
+     * {@link #createUnzipper(Perm)} are preceeded by calls to
+     * {@link #checkConditionsForDownload(NetworkRoutines.DownloadInfo)}.
      *
-     * The input dlInfo object might be modified, so do not use it hence. Instead, get the updated
-     * dlInfo object from {@link Unzipper#dlInfo}. This needs to be done <b>every time</b> when
-     * creating this object.
+     * You can only get these objects through
+     * {@link #checkConditionsForDownload(NetworkRoutines.DownloadInfo)}. When successful, this
+     * object contains the download information.
      *
-     * @param dlInfo the name the dlInfo should be called, all references to this object should
-     *               be discarded, and instead the new unzipper's reference {@link Unzipper#dlInfo}
-     *               should be used instead.
-     * @return an object that can unzip this dlInfo and extract its contents for later retrieval.
+     * When this object was created with a failure {@link #errorMessage} is set and
+     * {@link #hasError} is true.
+     * When everything went well, {@link #hasError} is false, and this permission object contains
+     * all the download information that {@link #createUnzipper(Perm)} needs to create an
+     * {@link Unzipper} to download the file.
      */
-    Unzipper createUnzipper(NetworkRoutines.DownloadInfo dlInfo) {
+    static class Perm {
+        final String errorMessage;
+        final boolean hasError;
+        final NetworkRoutines.DownloadInfo dlInfo;
+
+        /**
+         * Create a useful Perm. This signifies that a {@link Unzipper} object should be created.
+         */
+        private Perm(NetworkRoutines.DownloadInfo dlInfo) {
+            errorMessage = "";
+            hasError = false;
+            // Save this because the method will need to read this for download information.
+            this.dlInfo = dlInfo;
+        }
+
+        /**
+         * Create a Perm which signifies that an {@link Unzipper} should not be created.
+         * The reason for the issue should be provided as the argument below.
+         * @param error A human-readable issue why the unzipper should not be created.
+         */
+        private Perm(String error) {
+            errorMessage = error;
+            hasError = true;
+            dlInfo = null;
+        }
+    }
+
+    /**
+     * Check if a download should happen. If fail, you get a Perm object with
+     * {@link Perm#hasError} is true and the reason for failure is available in the
+     * {@link Perm#errorMessage}.
+     * For success you get an object that contains the
+     * {@link com.eggwall.android.photoviewer.NetworkRoutines.DownloadInfo} object provided here.
+     *
+     * @param dlInfo object containing all download information.
+     * @return a Perm object that either signifies success or failure. Pass that object to
+     *          {@link #createUnzipper(Perm)} as a proof that the checks
+     *          passed.
+     */
+    @NonNull Perm checkConditionsForDownload(@NonNull NetworkRoutines.DownloadInfo dlInfo) {
         // Check to see if we can hold the eventual file size
         File picturesDir = getPicturesDir();
 
         long available = picturesDir.getFreeSpace();
         if (available < dlInfo.extractedSize) {
-            String message = "Out of disk space: Expected: " + dlInfo.extractedSize
-                    + " Available: " + available;
-            mc.toast(message);
-            Log.e(TAG, message);
-            return null;
+            String error = "Out of disk space: Expected: " + dlInfo.extractedSize
+                          + " Available: " + available;
+            return new Perm(error);
         }
 
-        // At this point, we should create a new {@link Album} object, and then insert it into
-        // the database.
+        // Check if this remote location with exactly this name was ever downloaded. If so,
+        // refuse to download duplicate.
+        AlbumDao dao = albumDb.albumDao();
+        String remoteLocation = dlInfo.location.toString();
+        Album existing = dao.find(remoteLocation, dlInfo.name);
+
+        if (existing != null) {
+            // An album exists, so we should refuse to download one.
+            // TODO: Here we should do something better: like delete the existing record and retry
+            // if there was no local location.
+            return new Perm("Refusing to download duplicate");
+        }
+
+        // Add more checks here, in the future, to make this bullet-proof.
+        return new Perm(dlInfo);
+    }
+
+    /**
+     * Creates a new {@link Unzipper} object including any member-specified information.
+     * Needs to be called from a background thread because it modifies databases.
+     *
+     * The input dlInfo object in {@link #checkConditionsForDownload(NetworkRoutines.DownloadInfo)}
+     * might be modified, so do not use it hence. Instead, get the updated
+     * dlInfo object from {@link Unzipper#dlInfo}. This needs to be done <b>every time</b> when
+     * creating this object.
+     *
+     * @param perm the permission object obtained by calling
+     *          {@link #checkConditionsForDownload(NetworkRoutines.DownloadInfo)}.
+     * @return an object that can unzip this dlInfo and extract its contents for later retrieval.
+     */
+    @NonNull Unzipper createUnzipper(@NonNull Perm perm) {
+        if (perm.hasError) {
+            return new Unzipper(null, null, null, null, null, null);
+        }
+
+        // Pick Download information from the permission object.
+        NetworkRoutines.DownloadInfo dlInfo = perm.dlInfo;
+
+        // Top-level pictures are stored here.
+        File picturesDir = getPicturesDir();
+
+        // We should create a new {@link Album} object, and then insert it into the database.
         Album album = new Album();
         album.setName(dlInfo.name);
 
         String remoteLocation = dlInfo.location.toString();
         album.setRemoteLocation(remoteLocation);
 
+        AlbumDao dao = albumDb.albumDao();
+
         // Only when we insert it do we get a unique ID. This is why this method needs to be called
         // from a background thread.
-        long id = albumDb.albumDao().insert(album);
+        long id = dao.insert(album);
         // Now set that as the canonical ID for this
         album.setId(id);
 
@@ -763,6 +849,6 @@ class FileController {
                 + ", picturesDir = " + picturesDir.getAbsolutePath());
 
         album.setLocalLocation(localLocation);
-        return new Unzipper(dlInfo, album, albumDb.albumDao(), keyDb.keyDao(), mc, picturesDir);
+        return new Unzipper(dlInfo, album, dao, keyDb.keyDao(), mc, picturesDir);
     }
 }

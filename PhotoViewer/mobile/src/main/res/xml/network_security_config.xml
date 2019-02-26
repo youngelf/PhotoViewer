@@ -1,4 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ A configuration that should suggest to the DownloadManager that unencrypted transport
+ (http) should be fine. By default, on newer versions it expects encrypted transport
+ only (https).
+
+ However, this does not quite work on Chromebooks with Play Store.
+
+ A second mechanism was enough for Android phones: adding usesCleartextTraffic in the
+ AndroidManifest. I thought that adding this would improve chromebooks, but it doesn't.
+
+ The only outcome is to switch to https for all files, even files that are entirely encrypted.
+
+ Most cloud storage providers (Google Drive, Dropbox) allow this, so it should be fine. http
+ is a reality when using home networks (192.168.x.y) and a lack of https support means that this
+ program can't realistically offer up its download for other programs to use on the local network.
+
+-->
 <network-security-config>
     <!--Set application-wide security config using base-config tag.-->
     <base-config cleartextTrafficPermitted="true"/>
