@@ -143,7 +143,7 @@ class NetworkRoutines {
                         + " isEncrypted = " + isEncrypted
                         + " extractedSize = " + extractedSize
                         + " isZipped = " + isZipped
-                        + " initializationVector = " + initializationVector
+                        + " initializationVector = " + CryptoRoutines.bToS(initializationVector)
                         + " keyUUID = " + keyUid
                         + " name = " + name;
             }
@@ -232,11 +232,70 @@ class NetworkRoutines {
 
         // That could be empty because the starting intent could have no data associated. This
         // happens when the user launched into it from All apps, or through commandline.
-        if (action == null || !action.equals(Intent.ACTION_VIEW)
-                || uri == null) {
+        if (action == null || !action.equals(Intent.ACTION_VIEW) || uri == null) {
             return TYPE_IGNORE;
         }
 
+        return getUriType(uri);
+    }
+
+    /**
+     * Get the URL to act, from the intent this application was started from.
+     *
+     * This will create a URL of this kind
+     * photoviewer://eggwall/test?q=this&src=http%3A%2F%2Fdropbox.com%2Fslkdjf%2Fal
+     * That represents a download of data: http://dropbox.com/slkdjf/al
+     * @param intent the Intent the application was started from. Usually obtained from
+     *               {@link Activity#getIntent()}
+     * @return information that allows us to download a file or import a key if parsed correctly,
+     *          {@link Uri#EMPTY} otherwise.
+     */
+    static @NonNull Uri getUri(Intent intent) {
+        if (intent == null) {
+            return Uri.EMPTY;
+        }
+        String action = intent.getAction();
+        // Unpack the actual URL from that data string
+        Uri uri = intent.getData();
+        if (uri == null) {
+            return Uri.EMPTY;
+        }
+
+        String scheme = uri.getScheme();
+        Log.d(TAG, "Scheme = " + scheme);
+        String path = uri.getPath();
+        Log.d(TAG, "Path = " + path);
+
+        // That could be empty because the starting intent could have no data associated. This
+        // happens when the user launched into it from All apps, or through commandline.
+        if (action == null || !action.equals(Intent.ACTION_VIEW)
+                || scheme == null || !scheme.equals(SCHEME)
+                || path == null) {
+            return Uri.EMPTY;
+        }
+
+        // All checks pass, so this URI must be reasonably fine.
+        return uri;
+    }
+
+    /**
+     * Get the type of URI provided here.
+     *
+     * Here is a custom URL of the kind
+     * photoviewer://eggwall/download?src=http%3A%2F%2Fdropbox.com%2Fslkdjf%2Fal&zipped=y
+     * This is a request to download the URL: http://dropbox.com/slkdjf/al
+     *
+     * This method tells you what kind of URI this is.
+     * @param uri the URI provided to the application either from {@link Activity#getIntent()}
+     *            or as an input to {@link ImportActivity}
+     * @return the type of Intent: {@link #TYPE_DOWNLOAD} for downloading a package,
+     *          {@link #TYPE_SECRET_KEY} to import a secret key, and {@link #TYPE_IGNORE} for all
+     *          other Android-related starts that we can safely ignore because we are not handling
+     *          any custom URI.
+     *          During Development only, we pass {@link #TYPE_DEV_CONTROL} to perform intrusive
+     *          control. This will be disabled during production.
+     */
+    static int getUriType(@NonNull Uri uri) {
         String scheme = uri.getScheme();
         String path = uri.getPath();
 
@@ -265,6 +324,7 @@ class NetworkRoutines {
             }
         }
         return TYPE_IGNORE;
+
     }
 
     /**
@@ -273,44 +333,25 @@ class NetworkRoutines {
      *
      * Entirely compiled out during production.
      *
-     * @param intent the intent that the application was opened with.
+     * @param uri the intent that the application was opened with.
      * @param mc The orchestrating controller that can do some pretty intrusive changes.
      */
-    static void callControl(Intent intent, MainController mc) {
-        if (intent == null || !AndroidRoutines.development) {
+    static void callControl(@NonNull Uri uri, MainController mc) {
+        if (!AndroidRoutines.development) {
+            // This functionality is only available during development. Afterwards, this is removed.
+            // Silently ignore these intrusive URIs, and do nothing.
             return;
         }
 
-        String action = intent.getAction();
+        // All the parameters, to find what kind we are looking at.
+        Set<String> names = uri.getQueryParameterNames();
 
-        // Unpack the actual URL from that data string
-        Uri uri = intent.getData();
-        // That could be empty because the starting intent could have no data associated. This
-        // happens when the user launched into it from All apps, or through commandline.
-        if (uri == null || action == null) {
-            return;
-        }
-
-        String scheme = uri.getScheme();
-        Log.d(TAG, "Scheme = " + scheme);
-        String path = uri.getPath();
-        Log.d(TAG, "Path = " + path);
-
-        // Confirm that this is a request to view, with the correct scheme and a non-empty path.
-        if (action.equals(Intent.ACTION_VIEW)
-                && scheme != null && scheme.equals(SCHEME)
-                && path != null) {
-
-            // All the parameters, to find what kind we are looking at.
-            Set<String> names = uri.getQueryParameterNames();
-
-            // The strings themselves are included here to avoid compiling them in production builds
-            if (names.contains("databasePurge")) {
-                // Purge the entire database
-                Log.w(TAG, "databasePurge invoked! clearing all tables");
-                mc.databasePurge();
-                mc.toast("Database tables cleared!");
-            }
+        // The strings themselves are included here to avoid compiling them in production builds
+        if (names.contains("databasePurge")) {
+            // Purge the entire database
+            Log.w(TAG, "databasePurge invoked! clearing all tables");
+            mc.databasePurge();
+            mc.toast("Database tables cleared!");
         }
     }
 
@@ -322,31 +363,17 @@ class NetworkRoutines {
     final static KeyImportInfo EMPTY_KEY = new KeyImportInfo("", "", "");
 
     /**
-     * Get the URL to download from the intent this application was started from.
+     * Get the URL to download from a URI provided to this application.
      *
      * This will create a URL of the kind
      * from an intent where the Data has the URL: http://dropbox.com/slkdjf/al
      * photoviewer://eggwall/test?q=this&src=http%3A%2F%2Fdropbox.com%2Fslkdjf%2Fal
-     * @param intent the Intent the application was started from. Usually obtained from
+     * @param uri the Intent the application was started from. Usually obtained from
      *               {@link Activity#getIntent()}
      * @return information that allows us to import a key if parsed correctly,
      *          {@link #EMPTY_KEY} otherwise.
      */
-    static KeyImportInfo getKeyInfo(Intent intent) {
-        if (intent == null) {
-            return EMPTY_KEY;
-        }
-
-        String action = intent.getAction();
-
-        // Unpack the actual URL from that data string
-        Uri uri = intent.getData();
-        // That could be empty because the starting intent could have no data associated. This
-        // happens when the user launched into it from All apps, or through commandline.
-        if (uri == null || action == null) {
-            return EMPTY_KEY;
-        }
-
+    static @NonNull KeyImportInfo getKeyInfo(@NonNull Uri uri) {
         String scheme = uri.getScheme();
         Log.d(TAG, "Scheme = " + scheme);
         String path = uri.getPath();
@@ -357,8 +384,7 @@ class NetworkRoutines {
         String keyId = "";
 
         // Confirm that this is a request to view, with the correct scheme and a non-empty path.
-        if (action.equals(Intent.ACTION_VIEW)
-                && scheme != null && scheme.equals(SCHEME)
+        if (scheme != null && scheme.equals(SCHEME)
                 && path != null) {
 
             // All the parameters, to find what kind we are looking at.
@@ -384,49 +410,7 @@ class NetworkRoutines {
         }
         // Assume downloads.
         return EMPTY_KEY;
-    }
 
-    /**
-     * Get the URL to download from the intent this application was started from.
-     *
-     * This will create a URL of the kind
-     * from an intent where the Data has the URL: http://dropbox.com/slkdjf/al
-     * photoviewer://eggwall/test?q=this&src=http%3A%2F%2Fdropbox.com%2Fslkdjf%2Fal
-     * @param intent the Intent the application was started from. Usually obtained from
-     *               {@link Activity#getIntent()}
-     * @return download information if parsed correctly, {@link #EMPTY} otherwise.
-     */
-    static DownloadInfo getDownloadInfo(Intent intent) {
-        String action = intent.getAction();
-
-        // Unpack the actual URL from that data string
-        Uri uri = intent.getData();
-        // That could be empty because the starting intent could have no data associated. This
-        // happens when the user launched into it from All apps, or through commandline.
-        if (uri == null) {
-            return EMPTY;
-        }
-
-        String scheme = uri.getScheme();
-        Log.d(TAG, "Scheme = " + scheme);
-        String path = uri.getPath();
-        Log.d(TAG, "Path = " + path);
-
-        // Confirm that this is a request to view, with the correct scheme and a non-empty path.
-        if (action != null && action.equals(Intent.ACTION_VIEW)
-                && scheme != null && scheme.equals(SCHEME)
-                && path != null) {
-
-            // All the parameters, to find what kind we are looking at.
-            Set<String> names = uri.getQueryParameterNames();
-
-            // Downloads need to have a path associated with them.
-            if (names.contains(REQ_PACKAGE_SRC)) {
-                return getDownloadInfo(uri);
-            }
-        }
-        // Assume downloads.
-        return EMPTY;
     }
 
     /**
@@ -434,10 +418,10 @@ class NetworkRoutines {
      * @param uri a URI that was passed in an Intent.
      * @return an object, possibly {@link #EMPTY} that tells what to download, from where, etc.
      */
-    static DownloadInfo getDownloadInfo(Uri uri) {
+    static @NonNull DownloadInfo getDownloadInfo(@NonNull Uri uri) {
         // All the components of the DownloadInfo object.
-        // Assume URI is not specified.
-        Uri uriR = Uri.EMPTY;
+        Uri uriR;
+
         // Assume not encrypted.
         boolean isEncryptedR = false;
         byte[] initVectorR = null;
@@ -446,19 +430,19 @@ class NetworkRoutines {
         String keyUid="";
         String albumNameR = "unspecified";
 
-        // That could be empty because the starting intent could have no data associated. This
-        // happens when the user launched into it from All apps, or through commandline.
-        if (uri == null) {
-            return EMPTY;
-        }
-
         Set<String> names = uri.getQueryParameterNames();
+
+        // REQUIRED: Where to download the package from.
         if (names.contains(REQ_PACKAGE_SRC)) {
             String encoded = uri.getQueryParameter(REQ_PACKAGE_SRC);
             // If it is available, then try to decode the parameter (since it is a URL itself)
             // and then try to parse it as a URL.
             uriR = Uri.parse(Uri.decode(encoded));
+        } else {
+            // Downloads need to have a path associated with them.
+            return EMPTY;
         }
+        // Optional: Is the package zipped?
         if (names.contains(KEY_ZIPPED)) {
             String encoded = uri.getQueryParameter(KEY_ZIPPED);
             // We expect the value to be 'Y' or 'y', or 'T' or 't'.
@@ -467,6 +451,7 @@ class NetworkRoutines {
                         || encoded.equalsIgnoreCase("t");
             }
         }
+        // Optional: Is the package encrypted?
         if (names.contains(KEY_ENCRYPTED)) {
             String encoded = uri.getQueryParameter(KEY_ENCRYPTED);
             // We expect the value to be 'Y' or 'y' or 'T' or 't'.
@@ -475,6 +460,7 @@ class NetworkRoutines {
                         || encoded.equalsIgnoreCase("t");
             }
         }
+        // Optional: If encrypted, is there an initialization vector?
         if (names.contains(KEY_INITIALIZATION_VECTOR)) {
             String encoded = uri.getQueryParameter(KEY_INITIALIZATION_VECTOR);
             if (encoded != null) {
@@ -482,6 +468,7 @@ class NetworkRoutines {
                 Log.d(TAG, "initialization vector = " + CryptoRoutines.bToS(initVectorR));
             }
         }
+        // Optional: How big is the package?
         if (names.contains(KEY_SIZE)) {
             // Size in bytes.
             String encoded = uri.getQueryParameter(KEY_SIZE);
@@ -489,11 +476,13 @@ class NetworkRoutines {
                 extractedSizeR = Integer.parseInt(encoded);
             }
         }
+        // Optional: Name of the album, though I should make this required.
         if (names.contains(KEY_ALBUMNAME)) {
             String encoded = uri.getQueryParameter(KEY_ALBUMNAME);
             // If it is available, then try to decode the parameter (since it is a string)
             albumNameR = Uri.decode(encoded);
         }
+        // Optional: ID of the secret key used to decrypt this.
         if (names.contains(KEY_UNIQUEID)) {
             String encoded = uri.getQueryParameter(KEY_UNIQUEID);
             // If it is available, then try to decode the parameter (since it is a string)

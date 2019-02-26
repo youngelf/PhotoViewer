@@ -55,6 +55,8 @@ class NetworkController {
         @Override
         public void onReceive(final Context context, Intent intent) {
             // We are never getting called again, so let's just unregister ourselves first.
+            // TODO: This is not a good idea. There might be other downloads in progress, and we
+            // should not remove the entire receiver.
             context.unregisterReceiver(this);
 
             // Call execute on this if anything bad happens to let the callback know we are

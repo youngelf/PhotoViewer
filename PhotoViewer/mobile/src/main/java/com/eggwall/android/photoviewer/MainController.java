@@ -158,13 +158,12 @@ class MainController {
     /**
      * Returns a list of all albums that can be displayed.
      *
-     * TODO: This needs to happen on a background thread since it reads disk, but it is happening
-     * on the main thread right now.
+     * Can only be called on the background thread, since it reads disk.
      * @return a list of albums, possibly empty but never null.
      */
     @NonNull List<Album> getALbumList() {
         creationCheck();
-        AndroidRoutines.checkAnyThread();
+        AndroidRoutines.checkBackgroundThread();
 
         return fileC.getAlbumList();
     }

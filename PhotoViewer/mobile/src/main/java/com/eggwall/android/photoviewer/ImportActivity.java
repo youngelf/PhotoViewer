@@ -34,11 +34,17 @@ public class ImportActivity extends Activity implements TextWatcher {
     public static final String TAG = "ImportActivity";
 
     public static final int REQUEST_DOWNLOAD = 12;
-    /** The key that holds */
-    public static final String KEY_URI = "users_input";
 
-    // TODO: Handle batch import for albums and keys.
+    /** The key that holds the result URI. */
+    public static final String KEY_URI = "input_uri";
 
+    /**
+     * The key that holds the result TYPE.  These are values from {@link NetworkRoutines}, in
+     * particular they are {@link NetworkRoutines#TYPE_DOWNLOAD},
+     * {@link NetworkRoutines#TYPE_SECRET_KEY}, {@link NetworkRoutines#TYPE_DEV_CONTROL}, or
+     * {@link NetworkRoutines#TYPE_IGNORE}
+     */
+    public static final String KEY_TYPE = "input_type";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,12 +66,19 @@ public class ImportActivity extends Activity implements TextWatcher {
         EditText inputArea = findViewById(R.id.input_area);
         String input = inputArea.getText().toString();
 
-        // Now call back to the Activity with this intent. This is tricky because I want
-        // to remove the previous activity.
-        Uri in = Uri.parse(input);
+        // Parse the input into a URL.
+        Uri in = Uri.EMPTY;
+        if (input.length() > 0) {
+            in = Uri.parse(input);
+        }
 
         // Now we are done, and we should signal that the activity is done
         Intent result = new Intent();
+        // The kind of URI this is. Really, I can get rid of this in the future, but I'll keep it
+        // right now so I can annotate the UI with what to download, what it is, and show the
+        // user that things might be totally fine.
+        result.putExtra(KEY_TYPE, NetworkRoutines.getUriType(in));
+        // The URI itself.
         result.putExtra(KEY_URI, in);
         setResult(RESULT_OK, result);
 

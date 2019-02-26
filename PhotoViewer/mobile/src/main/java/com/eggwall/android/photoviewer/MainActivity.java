@@ -26,6 +26,12 @@ import static com.eggwall.android.photoviewer.AndroidRoutines.logDuringDev;
  * TODO:    GCM cloud messaging to avoid polling.
  * TODO: Settings activity to change slideshow duration, auto-start newest, download frequency, etc
  * TODO: pinch-zoom on an image.
+ * TODO: Show the download date of the album alongside the name in the drawer.
+ * TODO: Show a demo/intro activity in ImportActivity
+ * TODO: Allow multiple links to be imported in ImportActivity.
+ * TODO: Background alarm for housekeeping: removing old content, purging and pruning the database.
+ * TODO: Background process for keeping disk size within bounds.
+ * TODO: Read values from settings rather than hardcoded values.
  * DONE: Diagnostics in the app to find what's wrong.
  * DONE: A UI to show all the albums (today only one is shown)
  * DONE: Remember offset in the album when rotating.
@@ -158,9 +164,40 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }).start();
                 break;
+            default:
+                // Should never happen since getIntentType only gives known values.
+                Log.wtf(TAG, "Unknown actionType: " + actionType);
+                break;
+            case NetworkRoutines.TYPE_DEV_CONTROL:
+                // Fall through!
             case NetworkRoutines.TYPE_DOWNLOAD:
-                // Asked to download a package file
-                NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(startIntent);
+                // Fall through!
+            case NetworkRoutines.TYPE_SECRET_KEY:
+                // Get the URI that corresponds to these actions
+                handleUri(NetworkRoutines.getUri(startIntent));
+                break;
+        }
+    }
+
+    /**
+     * For a given URI, either as a custom URI or as input to {@link ImportActivity}, go through
+     * the URI and handle the {@link NetworkRoutines#TYPE_DOWNLOAD} or
+     * {@link NetworkRoutines#TYPE_DEV_CONTROL}, {@link NetworkRoutines#TYPE_DEV_CONTROL} actions.
+     * @param in the URL to act upon, received either by clicking on a custom URI in a browser, or
+     *           as a text input by the user in {@link ImportActivity}
+     */
+    private void handleUri(@NonNull Uri in) {
+        if (in == Uri.EMPTY) {
+            return;
+        }
+
+        // Examine what we got.
+        int type = NetworkRoutines.getUriType(in);
+
+        switch (type) {
+            case NetworkRoutines.TYPE_DOWNLOAD:
+                NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(in);
+                logDuringDev(TAG, "Download Request = " + album.debugString());
                 if (album != NetworkRoutines.EMPTY) {
                     Log.d(TAG, "I'm going to download this URL now: " + album);
                     // Now download that URL and switch over to that screen.
@@ -168,8 +205,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
             case NetworkRoutines.TYPE_SECRET_KEY:
-                // Asked to import a key for future use in decryption.
-                NetworkRoutines.KeyImportInfo key = NetworkRoutines.getKeyInfo(startIntent);
+                NetworkRoutines.KeyImportInfo key = NetworkRoutines.getKeyInfo(in);
                 if (key != NetworkRoutines.EMPTY_KEY) {
                     Log.d(TAG, "I'm going to import this key now: " + key);
                     // Now download that URL and switch over to that screen.
@@ -177,10 +213,11 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
             case NetworkRoutines.TYPE_DEV_CONTROL:
-                NetworkRoutines.callControl(startIntent, mc);
+                NetworkRoutines.callControl(in, mc);
+                break;
             default:
                 // Should never happen since getIntentType only gives known values.
-                Log.wtf(TAG, "Unknown actionType: " + actionType);
+                Log.wtf(TAG, "Unknown URI: " + in);
                 break;
         }
     }
@@ -204,13 +241,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Get the parsed URI, it is a parcelable.
         Uri in = data.getParcelableExtra(ImportActivity.KEY_URI);
-
-        // Examine what we got.
-        NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(in);
-        logDuringDev(TAG, "Download Request = " + album.debugString());
-
-        // And download that album.
-        mc.download(album);
+        handleUri(in);
     }
 
     @Override
