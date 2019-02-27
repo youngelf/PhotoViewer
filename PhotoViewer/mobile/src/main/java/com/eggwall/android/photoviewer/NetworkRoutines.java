@@ -324,7 +324,6 @@ class NetworkRoutines {
             }
         }
         return TYPE_IGNORE;
-
     }
 
     /**

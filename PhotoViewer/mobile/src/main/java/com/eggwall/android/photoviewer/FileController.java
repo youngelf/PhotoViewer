@@ -147,14 +147,14 @@ class FileController {
             return mPicturesDir;
         }
 
-        // The root directory (guaranteed to exist on a UNIX filesystem)
+        // The root directory (guaranteed to exist on a UNIX filesystem).
         // This is never used because we always crash hard when returning this, killing the program.
-        File ROOT_UNUSED = new File("/");
+        File ROOT_UNUSED = new File(File.separator);
 
         final String state = Environment.getExternalStorageState();
         if (!Environment.MEDIA_MOUNTED.equals(state)) {
             // If we don't have an SD card, cannot do anything here.
-            String message = "SD card root directory is not available";
+            String message = "Storage directory is not available";
             mc.toast(message);
             AndroidRoutines.crashHard(message);
             return ROOT_UNUSED;
@@ -162,10 +162,10 @@ class FileController {
 
         final File rootSdLocation =
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-        if (rootSdLocation == null) {
+        if (rootSdLocation == null || !rootSdLocation.isDirectory()) {
             // Not a directory? Completely unexpected. Can't really do anything with this program
             // anymore.
-            String message = "SD card root directory is NOT a directory and is NULL";
+            String message = "SD card root directory is NOT a directory or is NULL";
             mc.toast(message);
             AndroidRoutines.crashHard(message);
             return ROOT_UNUSED;
@@ -193,7 +193,7 @@ class FileController {
      * @return a string message containing an error if it fails, and an empty string if it succeeds.
      *          To check if all went well, check if the return value has zero length.
      */
-    private static @NonNull String mkdir(File dir) {
+    private static @NonNull String mkdir(@NonNull File dir) {
         if (dir.isDirectory()) {
             return "";
         }
@@ -235,11 +235,8 @@ class FileController {
      * @return the directory within the Pictures directory (like /sdcard/Pictures) where this
      *          content is housed.
      */
-    private String getSubPath(String galleryDir) {
-        // Android is all Linux, right? Use / as the separator rather than picking out the file
-        // system separator.
-        // TODO Fix this just in case this code is used on a non-Linux system.
-        return PICTURES_DIR.concat("/").concat(galleryDir);
+    private @NonNull String getSubPath(@NonNull String galleryDir) {
+        return PICTURES_DIR.concat(File.separator).concat(galleryDir);
     }
 
     /**
@@ -502,7 +499,7 @@ class FileController {
             return Environment.getExternalStoragePublicDirectory(
                     Environment.DIRECTORY_PICTURES)
                     .getAbsolutePath()
-                    .concat("/")
+                    .concat(File.separator)
                     .concat(relativePath);
         }
         /**
@@ -800,6 +797,8 @@ class FileController {
      */
     @NonNull Unzipper createUnzipper(@NonNull Perm perm) {
         if (perm.hasError) {
+            // This object is never used, but it allows us to avoid sending a null object back.
+            AndroidRoutines.crashDuringDev("Perm object used when it had error");
             return new Unzipper(null, null, null, null, null, null);
         }
 
@@ -824,7 +823,7 @@ class FileController {
         // Now set that as the canonical ID for this
         album.setId(id);
 
-        String topLevel = picturesDir.getAbsolutePath().concat("/");
+        String topLevel = picturesDir.getAbsolutePath().concat(File.separator);
         String pathPrefix = "gal_" + String.format(Locale.US, "%04d", id);
         String localLocation = topLevel.concat(pathPrefix);
 

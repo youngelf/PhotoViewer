@@ -8,6 +8,10 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import org.w3c.dom.Text;
 
 /**
  * Activity that has these purposes:
@@ -101,6 +105,46 @@ public class ImportActivity extends Activity implements TextWatcher {
     public void afterTextChanged(Editable s) {
         // TODO: Add a textwatcher that validates the input or highlights the sections
         // as it sees them.
+        String input = s.toString();
 
+        // Validate the URI and print out the components right on input.
+        Uri in = Uri.EMPTY;
+        if (input.length() > 0) {
+            in = Uri.parse(input);
+        }
+        if (in == Uri.EMPTY) {
+            return;
+        }
+
+        // Read the bits by asking the NetworkRoutines methods.
+        int type = NetworkRoutines.getUriType(in);
+        TextView t = findViewById(R.id.label);
+        switch(type) {
+            case NetworkRoutines.TYPE_SECRET_KEY:
+                setIcon(R.id.type_status, R.drawable.key);
+                // Get the name of the key and do something nice.
+                NetworkRoutines.KeyImportInfo k = NetworkRoutines.getKeyInfo(in);
+                t.setText(k.name);
+                break;
+
+            case NetworkRoutines.TYPE_DOWNLOAD:
+                setIcon(R.id.type_status, R.drawable.download);
+                // Unpack this and show if there is encryption, what the
+                // download location is, etc.
+
+                NetworkRoutines.DownloadInfo d = NetworkRoutines.getDownloadInfo(in);
+                setIcon(R.id.type_secondary,
+                        d.isEncrypted ? R.drawable.padlock: R.drawable.open_padlock);
+
+                // Set the label's text to that of the URL alone
+                t.setText(d.location.toString());
+                break;
+        }
+    }
+
+    void setIcon(int layoutId, int resource) {
+        ImageView i = findViewById(layoutId);
+        i.setImageResource(resource);
+        i.setVisibility(View.VISIBLE);
     }
 }
