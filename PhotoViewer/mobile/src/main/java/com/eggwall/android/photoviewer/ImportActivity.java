@@ -11,8 +11,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import org.w3c.dom.Text;
-
 /**
  * Activity that has these purposes:
  * <ol>
@@ -38,6 +36,11 @@ public class ImportActivity extends Activity implements TextWatcher {
     public static final String TAG = "ImportActivity";
 
     public static final int REQUEST_DOWNLOAD = 12;
+
+    /**
+     * Use as a second parameter to {@link #setIcon(int, int)} to hide the imageview.
+     */
+    public static final int HIDE = 0;
 
     /** The key that holds the result URI. */
     public static final String KEY_URI = "input_uri";
@@ -103,8 +106,8 @@ public class ImportActivity extends Activity implements TextWatcher {
 
     @Override
     public void afterTextChanged(Editable s) {
-        // TODO: Add a textwatcher that validates the input or highlights the sections
-        // as it sees them.
+        // This is what the user provided us. We have to be very careful because the user could
+        // enter any garbage here, and might still be editing. So we have to be very defensive.
         String input = s.toString();
 
         // Validate the URI and print out the components right on input.
@@ -112,19 +115,26 @@ public class ImportActivity extends Activity implements TextWatcher {
         if (input.length() > 0) {
             in = Uri.parse(input);
         }
+
+        // This is where the label goes.
+        TextView label = findViewById(R.id.label);
+
         if (in == Uri.EMPTY) {
+            setIcon(R.id.type_status, HIDE);
+            setIcon(R.id.type_secondary, HIDE);
+            label.setText(R.string.import_label);
             return;
         }
 
         // Read the bits by asking the NetworkRoutines methods.
         int type = NetworkRoutines.getUriType(in);
-        TextView t = findViewById(R.id.label);
+
         switch(type) {
             case NetworkRoutines.TYPE_SECRET_KEY:
                 setIcon(R.id.type_status, R.drawable.key);
                 // Get the name of the key and do something nice.
-                NetworkRoutines.KeyImportInfo k = NetworkRoutines.getKeyInfo(in);
-                t.setText(k.name);
+                NetworkRoutines.KeyImportInfo key = NetworkRoutines.getKeyInfo(in);
+                label.setText(key.name);
                 break;
 
             case NetworkRoutines.TYPE_DOWNLOAD:
@@ -132,19 +142,41 @@ public class ImportActivity extends Activity implements TextWatcher {
                 // Unpack this and show if there is encryption, what the
                 // download location is, etc.
 
-                NetworkRoutines.DownloadInfo d = NetworkRoutines.getDownloadInfo(in);
+                NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(in);
                 setIcon(R.id.type_secondary,
-                        d.isEncrypted ? R.drawable.padlock: R.drawable.open_padlock);
+                        (album.isEncrypted ? R.drawable.padlock: R.drawable.open_padlock));
 
                 // Set the label's text to that of the URL alone
-                t.setText(d.location.toString());
+                label.setText(album.location.toString());
+                break;
+
+            case NetworkRoutines.TYPE_IGNORE:
+                // Fall through
+            default:
+                // Poorly formed input for whatever reason.
+                setIcon(R.id.type_status, HIDE);
+                setIcon(R.id.type_secondary, HIDE);
+                label.setText(R.string.import_label);
                 break;
         }
     }
 
-    void setIcon(int layoutId, int resource) {
-        ImageView i = findViewById(layoutId);
-        i.setImageResource(resource);
+    /**
+     * Set the imageview to the drawable provided here.
+     * @param imageView a layout ID, like {@link R.id#type_status} that is for an ImageView.
+     *                 This method doesn't check that it is a drawable ID for ImageViews.
+     * @param drawable a drawable to assign to the ImageView specified by the layoudId earlier.
+     *                 This could be {@link R.drawable#key}. There is no check on this as well.
+     *                 Pass 0 here to remove the Imageview entirely.
+     */
+    void setIcon(int imageView, int drawable) {
+        ImageView i = findViewById(imageView);
+        if (drawable == 0) {
+            // Don't change anything, just remove it from the view hierarchy.
+            i.setVisibility(View.GONE);
+            return;
+        }
+        i.setImageResource(drawable);
         i.setVisibility(View.VISIBLE);
     }
 }
