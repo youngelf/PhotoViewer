@@ -49,7 +49,7 @@ public class SettingActivity extends Activity {
             @Override
             public void afterTextChanged(Editable s) {
                 // Update the Shared preferences.
-                int value = 0;
+                int value;
                 try {
                     value = Integer.parseInt(s.toString());
                 } catch (NumberFormatException e) {

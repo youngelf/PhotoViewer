@@ -11,7 +11,7 @@
     <string name="drawer_title">Aim for life</string>
     <string name="attribution_viki">By Viki</string>
     <string name="slideshow">Slideshow</string>
-    <string name="tools">Tools</string>
+    <string name="tools">Settings</string>
     <string name="import_gallery">Import</string>
     <string name="title_activity_import">Import a Gallery</string>
     <string name="title_setting_import">Settings</string>

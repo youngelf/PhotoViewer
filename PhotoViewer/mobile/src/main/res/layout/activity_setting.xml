@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!-- UI for the settings activity. Since it is a toplevel activity, it needs the full force
+of a drawer layout, even though we don't show the drawer.-->
 <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -8,6 +11,7 @@
     android:fitsSystemWindows="false"
     tools:openDrawer="start">
 
+    <!-- This is the content part of the application. -->
     <androidx.constraintlayout.widget.ConstraintLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
@@ -17,6 +21,9 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         tools:context=".ImportActivity">
 
+        <!--
+         The header, it shows what the activity is.
+        -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -24,13 +31,17 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             android:text="Settings Activity" />
+
+        <!--
+         This section has the Slideshow delay duration.
+        -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/slideshow_delay_label"
             app:layout_constraintTop_toBottomOf="@id/label"
             app:layout_constraintStart_toStartOf="parent"
-            android:text="Slideshow delay (in seconds)" />
+            android:text="Show next image in " />
         <EditText
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -41,6 +52,18 @@
             android:text="15"
             android:textSize="48dp"
             />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/slideshow_unit_label"
+            app:layout_constraintTop_toBottomOf="@id/label"
+            app:layout_constraintStart_toEndOf="@id/slideshow_delay"
+            android:text=" seconds" />
+
+
+        <!--
+         Ending button that says "Done"
+        -->
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

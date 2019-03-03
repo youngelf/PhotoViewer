@@ -24,7 +24,6 @@ import static com.eggwall.android.photoviewer.AndroidRoutines.logDuringDev;
  * TODO: Delete oldest file: LRU cache.
  * TODO: Periodically poll the RSS feed for new content.
  * TODO:    GCM cloud messaging to avoid polling.
- * TODO: Settings activity to change slideshow duration, auto-start newest, download frequency, etc
  * TODO: pinch-zoom on an image.
  * TODO: Show the download date of the album alongside the name in the drawer.
  * TODO: Show a demo/intro activity in ImportActivity
@@ -32,6 +31,7 @@ import static com.eggwall.android.photoviewer.AndroidRoutines.logDuringDev;
  * TODO: Background alarm for housekeeping: removing old content, purging and pruning the database.
  * TODO: Background process for keeping disk size within bounds.
  * TODO: Read values from settings rather than hardcoded values.
+ * DONE: Settings activity to change slideshow duration, auto-start newest, download frequency, etc
  * DONE: Diagnostics in the app to find what's wrong.
  * DONE: A UI to show all the albums (today only one is shown)
  * DONE: Remember offset in the album when rotating.
