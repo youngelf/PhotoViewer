@@ -57,6 +57,19 @@
         </activity>
 
         <!--
+         The Settings Activity that allows modification of critical parameters.
+        -->
+        <activity
+            android:name=".SettingActivity"
+            android:label="@string/title_setting_import"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.eggwall.android.photoviewer.MainActivity" />
+        </activity>
+
+        <!--
          The default screen, the PhotoViewer, and also the drawer, etc.
         -->
         <activity

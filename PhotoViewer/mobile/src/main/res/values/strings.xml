@@ -14,6 +14,7 @@
     <string name="tools">Tools</string>
     <string name="import_gallery">Import</string>
     <string name="title_activity_import">Import a Gallery</string>
+    <string name="title_setting_import">Settings</string>
     <string name="import_label">Paste the entire key or album spec here.</string>
     <string name="hint_text">photoviewer://eggwall/download?src=something...</string>
     <string name="import_it">Import it!</string>

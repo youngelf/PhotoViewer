@@ -380,7 +380,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 break;
 
             case R.id.nav_import:
-                // TODO: Import a new gallery.
+                // Import a new gallery.
                 // Call an activity that parses the string, and fires the appropriate intent.
                 Intent importActivity = new Intent(Intent.ACTION_VIEW);
                 importActivity.setClass(mMainActivity, ImportActivity.class);
@@ -393,9 +393,16 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 break;
 
             case R.id.nav_manage:
-                // TODO: Show a Settings Activity instead.
-                mainController.toast("Not implemented yet.");
+                // Display settings, allow the user to change them.
+                Intent settingActivity = new Intent(Intent.ACTION_VIEW);
+                settingActivity.setClass(mMainActivity, SettingActivity.class);
+
+                // Ask the Import Activity to import a download URI.
+                mMainActivity.startActivityForResult(settingActivity,
+                        SettingActivity.REQUEST_SETTINGS);
+                // The result comes in MainActivity.onActivityResult();
                 break;
+
             default:
                 // This must be an album instead. Get its id, and ask the filecontroller
                 // to display this album.
