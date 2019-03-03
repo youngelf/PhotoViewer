@@ -233,15 +233,26 @@ public class MainActivity extends AppCompatActivity {
         // Read the parameters and see if we receive them.
         AndroidRoutines.logDuringDev(TAG, "Requestcode = " + requestCode);
 
-        // Can't do anything if the return value was poor. In theory, this will always be non-null
-        // as we will provide an empty Uri if nothing else.
-        if (data == null) {
-            return;
-        }
+        switch (requestCode) {
+            case ImportActivity.REQUEST_DOWNLOAD:
+                // Can't do anything if the return value was poor. In theory, this will always be non-null
+                // as we will provide an empty Uri if nothing else.
+                if (data == null) {
+                    return;
+                }
 
-        // Get the parsed URI, it is a parcelable.
-        Uri in = data.getParcelableExtra(ImportActivity.KEY_URI);
-        handleUri(in);
+                // Get the parsed URI, it is a parcelable.
+                Uri in = data.getParcelableExtra(ImportActivity.KEY_URI);
+                handleUri(in);
+                break;
+            case SettingActivity.REQUEST_SETTINGS:
+                // Do nothing.
+                break;
+
+            default:
+                AndroidRoutines.crashDuringDev("Not expecting this request code");
+                break;
+        }
     }
 
     @Override

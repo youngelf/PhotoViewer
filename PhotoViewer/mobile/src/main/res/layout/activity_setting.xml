@@ -13,6 +13,7 @@
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_margin="48dp"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         tools:context=".ImportActivity">
 
@@ -23,6 +24,30 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             android:text="Settings Activity" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/slideshow_delay_label"
+            app:layout_constraintTop_toBottomOf="@id/label"
+            app:layout_constraintStart_toStartOf="parent"
+            android:text="Slideshow delay (in seconds)" />
+        <EditText
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toEndOf="@id/slideshow_delay_label"
+            app:layout_constraintTop_toBottomOf="@id/label"
+            android:id="@+id/slideshow_delay"
+            android:inputType="number"
+            android:text="15"
+            android:textSize="48dp"
+            />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/slideshow_delay_label"
+            android:text="Done with settings"
+            app:layout_constraintStart_toStartOf="parent"
+            android:onClick="returnToPrevious"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.navigation.NavigationView

@@ -1,6 +1,8 @@
 package com.eggwall.android.photoviewer;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -892,9 +894,15 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         @Override
         public void run() {
             mainController.updateImage(UiConstants.NEXT, false);
-            // New image every 10 seconds.
-            // TODO: Make this duration configurable.
-            mHandler.postDelayed(this, 10000);
+            // New image every few seconds.
+            SharedPreferences p = mMainActivity.getSharedPreferences(
+                    SettingActivity.PREFS_FILE, Context.MODE_PRIVATE);
+
+            // If nothing has been set, choose 10 seconds.
+            int delay = p.getInt(SettingActivity.SLIDESHOW_DELAY_S, 10);
+
+            // The runnable accepts delays in milliseconds, so multiply by 1,000
+            mHandler.postDelayed(this, delay * 1000);
         }
     };
 
