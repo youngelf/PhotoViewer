@@ -7,15 +7,22 @@
     <string name="action_settings">Settings</string>
     <string name="empty">Empty Item</string>
     <string name="title_activity_album_list">Album List</string>
+
+    <!-- Aim logo in the drawer. -->
     <string name="aim_logo_contentdes">Aim logo</string>
     <string name="drawer_title">Aim for life</string>
     <string name="attribution_viki">By Viki</string>
     <string name="slideshow">Slideshow</string>
     <string name="tools">Settings</string>
     <string name="import_gallery">Import</string>
+
+    <!-- Strings for the ImportActivity -->
     <string name="title_activity_import">Import a Gallery</string>
-    <string name="title_setting_import">Settings</string>
     <string name="import_label">Paste the entire key or album spec here.</string>
     <string name="hint_text">photoviewer://eggwall/download?src=something...</string>
     <string name="import_it">Import it!</string>
+
+    <!-- Strings for the SettingsActivity -->
+    <string name="title_setting_import">Settings</string>
+
 </resources>

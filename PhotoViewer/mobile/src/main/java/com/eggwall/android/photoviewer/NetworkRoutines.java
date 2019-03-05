@@ -73,6 +73,9 @@ class NetworkRoutines {
      */
     private static final String KEY_ALBUMNAME = "name";
 
+    /** CGI param key: URL to monitor. */
+    private static final String REQ_MONITOR_SRC = "beacon";
+
 
     /**
      * All the information that is provided by a URL. This is constructed when a
@@ -192,6 +195,7 @@ class NetworkRoutines {
      * This is an Intent to download a package, perhaps encrypted.
      */
     static final int TYPE_DOWNLOAD = 1;
+
     /**
      * This is an Intent to import a secret key into the database.
      */
@@ -201,6 +205,11 @@ class NetworkRoutines {
      * emptying directories, forcing permissions, etc)
      */
     static final int TYPE_DEV_CONTROL = 3;
+    /**
+     * This is an Intent to monitor a URI, which contains a single string which is a
+     * {@link #TYPE_DOWNLOAD} or {@link #TYPE_SECRET_KEY} <b>only</b>.
+     */
+    static final int TYPE_MONITOR = 4;
 
     /**
      * Get the type of intent this application was started with.
@@ -316,6 +325,9 @@ class NetworkRoutines {
         if (lastPathSegment.equalsIgnoreCase("download")) {
             return TYPE_DOWNLOAD;
         }
+        if (lastPathSegment.equalsIgnoreCase("monitor")) {
+            return TYPE_MONITOR;
+        }
         if (lastPathSegment.equalsIgnoreCase("control")) {
             if (AndroidRoutines.development) {
                 return TYPE_DEV_CONTROL;
@@ -324,6 +336,39 @@ class NetworkRoutines {
             }
         }
         return TYPE_IGNORE;
+    }
+
+    // TODO: Implement the watching
+    // TODO: Implement the delay in Settings
+    /**
+     * Get the URL to monitor from a URI provided to this application.
+     * This is different from the URL to download, since the monitor URL downloads a file,
+     * and that file is supposed to contain the URL. The download frequency is specified in
+     * Settings and is 3 hours, by default.
+     *
+     * This will create a URL of the kind
+     * from an intent where the Data has the URL: http://dropbox.com/slkdjf/al
+     * photoviewer://eggwall/monitor?q=this&src=http%3A%2F%2Fdropbox.com%2Fslkdjf%2Fal
+     * @param uri the Intent the application was started from. Usually obtained from
+     *               {@link Activity#getIntent()}
+     * @return Uri to monitor that we should download, and either import a key from that URI
+     *          or download an album. Returns an empty string if nothing was found, it is up to the
+     *          caller to handle the empty string case.
+     */
+    static @NonNull String getMonitorUri(@NonNull Uri uri) {
+        // This is the URL to monitor. Assume empty for now.
+        String beacon = "";
+
+        Set<String> names = uri.getQueryParameterNames();
+
+        // REQUIRED: What to monitor.
+        if (names.contains(REQ_MONITOR_SRC)) {
+            String encoded = uri.getQueryParameter(REQ_MONITOR_SRC);
+            // If it is available, then try to decode the parameter (since it is a URL itself)
+            // and then try to parse it as a URL.
+            beacon = Uri.decode(encoded);
+        }
+        return beacon;
     }
 
     /**

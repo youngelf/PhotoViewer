@@ -30,6 +30,11 @@ public class SettingActivity extends Activity {
      */
     public static final String SLIDESHOW_DELAY_S = "pref-slideshow-delay";
 
+    /**
+     * Key for URI to monitor (there can be only one for now).
+     */
+    public static final String BEACON_LOCATION = "pref-beacon";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

@@ -1,14 +1,18 @@
 package com.eggwall.android.photoviewer;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
+
+import java.util.Set;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -210,6 +214,16 @@ public class MainActivity extends AppCompatActivity {
                     Log.d(TAG, "I'm going to import this key now: " + key);
                     // Now download that URL and switch over to that screen.
                     mc.importKey(key);
+                }
+                break;
+            case NetworkRoutines.TYPE_MONITOR:
+                // Get the URL, then write it to Settings.
+                String beacon = NetworkRoutines.getMonitorUri(in);
+                if (beacon.length() > 0) {
+                    // Some URL needs to be monitored, let's remember it.
+                    SharedPreferences p = getSharedPreferences(
+                            SettingActivity.PREFS_FILE, Context.MODE_PRIVATE);
+                    p.edit().putString(SettingActivity.BEACON_LOCATION, beacon).apply();
                 }
                 break;
             case NetworkRoutines.TYPE_DEV_CONTROL:
