@@ -8,6 +8,8 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
 
+import static com.eggwall.android.photoviewer.Pref.Name.SLIDESHOW_DELAY;
+
 /**
  * Activity that displays the current settings and allows the user to modify them.
  * All modifications are directly made on {@link android.content.SharedPreferences}
@@ -44,10 +46,10 @@ public class SettingActivity extends Activity {
                     String val = "" + value;
                     slideshow_delay.setText(val);
                 }
-                Pref.modify(SettingActivity.this, Pref.Name.SLIDESHOW_DELAY, value);
+                Pref.modify(SettingActivity.this, SLIDESHOW_DELAY, value);
             }
         });
-        int currentDelay = Pref.getInt(this, Pref.Name.SLIDESHOW_DELAY, 10);
+        int currentDelay = Pref.getInt(this, SLIDESHOW_DELAY);
         String delay = "" + currentDelay;
         slideshow_delay.setText(delay);
     }

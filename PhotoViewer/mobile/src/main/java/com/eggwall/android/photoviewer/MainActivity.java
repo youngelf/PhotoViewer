@@ -19,6 +19,7 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import static com.eggwall.android.photoviewer.AndroidRoutines.logDuringDev;
+import static com.eggwall.android.photoviewer.Pref.Name.BEACON;
 
 /*
  * TODO: Delete oldest file: LRU cache.
@@ -220,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
                 String beacon = NetworkRoutines.getMonitorUri(in);
                 if (beacon.length() > 0) {
                     // Some URL needs to be monitored, let's remember it.
-                    Pref.modify(this, Pref.Name.BEACON, beacon);
+                    Pref.modify(this, BEACON, beacon);
                 }
                 break;
             case NetworkRoutines.TYPE_DEV_CONTROL:
