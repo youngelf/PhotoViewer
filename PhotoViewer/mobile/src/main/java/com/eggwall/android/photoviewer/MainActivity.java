@@ -1,18 +1,14 @@
 package com.eggwall.android.photoviewer;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
-
-import java.util.Set;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -35,6 +31,9 @@ import static com.eggwall.android.photoviewer.AndroidRoutines.logDuringDev;
  * TODO: Background alarm for housekeeping: removing old content, purging and pruning the database.
  * TODO: Background process for keeping disk size within bounds.
  * TODO: Read values from settings rather than hardcoded values.
+ * TODO: Better icons than the small and flat set:
+ *      http://www.iconarchive.com/show/oxygen-icons-by-oxygen-icons.org.9.html
+ *
  * DONE: Settings activity to change slideshow duration, auto-start newest, download frequency, etc
  * DONE: Diagnostics in the app to find what's wrong.
  * DONE: A UI to show all the albums (today only one is shown)
@@ -221,9 +220,7 @@ public class MainActivity extends AppCompatActivity {
                 String beacon = NetworkRoutines.getMonitorUri(in);
                 if (beacon.length() > 0) {
                     // Some URL needs to be monitored, let's remember it.
-                    SharedPreferences p = getSharedPreferences(
-                            SettingActivity.PREFS_FILE, Context.MODE_PRIVATE);
-                    p.edit().putString(SettingActivity.BEACON_LOCATION, beacon).apply();
+                    Pref.modify(this, Pref.Name.BEACON, beacon);
                 }
                 break;
             case NetworkRoutines.TYPE_DEV_CONTROL:

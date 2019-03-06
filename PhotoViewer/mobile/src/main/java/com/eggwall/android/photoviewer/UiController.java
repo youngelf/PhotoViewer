@@ -895,11 +895,8 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         public void run() {
             mainController.updateImage(UiConstants.NEXT, false);
             // New image every few seconds.
-            SharedPreferences p = mMainActivity.getSharedPreferences(
-                    SettingActivity.PREFS_FILE, Context.MODE_PRIVATE);
-
             // If nothing has been set, choose 10 seconds.
-            int delay = p.getInt(SettingActivity.SLIDESHOW_DELAY_S, 10);
+            int delay = Pref.getInt(mMainActivity, Pref.Name.SLIDESHOW_DELAY, 10);
 
             // The runnable accepts delays in milliseconds, so multiply by 1,000
             mHandler.postDelayed(this, delay * 1000);

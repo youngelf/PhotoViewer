@@ -2,7 +2,6 @@ package com.eggwall.android.photoviewer;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -20,28 +19,10 @@ public class SettingActivity extends Activity {
 
     public static final int REQUEST_SETTINGS = 22;
 
-    /**
-     * Name of the preferences file that we will modify.
-     */
-    public static final String PREFS_FILE = "main";
-
-    /**
-     * Key for Slideshow Delay in seconds.
-     */
-    public static final String SLIDESHOW_DELAY_S = "pref-slideshow-delay";
-
-    /**
-     * Key for URI to monitor (there can be only one for now).
-     */
-    public static final String BEACON_LOCATION = "pref-beacon";
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setting);
-
-        // We don't allow others to modify our preferences.
-        final SharedPreferences p = getSharedPreferences(PREFS_FILE, MODE_PRIVATE);
 
         // Supply the slideshow delay value
         final EditText slideshow_delay = findViewById(R.id.slideshow_delay);
@@ -63,10 +44,10 @@ public class SettingActivity extends Activity {
                     String val = "" + value;
                     slideshow_delay.setText(val);
                 }
-                p.edit().putInt(SLIDESHOW_DELAY_S, value).apply();
+                Pref.modify(SettingActivity.this, Pref.Name.SLIDESHOW_DELAY, value);
             }
         });
-        int currentDelay = p.getInt(SLIDESHOW_DELAY_S, 10);
+        int currentDelay = Pref.getInt(this, Pref.Name.SLIDESHOW_DELAY, 10);
         String delay = "" + currentDelay;
         slideshow_delay.setText(delay);
     }
