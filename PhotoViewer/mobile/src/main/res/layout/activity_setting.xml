@@ -41,16 +41,17 @@ of a drawer layout, even though we don't show the drawer.-->
             android:id="@+id/slideshow_delay_label"
             app:layout_constraintTop_toBottomOf="@id/label"
             app:layout_constraintStart_toStartOf="parent"
+            android:textSize="18sp"
             android:text="Show next image in " />
         <EditText
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:layout_constraintStart_toEndOf="@id/slideshow_delay_label"
-            app:layout_constraintTop_toBottomOf="@id/label"
+            app:layout_constraintBottom_toBottomOf="@id/slideshow_delay_label"
             android:id="@+id/slideshow_delay"
             android:inputType="number"
             android:text="15"
-            android:textSize="48dp"
+            android:textSize="20sp"
             />
         <TextView
             android:layout_width="wrap_content"
@@ -58,7 +59,30 @@ of a drawer layout, even though we don't show the drawer.-->
             android:id="@+id/slideshow_unit_label"
             app:layout_constraintTop_toBottomOf="@id/label"
             app:layout_constraintStart_toEndOf="@id/slideshow_delay"
+            android:textSize="18sp"
             android:text=" seconds" />
+
+        <!--
+         This section has the Automatic monitor location.
+        -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/beacon_label"
+            app:layout_constraintBottom_toBottomOf="@id/beacon"
+            app:layout_constraintStart_toStartOf="parent"
+            android:textSize="18sp"
+            android:text="Monitor this URL: " />
+        <EditText
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toEndOf="@id/beacon_label"
+            app:layout_constraintTop_toBottomOf="@id/slideshow_unit_label"
+            android:id="@+id/beacon"
+            android:inputType="number"
+            android:text="-empty-"
+            android:textSize="20sp"
+            />
 
 
         <!--
@@ -67,7 +91,7 @@ of a drawer layout, even though we don't show the drawer.-->
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@id/slideshow_delay_label"
+            app:layout_constraintTop_toBottomOf="@id/beacon"
             android:text="Done with settings"
             app:layout_constraintStart_toStartOf="parent"
             android:onClick="returnToPrevious"/>

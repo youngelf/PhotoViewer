@@ -8,6 +8,7 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
 
+import static com.eggwall.android.photoviewer.Pref.Name.BEACON;
 import static com.eggwall.android.photoviewer.Pref.Name.SLIDESHOW_DELAY;
 
 /**
@@ -52,6 +53,22 @@ public class SettingActivity extends Activity {
         int currentDelay = Pref.getInt(this, SLIDESHOW_DELAY);
         String delay = "" + currentDelay;
         slideshow_delay.setText(delay);
+
+        // Beacon location
+        final EditText beacon = findViewById(R.id.beacon);
+        beacon.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) { }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                // Update the Shared preferences.
+                Pref.modify(SettingActivity.this, BEACON, s.toString());
+            }
+        });
     }
 
     /**
