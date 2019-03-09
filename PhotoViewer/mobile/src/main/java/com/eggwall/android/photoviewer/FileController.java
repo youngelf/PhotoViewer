@@ -468,11 +468,94 @@ class FileController {
     }
 
     /**
-     * Run routine tasks. For now this does nothing.
+     * Run routine tasks. Prunes unused albums.
      */
     void timer() {
-        // Nothing for now.
-        // TODO: check disk size and prune disk removing unused content.
+        long totalUsage = diskUsage(mPicturesDir);
+        long limit = mc.pref.getInt(Pref.Name.DISK_LIMIT);
+        if (totalUsage > limit) {
+            Log.d(TAG, "Disk Pruning STARTS: " + totalUsage + " > " + limit);
+            // Prune. Go through the last used albums, and delete them.
+            List<Album> albums = albumDb.albumDao().getAll();
+            List <Album> toDelete = new ArrayList<>(7);
+
+            for (Album a : albums) {
+                // If these have no local location, and are more than a week old, remove.
+                String localLocation = a.getLocalLocation();
+                if (localLocation == null || localLocation.length() <= 1) {
+                    toDelete.add(a);
+                }
+
+                // If the album was seen too long ago (>1 month), and downloaded more than two
+                // months ago, delete.
+                long ONE_MONTH = 30 * 24 * 3600 * 1000L;
+                long timeNow = SystemClock.elapsedRealtime();
+                if (((a.getLastViewedTimeMs() - timeNow) > ONE_MONTH)
+                        && ((a.getDownloadTimeMs() - timeNow) > (2 * ONE_MONTH))){
+                    toDelete.add(a);
+                }
+            }
+            delete(toDelete);
+            totalUsage = diskUsage(mPicturesDir);
+            // This might not have cleared enough disk space. If that is the case, the program
+            // needs to tell the user that there weren't enough candidates to delete.
+            Log.d(TAG, "Disk Pruning DONE. Usage now = " + totalUsage);
+        }
+        mc.refreshAlbumList();
+    }
+
+    /**
+     * Delete all the albums, removing local content and database entries
+     * @param toDelete a list, possibly empty of albums to remove permanently.
+     */
+    private void delete(@NonNull  List<Album> toDelete) {
+        for (Album x : toDelete) {
+            // Delete the local location as well.
+            delete(new File(x.getLocalLocation()));
+            // Now sweep up the database entry.
+            albumDb.albumDao().delete(x);
+        }
+    }
+
+    /**
+     * Recursively delete everything here, and in sub-directories, if any.
+     * @param target a file or directory to delete.
+     */
+    private void delete(@NonNull File target) {
+        if (target.isDirectory()) {
+            // Descend the level
+            for (String path : target.list()) {
+                delete(new File(path));
+            }
+        }
+        if (target.isFile()) {
+            boolean status = target.delete();
+            Log.d(TAG, (status ? "Deleted: " : "FAILED to delete: ")
+                    + target.getAbsolutePath());
+        }
+    }
+
+    /**
+     * Calculate recursive disk usage
+     * @param file a file or a directory.
+     * @return bytes of disk utilization
+     */
+    private long diskUsage (File file) {
+        try {
+            if (file.isFile()) {
+                return file.length();
+            }
+        } catch (SecurityException e) {
+            return 0;
+        }
+        if (file.isDirectory()) {
+            long usage = 0;
+            for (String x : file.list()) {
+                usage += diskUsage(new File(x));
+            }
+            return usage;
+        }
+        return 0;
     }
 
     /**

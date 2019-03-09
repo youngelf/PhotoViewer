@@ -18,9 +18,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
-import static com.eggwall.android.photoviewer.AndroidRoutines.logDuringDev;
-import static com.eggwall.android.photoviewer.Pref.Name.BEACON;
-
 /*
  * TODO: Delete oldest file: LRU cache.
  * TODO: Periodically poll the RSS feed for new content.
@@ -178,58 +175,7 @@ public class MainActivity extends AppCompatActivity {
                 // Fall through!
             case NetworkRoutines.TYPE_SECRET_KEY:
                 // Get the URI that corresponds to these actions
-                handleUri(NetworkRoutines.getUri(startIntent));
-                break;
-        }
-    }
-
-    /**
-     * For a given URI, either as a custom URI or as input to {@link ImportActivity}, go through
-     * the URI and handle the {@link NetworkRoutines#TYPE_DOWNLOAD} or
-     * {@link NetworkRoutines#TYPE_DEV_CONTROL}, {@link NetworkRoutines#TYPE_DEV_CONTROL} actions.
-     * @param in the URL to act upon, received either by clicking on a custom URI in a browser, or
-     *           as a text input by the user in {@link ImportActivity}
-     */
-    private void handleUri(@NonNull Uri in) {
-        if (in == Uri.EMPTY) {
-            return;
-        }
-
-        // Examine what we got.
-        int type = NetworkRoutines.getUriType(in);
-
-        switch (type) {
-            case NetworkRoutines.TYPE_DOWNLOAD:
-                NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(in);
-                logDuringDev(TAG, "Download Request = " + album.debugString());
-                if (album != NetworkRoutines.EMPTY) {
-                    Log.d(TAG, "I'm going to download this URL now: " + album);
-                    // Now download that URL and switch over to that screen.
-                    mc.download(album);
-                }
-                break;
-            case NetworkRoutines.TYPE_SECRET_KEY:
-                NetworkRoutines.KeyImportInfo key = NetworkRoutines.getKeyInfo(in);
-                if (key != NetworkRoutines.EMPTY_KEY) {
-                    Log.d(TAG, "I'm going to import this key now: " + key);
-                    // Now download that URL and switch over to that screen.
-                    mc.importKey(key);
-                }
-                break;
-            case NetworkRoutines.TYPE_MONITOR:
-                // Get the URL, then write it to Settings.
-                String beacon = NetworkRoutines.getMonitorUri(in);
-                if (beacon.length() > 0) {
-                    // Some URL needs to be monitored, let's remember it.
-                    Pref.modify(this, BEACON, beacon);
-                }
-                break;
-            case NetworkRoutines.TYPE_DEV_CONTROL:
-                NetworkRoutines.callControl(in, mc);
-                break;
-            default:
-                // Should never happen since getIntentType only gives known values.
-                Log.wtf(TAG, "Unknown URI: " + in);
+                mc.handleUri(NetworkRoutines.getUri(startIntent));
                 break;
         }
     }
@@ -255,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Get the parsed URI, it is a parcelable.
                 Uri in = data.getParcelableExtra(ImportActivity.KEY_URI);
-                handleUri(in);
+                mc.handleUri(in);
                 break;
             case SettingActivity.REQUEST_SETTINGS:
                 // Do nothing.

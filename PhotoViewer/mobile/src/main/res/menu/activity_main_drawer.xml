@@ -24,7 +24,7 @@
             android:menuCategory="secondary" />
 
         <!--
-          Options menu. Lesser used.
+          Options menu.
         -->
         <item
             android:id="@+id/nav_manage"
@@ -39,6 +39,15 @@
             android:id="@+id/nav_import"
             android:icon="@drawable/ic_menu_camera"
             android:title="@string/import_gallery"
+            android:menuCategory="secondary"/>
+        <!--
+         Show the import icon the last because most people will just click
+         on a link directly.
+        -->
+        <item
+            android:id="@+id/nav_timer"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/timer"
             android:menuCategory="secondary"/>
     </group>
 

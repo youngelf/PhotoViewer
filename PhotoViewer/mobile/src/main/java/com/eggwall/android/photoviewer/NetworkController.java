@@ -30,6 +30,16 @@ class NetworkController {
      */
     void timer() {
         // TODO: Make this download content.
+        String beacon = mc.pref.getString(Pref.Name.BEACON);
+        if (beacon.length() > 0) {
+            // Let's poll the beacon
+            Uri i = Uri.parse(beacon);
+
+            // Fetch the URL, unpack the file, and then fetch that file.
+            // TODO: this won't work right now.
+            Uri p = i;
+            mc.handleUri(p);
+        }
     }
 
     /**

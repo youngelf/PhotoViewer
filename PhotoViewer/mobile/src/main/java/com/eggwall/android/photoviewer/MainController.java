@@ -1,5 +1,6 @@
 package com.eggwall.android.photoviewer;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -9,6 +10,9 @@ import com.eggwall.android.photoviewer.data.Album;
 import java.util.List;
 
 import androidx.annotation.NonNull;
+
+import static com.eggwall.android.photoviewer.AndroidRoutines.logDuringDev;
+import static com.eggwall.android.photoviewer.Pref.Name.BEACON;
 
 /**
  * Class that orchestrates the entire application. It has a {@link FileController}, a
@@ -44,6 +48,9 @@ class MainController {
     /** Downloads files from the network and knows how to unzip them. */
     private NetworkController networkC;
 
+    /** The preference object that the controllers can modify. */
+    Pref pref;
+
     /**
      * A routine timer that executes every hour to do routine things: monitor stuck
      * downloads, check on a beacon (if any), clean up disk space. The user is generally
@@ -53,10 +60,7 @@ class MainController {
     private final Runnable timer = new Runnable() {
         @Override
         public void run() {
-            // Go through every controller and see if they have any routine action they want to run.
-            fileC.timer();
-            uiC.timer();
-            networkC.timer();
+            timer();
 
             // And call ourselves again.
             // Set up the routine timer for every hour.
@@ -64,6 +68,13 @@ class MainController {
 
         }
     };
+
+    void timer() {
+        // Go through every controller and see if they have any routine action they want to run.
+        fileC.timer();
+        uiC.timer();
+        networkC.timer();
+    }
 
     /**
      * Verify that the object was created before use.
@@ -110,6 +121,8 @@ class MainController {
 
         // Set up the routine timer for every hour.
         new Handler().postDelayed(timer, ONE_HOUR);
+
+        pref = new Pref(mainActivity);
 
         // Now this object can be used.
         created = true;
@@ -260,7 +273,7 @@ class MainController {
      * Can be called on the foreground thread or a background thread.
      * @param album to add as a gallery
      */
-    void download(final NetworkRoutines.DownloadInfo album) {
+    private void download(final NetworkRoutines.DownloadInfo album) {
         creationCheck();
         AndroidRoutines.checkAnyThread();
 
@@ -317,7 +330,7 @@ class MainController {
      * Call from any thread.
      * @param key a key to be imported into the database
      */
-    void importKey(final NetworkRoutines.KeyImportInfo key) {
+    private void importKey(final NetworkRoutines.KeyImportInfo key) {
         creationCheck();
         AndroidRoutines.checkAnyThread();
 
@@ -429,4 +442,59 @@ class MainController {
         uiC.updateImage(nextFile, direction, showFab);
     }
 
+    /**
+     * For a given URI, either as a custom URI or as input to {@link ImportActivity}, go through
+     * the URI and handle the {@link NetworkRoutines#TYPE_DOWNLOAD} or
+     * {@link NetworkRoutines#TYPE_DEV_CONTROL}, {@link NetworkRoutines#TYPE_DEV_CONTROL} actions.
+     * @param in the URL to act upon, received either by clicking on a custom URI in a browser, or
+     *           as a text input by the user in {@link ImportActivity}
+     */
+    void handleUri(@NonNull Uri in) {
+        if (in == Uri.EMPTY) {
+            return;
+        }
+
+        // Examine what we got.
+        int type = NetworkRoutines.getUriType(in);
+
+        switch (type) {
+            case NetworkRoutines.TYPE_DOWNLOAD:
+                NetworkRoutines.DownloadInfo album = NetworkRoutines.getDownloadInfo(in);
+                logDuringDev(TAG, "Download Request = " + album.debugString());
+                if (album != NetworkRoutines.EMPTY) {
+                    Log.d(TAG, "I'm going to download this URL now: " + album);
+                    // Now download that URL and switch over to that screen.
+                    download(album);
+                }
+                break;
+            case NetworkRoutines.TYPE_SECRET_KEY:
+                NetworkRoutines.KeyImportInfo key = NetworkRoutines.getKeyInfo(in);
+                if (key != NetworkRoutines.EMPTY_KEY) {
+                    Log.d(TAG, "I'm going to import this key now: " + key);
+                    // Now download that URL and switch over to that screen.
+                    importKey(key);
+                }
+                break;
+            case NetworkRoutines.TYPE_MONITOR:
+                // Get the URL, then write it to Settings.
+                String beacon = NetworkRoutines.getMonitorUri(in);
+                if (beacon.length() > 0) {
+                    // TODO: Act upon this URI by unpacking it, downloading the
+                    // content, and then adding it to preferences if required.
+                    // Some URL needs to be monitored, let's remember it.
+                    if (0 != pref.getString(BEACON).compareTo(beacon)) {
+                        // It differs, write the new value to disk.
+                        pref.modify(BEACON, beacon);
+                    }
+                }
+                break;
+            case NetworkRoutines.TYPE_DEV_CONTROL:
+                NetworkRoutines.callControl(in, this);
+                break;
+            default:
+                // Should never happen since getIntentType only gives known values.
+                Log.wtf(TAG, "Unknown URI: " + in);
+                break;
+        }
+    }
 }

@@ -341,6 +341,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      */
     void timer() {
         // TODO: Show that routine tasks are taking place as an Easter egg.
+        MakeText("Thanks for keeping me on so long!");
     }
 
     /**
@@ -409,6 +410,11 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
                 mMainActivity.startActivityForResult(settingActivity,
                         SettingActivity.REQUEST_SETTINGS);
                 // The result comes in MainActivity.onActivityResult();
+                break;
+
+            case R.id.nav_timer:
+                // Development-only, call the timer.
+                mainController.timer();
                 break;
 
             default:
@@ -901,7 +907,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         public void run() {
             mainController.updateImage(UiConstants.NEXT, false);
             // New image every few seconds.
-            int delay = Pref.getInt(mMainActivity, SLIDESHOW_DELAY);
+            int delay = mainController.pref.getInt(SLIDESHOW_DELAY);
 
             // The runnable accepts delays in milliseconds, so multiply by 1,000
             mHandler.postDelayed(this, delay * 1000);

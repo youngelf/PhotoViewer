@@ -10,12 +10,24 @@ import androidx.annotation.NonNull;
  *
  * All the methods here require a context object and allow reading and writing to preferences
  * without being aware of where the file is written, and what the keys are called.
+ * 
  */
 class Pref {
     /**
      * Name of the preferences file that we will modify.
      */
     private static final String PREFS_FILE = "main";
+
+    /** The context that this application was created with */
+    private final Context context;
+
+    /**
+     * Create a preference object
+     * @param context a context provided, could be Activity or Application.
+     */
+    Pref(Context context) {
+        this.context = context;
+    }
 
     /**
      * All the preferences that can be modified. It is an enum to limit the values that the
@@ -30,6 +42,10 @@ class Pref {
          * A URL to monitor for new keys or content. STRING: Empty by default.
          */
         BEACON ("pref-beacon", ""),
+        /**
+         * A URL to monitor for new keys or content. INT: 10 Megabytes by default.
+         */
+        DISK_LIMIT ("disk-limit", 10 * 1024 * 1024),
 
         ;  // Required to close off the names.
 
@@ -61,22 +77,20 @@ class Pref {
 
     /**
      * Modify the Preferences to the value given here.
-     * @param context the context of the application.
      * @param key the preference to modify
      * @param value the value to set to.
      */
-    static void modify(Context context, Name key, @NonNull String value) {
+    void modify(Name key, @NonNull String value) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
         prefs.edit().putString(key.keyName, value).apply();
     }
 
     /**
      * Modify the Preferences to the value given here.
-     * @param context the context of the application.
      * @param key the preference to modify
      * @param value the value to set to.
      */
-    static void modify(Context context, Name key, int value) {
+    void modify(Name key, int value) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
         prefs.edit().putInt(key.keyName, value).apply();
     }
@@ -84,11 +98,10 @@ class Pref {
     /**
      * Return the Preference for the name provided here. If nothing is stored, the default value
      * is provided. The storage is never modified after this call.
-     * @param context the context of the application.
      * @param key the preference to read
      * @return the value stored, or the defaultValue if nothing is stored.
      */
-    static @NonNull String getString(Context context, Name key) {
+    @NonNull String getString(Name key) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
         String value;
         try {
@@ -106,11 +119,10 @@ class Pref {
     /**
      * Return the Preference for the name provided here. If nothing is stored, the default value
      * is provided. The storage is never modified after this call.
-     * @param context the context of the application.
      * @param key the preference to read
      * @return the value stored, or the defaultValue if nothing is stored.
      */
-    static int getInt(Context context, Name key) {
+    int getInt(Name key) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
         int value;
         try {

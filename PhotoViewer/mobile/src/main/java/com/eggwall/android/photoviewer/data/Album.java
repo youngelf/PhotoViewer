@@ -42,17 +42,17 @@ public class Album {
     @ColumnInfo(name = "last_viewed_time")
     private long lastViewedTimeMs;
     /**
-     * Downloaded time, , in {@link SystemClock#elapsedRealtime()} millis since start of
+     * Downloaded time, in {@link SystemClock#elapsedRealtime()} millis since start of
      * device. Used only at the week-level granularity.
      */
     @ColumnInfo(name = "download_time")
     private long downloadTimeMs;
 
-    long getLastViewedTimeMs() {
+    public long getLastViewedTimeMs() {
         return lastViewedTimeMs;
     }
 
-    long getDownloadTimeMs() {
+    public long getDownloadTimeMs() {
         return downloadTimeMs;
     }
 

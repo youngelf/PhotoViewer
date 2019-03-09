@@ -27,6 +27,9 @@ public class SettingActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setting);
 
+        // The preference object that we will modify and read.
+        final Pref pref = new Pref(this);
+
         // Supply the slideshow delay value
         final EditText slideshow_delay = findViewById(R.id.slideshow_delay);
         slideshow_delay.addTextChangedListener(new TextWatcher() {
@@ -47,10 +50,10 @@ public class SettingActivity extends Activity {
                     String val = "" + value;
                     slideshow_delay.setText(val);
                 }
-                Pref.modify(SettingActivity.this, SLIDESHOW_DELAY, value);
+                pref.modify(SLIDESHOW_DELAY, value);
             }
         });
-        int currentDelay = Pref.getInt(this, SLIDESHOW_DELAY);
+        int currentDelay = pref.getInt(SLIDESHOW_DELAY);
         String delay = "" + currentDelay;
         slideshow_delay.setText(delay);
 
@@ -66,10 +69,10 @@ public class SettingActivity extends Activity {
             @Override
             public void afterTextChanged(Editable s) {
                 // Update the Shared preferences.
-                Pref.modify(SettingActivity.this, BEACON, s.toString());
+                pref.modify(BEACON, s.toString());
             }
         });
-        beacon.setText(Pref.getString(this, BEACON));
+        beacon.setText(pref.getString(BEACON));
     }
 
     /**
