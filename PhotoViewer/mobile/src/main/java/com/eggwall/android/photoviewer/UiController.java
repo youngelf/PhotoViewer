@@ -337,6 +337,13 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
     }
 
     /**
+     * Run routine tasks. This does nothing right now.
+     */
+    void timer() {
+        // TODO: Show that routine tasks are taking place as an Easter egg.
+    }
+
+    /**
      * Detects left-to-right swipe (next image) and right-to-left swipe (previous image).
      *
      * It is rough, doesn't provide any feedback to the user that the action is going to complete

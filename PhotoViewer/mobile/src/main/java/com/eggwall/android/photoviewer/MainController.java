@@ -1,6 +1,7 @@
 package com.eggwall.android.photoviewer;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 
 import com.eggwall.android.photoviewer.data.Album;
@@ -20,6 +21,7 @@ import androidx.annotation.NonNull;
  */
 class MainController {
     private static final String TAG = "MainController";
+    private static final int ONE_HOUR = 3600 * 1000;
 
     /**
      * Has this object been properly created?
@@ -41,6 +43,27 @@ class MainController {
 
     /** Downloads files from the network and knows how to unzip them. */
     private NetworkController networkC;
+
+    /**
+     * A routine timer that executes every hour to do routine things: monitor stuck
+     * downloads, check on a beacon (if any), clean up disk space. The user is generally
+     * not aware of how frequently this timer runs, for now. Let's make a good choice
+     * for the user, neither thrashing the device nor ignoring routine tasks.
+     */
+    private final Runnable timer = new Runnable() {
+        @Override
+        public void run() {
+            // Go through every controller and see if they have any routine action they want to run.
+            fileC.timer();
+            uiC.timer();
+            networkC.timer();
+
+            // And call ourselves again.
+            // Set up the routine timer for every hour.
+            new Handler().postDelayed(timer, ONE_HOUR);
+
+        }
+    };
 
     /**
      * Verify that the object was created before use.
@@ -84,6 +107,9 @@ class MainController {
         uiC.createController();
 
         networkC = new NetworkController(mainActivity, this);
+
+        // Set up the routine timer for every hour.
+        new Handler().postDelayed(timer, ONE_HOUR);
 
         // Now this object can be used.
         created = true;

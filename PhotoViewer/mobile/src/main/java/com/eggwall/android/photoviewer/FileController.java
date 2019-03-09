@@ -468,6 +468,14 @@ class FileController {
     }
 
     /**
+     * Run routine tasks. For now this does nothing.
+     */
+    void timer() {
+        // Nothing for now.
+        // TODO: check disk size and prune disk removing unused content.
+    }
+
+    /**
      * Handles the completion of a download. This class needs to unzip a file, perhaps decrypt
      * it, etc. As a result, this is the responsibility of the {@link FileController}. This class
      * needs to be static to ensure that no {@link Context} objects are leaking because these

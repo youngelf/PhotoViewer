@@ -69,6 +69,7 @@ public class SettingActivity extends Activity {
                 Pref.modify(SettingActivity.this, BEACON, s.toString());
             }
         });
+        beacon.setText(Pref.getString(this, BEACON));
     }
 
     /**

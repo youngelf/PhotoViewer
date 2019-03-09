@@ -26,6 +26,13 @@ class NetworkController {
     private Context ctx;
 
     /**
+     * Run routine tasks. This does nothing right now.
+     */
+    void timer() {
+        // TODO: Make this download content.
+    }
+
+    /**
      * BroadcastReceiver that listens for a download request and updates when the request was done.
      *
      * There is a huge problem with this approach!
