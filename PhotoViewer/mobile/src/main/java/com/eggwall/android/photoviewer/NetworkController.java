@@ -26,7 +26,8 @@ class NetworkController {
     private Context ctx;
 
     /**
-     * Run routine tasks. This does nothing right now.
+     * Run routine tasks. This reads the beacon and finds what information is pointed to
+     * by it.
      */
     void timer() {
         // TODO: Make this download content.

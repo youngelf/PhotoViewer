@@ -48,7 +48,7 @@ class MainController {
     /** Downloads files from the network and knows how to unzip them. */
     private NetworkController networkC;
 
-    /** The preference object that the controllers can modify. */
+    /** The preference object that the controllers can read and modify. */
     Pref pref;
 
     /**
@@ -69,7 +69,15 @@ class MainController {
         }
     };
 
+    /**
+     * Call a routine timer. This instructs all the remaining machinery to run any routine
+     * tasks they might want to achieve. It is safe to call this on any thread, and as frequently
+     * as required.
+     */
     void timer() {
+        creationCheck();
+        AndroidRoutines.checkAnyThread();
+
         // Go through every controller and see if they have any routine action they want to run.
         fileC.timer();
         uiC.timer();
@@ -288,7 +296,6 @@ class MainController {
             }).start();
         } else {
             downloadBackgroundThread(album);
-
         }
     }
 
@@ -449,7 +456,33 @@ class MainController {
      * @param in the URL to act upon, received either by clicking on a custom URI in a browser, or
      *           as a text input by the user in {@link ImportActivity}
      */
-    void handleUri(@NonNull Uri in) {
+    void handleUri(@NonNull final Uri in) {
+        creationCheck();
+        AndroidRoutines.checkAnyThread();
+
+        // Since I can be called from any thread, I might need to run this code in a background
+        // thread.
+        if (AndroidRoutines.isMainThread()) {
+            // Pop into a background thread: shouldn't do file handling from the main thread.
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    handleUriBackgroundThread(in);
+                }
+            }).start();
+        } else {
+            handleUriBackgroundThread(in);
+        }
+    }
+
+    /**
+     * For a given URI, either as a custom URI or as input to {@link ImportActivity}, go through
+     * the URI and handle the {@link NetworkRoutines#TYPE_DOWNLOAD} or
+     * {@link NetworkRoutines#TYPE_DEV_CONTROL}, {@link NetworkRoutines#TYPE_DEV_CONTROL} actions.
+     * @param in the URL to act upon, received either by clicking on a custom URI in a browser, or
+     *           as a text input by the user in {@link ImportActivity}
+     */
+    private void handleUriBackgroundThread(@NonNull Uri in) {
         if (in == Uri.EMPTY) {
             return;
         }
