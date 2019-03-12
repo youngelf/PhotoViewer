@@ -9,7 +9,10 @@ import com.eggwall.android.photoviewer.data.Album;
 
 import java.util.List;
 
+import androidx.annotation.AnyThread;
 import androidx.annotation.NonNull;
+import androidx.annotation.UiThread;
+import androidx.annotation.WorkerThread;
 
 import static com.eggwall.android.photoviewer.AndroidRoutines.logDuringDev;
 import static com.eggwall.android.photoviewer.Pref.Name.BEACON;
@@ -74,6 +77,7 @@ class MainController {
      * tasks they might want to achieve. It is safe to call this on any thread, and as frequently
      * as required.
      */
+    @AnyThread
     void timer() {
         creationCheck();
         AndroidRoutines.checkAnyThread();
@@ -89,6 +93,7 @@ class MainController {
      * Proceeds if created, and {@link AndroidRoutines#crashHard(String)} if the controller is used
      * before creation because it signifies a huge problem.
      */
+    @AnyThread
     private void creationCheck() {
         if (created) {
             // Everything is ok. I was correctly created.
@@ -106,15 +111,16 @@ class MainController {
      * Can be called from any thread, though it is called from onCreate() usually.
      * @return true if a controller was created, false otherwise (should never happen in production)
      */
+    @AnyThread
     boolean create(MainActivity mainActivity) {
-        // Should NOT call creationCheck(), because this method creates!
+        // Should NOT call creationCheck(), because this method creates the controller!
         AndroidRoutines.checkAnyThread();
 
         if (created) {
             // This is also a problem. The MainController object is being reused!
 
             // We expect random failures since there are callbacks with stale controllers.
-            // Just say 'No'. There is some confusion whether this closes the process.
+            // Just say 'No'. Crash the process hard.
             AndroidRoutines.crashHard("MainController.create called twice!");
             return false;
         }
@@ -127,9 +133,10 @@ class MainController {
 
         networkC = new NetworkController(mainActivity, this);
 
-        // Set up the routine timer for every hour.
+        // Set up the routine timer for every hour. It runs on the main thread.
         new Handler().postDelayed(timer, ONE_HOUR);
 
+        // Get the preferences for the sole (un-named) process.
         pref = new Pref(mainActivity);
 
         // Now this object can be used.
@@ -142,6 +149,7 @@ class MainController {
      * adding this code when memory allocation was an issue. Since then memory allocation has
      * been solved but I want to keep this because this makes the onDestroy() code much cleaner.
      */
+    @AnyThread
     void destroy() {
         creationCheck();
         AndroidRoutines.checkAnyThread();
@@ -164,6 +172,7 @@ class MainController {
      * Show the initial screen, load up the gallery list and show the first one.
      * @return true if it found an album to show
      */
+    @WorkerThread
     boolean showInitial(Bundle icicle) {
         creationCheck();
         AndroidRoutines.checkBackgroundThread();
@@ -194,6 +203,7 @@ class MainController {
      *
      * Currently not implemented, but I can add to it.
      */
+    @WorkerThread
     void showSplash() {
         creationCheck();
         AndroidRoutines.checkBackgroundThread();
@@ -208,7 +218,8 @@ class MainController {
      * Can only be called on the background thread, since it reads disk.
      * @return a list of albums, possibly empty but never null.
      */
-    @NonNull List<Album> getALbumList() {
+    @WorkerThread
+    @NonNull List<Album> getAlbumList() {
         creationCheck();
         AndroidRoutines.checkBackgroundThread();
 
@@ -219,6 +230,7 @@ class MainController {
      * Refresh the album list in the drawer and anywhere else that might need it.
      * Can be called on any thread.
      */
+    @AnyThread
     void refreshAlbumList() {
         creationCheck();
         AndroidRoutines.checkAnyThread();
@@ -244,6 +256,7 @@ class MainController {
      * @param album An album to be displayed
      * @return true if the album was shown, false otherwise.
      */
+    @WorkerThread
     boolean showAlbum(@NonNull Album album) {
         creationCheck();
         AndroidRoutines.checkBackgroundThread();
@@ -255,6 +268,7 @@ class MainController {
      * Allow window focus changes to be handled in an activity containing the UI.
      * @param hasFocus true when the window gets focus and false when it loses focus
      */
+    @UiThread
     void onWindowFocusChanged(boolean hasFocus) {
         creationCheck();
         // I think the UI thread calls this, and we do UI modification, so let's enforce a UI thread
@@ -269,6 +283,7 @@ class MainController {
      * Call from any thread.
      * @param message any human readable message (unfortunately not localized!)
      */
+    @AnyThread
     void toast(String message) {
         creationCheck();
         AndroidRoutines.checkAnyThread();
@@ -281,6 +296,7 @@ class MainController {
      * Can be called on the foreground thread or a background thread.
      * @param album to add as a gallery
      */
+    @AnyThread
     private void download(final NetworkRoutines.DownloadInfo album) {
         creationCheck();
         AndroidRoutines.checkAnyThread();
@@ -337,6 +353,7 @@ class MainController {
      * Call from any thread.
      * @param key a key to be imported into the database
      */
+    @AnyThread
     private void importKey(final NetworkRoutines.KeyImportInfo key) {
         creationCheck();
         AndroidRoutines.checkAnyThread();
@@ -369,6 +386,7 @@ class MainController {
      * be passed in {@link #showInitial(Bundle)}
      * @param icicle A bundle to save state in, possibly null
      */
+    @UiThread
     void onSaveInstanceState(@NonNull Bundle icicle) {
         creationCheck();
         AndroidRoutines.checkMainThread();
@@ -382,6 +400,7 @@ class MainController {
      * Development only: Purge all databases. This is pretty intrusive and should never be allowed
      * during production.
      */
+    @AnyThread
     void databasePurge() {
         creationCheck();
         AndroidRoutines.checkAnyThread();
@@ -410,6 +429,7 @@ class MainController {
      * @param direction either {@link UiConstants#NEXT} or {@link UiConstants#PREV}
      * @param showFab True if the Floating Action Bar should be shown, false if it should be hidden.
      */
+    @AnyThread
     void updateImage(final int direction, final boolean showFab) {
         creationCheck();
         AndroidRoutines.checkAnyThread();
@@ -456,6 +476,7 @@ class MainController {
      * @param in the URL to act upon, received either by clicking on a custom URI in a browser, or
      *           as a text input by the user in {@link ImportActivity}
      */
+    @AnyThread
     void handleUri(@NonNull final Uri in) {
         creationCheck();
         AndroidRoutines.checkAnyThread();

@@ -12,7 +12,17 @@ import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
+import com.google.common.base.Charsets;
+
+import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import androidx.annotation.NonNull;
 
 /**
  * Makes requests to the network to fetch new content.
@@ -26,20 +36,89 @@ class NetworkController {
     private Context ctx;
 
     /**
+     * The beacon can point to a URL of max 4k of length. Anything larger than this and
+     * we will read the first 4k of characters and try to convert them to a URL. There are
+     * some online links that suggest that URLs are a max of 2k of size, so this is a huge
+     * bump from that:
+     * @see <a href="https://stackoverflow.com/questions/417142/what-is-the-maximum-length-of-a-url-in-different-browsers">
+     *     stack overflow article</a>
+     */
+    private final int MAX_BEACON_SIZE = 4 * 1024;
+
+    /**
      * Run routine tasks. This reads the beacon and finds what information is pointed to
-     * by it.
+     * by it. This needs to run in the background since it downloads information and then
+     * it reads it, and handles the URI.
      */
     void timer() {
-        // TODO: Make this download content.
-        String beacon = mc.pref.getString(Pref.Name.BEACON);
-        if (beacon.length() > 0) {
-            // Let's poll the beacon
-            Uri i = Uri.parse(beacon);
+        checkBeacon();
+    }
 
+    /**
+     * Check the beacon to see if any content exists. If so, fetch it, and then ask the
+     * {@link MainController} to handle its contents.
+     *
+     * If the Beacon URL in the settings was malformed, this method modifies settings to empty
+     * out the setting (so future runs don't encounter the same problems).
+     *
+     * A single URL is allowed on a single line in the beacon. No fancy HTML. I am not sure
+     * if this means that we also get http headers and other information, but I need to check
+     * this and see what I receive.
+     */
+    private void checkBeacon() {
+        // Find out if a beacon URL exists.
+        String beacon_pref = mc.pref.getString(Pref.Name.BEACON);
+        if (beacon_pref.length() > 0) {
+            // Let's poll the beacon
+            URL beacon;
+            try {
+                beacon = new URL(beacon_pref);
+            } catch (MalformedURLException e) {
+                Log.d(TAG, "Beacon is malformed: " + e.getMessage());
+                beacon = null;
+            }
+            if (null == beacon) {
+                Log.d(TAG, "Could not create a valid URL.");
+                // Now remove the beacon from the settings because it is malformed.
+                mc.pref.modify(Pref.Name.BEACON, "");
+                return;
+            }
+            HttpURLConnection connection;
+            InputStream body;
+            try {
+                connection = (HttpURLConnection) beacon.openConnection();
+                if (null == connection) {
+                    return;
+                }
+                // Read the response body here, not the headers.
+                body = new BufferedInputStream(connection.getInputStream());
+            } catch (Exception e) {
+                Log.d(TAG, "Beacon could not be read: " + e.getMessage());
+                return;
+            }
+            byte[] beacon_input = new byte[MAX_BEACON_SIZE];
+            try {
+                // Expect a single line, which is the instruction of what comes next, no HTML
+                // markup.
+                int bytes_read = body.read(beacon_input, 0, MAX_BEACON_SIZE);
+                if (bytes_read < 0) {
+                    // Nothing came in, mark an error for the future, but for now, just return
+                    return;
+                }
+            } catch (IOException e) {
+                // Had trouble reading from the beacon. Mark an error.
+                Log.d(TAG, "Timer failed to read from beacon: " + e.getMessage());
+                return;
+            } finally {
+                connection.disconnect();
+            }
+
+            // Try to parse the byte array into a URL, and then handle it.
+            String url = new String(beacon_input, Charsets.UTF_8);
+            AndroidRoutines.logDuringDev(TAG, "Beacon produced: " + url);
             // Fetch the URL, unpack the file, and then fetch that file.
-            // TODO: this won't work right now.
-            Uri p = i;
-            mc.handleUri(p);
+            Uri toHandle = Uri.parse(url);
+            mc.handleUri(toHandle);
         }
     }
 
@@ -151,7 +230,7 @@ class NetworkController {
             final ContentResolver resolver = context.getContentResolver();
             int retryCount = 0;
             try {
-                long size = 0;
+                long size;
                 do {
                     try {
                         // Poll every second till the file is non-empty.
@@ -224,13 +303,13 @@ class NetworkController {
         }
     }
 
-    NetworkController(Context ctx, MainController mainController) {
+    NetworkController(@NonNull Context ctx, @NonNull MainController mainController) {
         this.ctx = ctx;
         this.mc = mainController;
         downloadManager = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
     }
 
-    /** Remove all references to internal datastructures */
+    /** Remove all references to internal data structures */
     void destroy() {
         ctx = null;
         mc = null;

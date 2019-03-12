@@ -29,6 +29,11 @@ import javax.crypto.spec.SecretKeySpec;
  * There are routines here to encrypt and decrypt strings, but those are not required by this
  * program. Their only use is to validate that encryption and decryption is possible on the platform
  * and can be used as a user-visible test.
+ *
+ * This class contains a lot of code to encrypt and to decrypt, though the Android app just decrypts
+ * and never needs to encrypt anything. The methods for testing encryption and decryption are
+ * provided here {@link #decryptFileTest()} and {@link #decryptTextTest()}. These can be utilized
+ * for testing later, through the {@link SettingActivity} during the tutorial. Not used currently.
  */
 public class CryptoRoutines {
     private static final String TAG = "CryptoRoutines";
@@ -43,9 +48,9 @@ public class CryptoRoutines {
      * @param iv the initialization vector
      * @param key the secret key
      * @return the decoded text.
-     * @throws Exception
+     * @throws Exception crypto exceptions if it can't find the right algorithm.
      */
-    public static byte[] decrypt(byte[] cipherText, byte[] iv, SecretKey key) throws Exception {
+    private static byte[] decrypt(byte[] cipherText, byte[] iv, SecretKey key) throws Exception {
         Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
         IvParameterSpec ivspec = new IvParameterSpec(iv);
         cipher.init(Cipher.DECRYPT_MODE, key, ivspec);
@@ -63,9 +68,9 @@ public class CryptoRoutines {
      * @param plainText the text to encrypt.
      * @param key the secret key.
      * @return a Pair containing the cipherText, and the Initialization Vector
-     * @throws Exception
+     * @throws Exception crypto exceptions when creating the cipher or encrypting.
      */
-    public static Pair<byte[],byte[]> encrypt(byte[] plainText, SecretKey key) throws Exception {
+    private static Pair<byte[],byte[]> encrypt(byte[] plainText, SecretKey key) throws Exception {
         Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
         cipher.init(Cipher.ENCRYPT_MODE, key);
         byte[] cipherText = cipher.doFinal(plainText);
@@ -73,8 +78,7 @@ public class CryptoRoutines {
         byte[] iv = cipher.getIV();
         Log.d(TAG, "plainText: " + bToS(plainText) + ", cipherText: " + bToS(cipherText));
         Log.d(TAG, "IV: " + bToS(iv));
-        Pair<byte[], byte[] > m = new Pair<>(cipherText, iv);
-        return m;
+        return new Pair<>(cipherText, iv);
     }
 
     /**
@@ -86,9 +90,9 @@ public class CryptoRoutines {
      * @param plainPath the location where the decrypted file is to be placed. This location must
      *                  be writable
      * @return true if the operation succeeded
-     * @throws Exception
+     * @throws Exception  crypto exceptions when creating the cipher or decrypting.
      */
-    public static boolean decrypt(String cipherPath, byte[] iv, SecretKey key, String plainPath)
+    static boolean decrypt(String cipherPath, byte[] iv, SecretKey key, String plainPath)
             throws Exception {
         // Open the input file
         File cipherFile = new File(cipherPath);
@@ -128,9 +132,9 @@ public class CryptoRoutines {
      * @param cipherPath the location where the encrypted file is to be written. This must be
      *                   writable
      * @return the byte array containing the initialization vector.
-     * @throws Exception
+     * @throws Exception  crypto exceptions when creating the cipher or encrypting.
      */
-    public static byte[] encrypt(String plainPath, SecretKey key, String cipherPath)
+    private static byte[] encrypt(String plainPath, SecretKey key, String cipherPath)
             throws Exception {
         Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
         cipher.init(Cipher.ENCRYPT_MODE, key);
@@ -167,7 +171,7 @@ public class CryptoRoutines {
      * @param in a byte array to transform to a String
      * @return a String that can be printed, stored in a database, displayed on screens, etc.
      */
-    public static String bToS(byte[] in) {
+    static String bToS(byte[] in) {
         return Base64.encodeToString(in, Base64.DEFAULT);
     }
 
@@ -176,7 +180,7 @@ public class CryptoRoutines {
      * @param in a String to be transformed
      * @return a byte array that can be encrypted, decrypted or used as a secret key.
      */
-    public static byte[] STob(String in) {
+    static byte[] STob(String in) {
         return Base64.decode(in, Base64.DEFAULT);
     }
 
@@ -184,7 +188,8 @@ public class CryptoRoutines {
      * Create an AES key for use with the encrypt/decrypt routines.
      * @return an AES SecretKey
      */
-    public static SecretKey generateKey() {
+    @SuppressWarnings("unused")
+    private static SecretKey generateKey() {
         SecretKey key = null;
         try {
             key = KeyGenerator.getInstance("AES").generateKey();
@@ -208,7 +213,8 @@ public class CryptoRoutines {
      * Simple method to test encryption and decryption and show a result to the user.
      * @return true if the test passed
      */
-    public static boolean decryptTextTest() {
+    @SuppressWarnings("unused")
+    private static boolean decryptTextTest() {
         // Let's experiment with a given Base64 encoded key.
         String keyHardcode="SOh7N8bl1R5ZoJrGLzhzjA==";
 
@@ -252,6 +258,7 @@ public class CryptoRoutines {
      * UNUSED but retained for the future.
      * @return true if the test passed
      */
+    @SuppressWarnings("unused")
     private static boolean decryptFileTest() {
         // Let's experiment with a given key.
         String keyHardcode="SOh7N8bl1R5ZoJrGLzhzjA==";
@@ -263,7 +270,6 @@ public class CryptoRoutines {
 
             String key = bToS(skey.getEncoded());
             Log.d(TAG, "I generated this crazy long key: " + key);
-            String expected = "This is a long message";
             String plainPath = Environment.getExternalStorageDirectory().getPath()
                     .concat(File.pathSeparator).concat("plain.txt");
             String cipherPath = Environment.getExternalStorageDirectory().getPath()
@@ -291,7 +297,7 @@ public class CryptoRoutines {
             // TODO: Check here to see if the file has some text in there.
             wasSuccessful = true;
             // Clean up for the next time the test is run.
-            (new File(cipherPath)).delete();
+            boolean status = (new File(cipherPath)).delete();
         } catch (Exception e) {
             e.printStackTrace();
         }

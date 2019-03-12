@@ -4,7 +4,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
-import android.media.ExifInterface;
+import androidx.exifinterface.media.ExifInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.util.Linkify;
@@ -210,7 +210,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
         Log.d(TAG, "refreshAlbumList called.");
 
         // Get a full list of all albums, this is in no particular sort order right now.
-        final List<Album> albumList = mainController.getALbumList();
+        final List<Album> albumList = mainController.getAlbumList();
 
         // Update the UI on the main thread. Surprisingly, that is not working, and modifying
         // this in the background works great!? Unexpected.
@@ -798,7 +798,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
      * @param mainActivity the activity this was created with
      * @param mainController the main orchestrator for all actions
      */
-    UiController(MainActivity mainActivity, MainController mainController) {
+    UiController(@NonNull MainActivity mainActivity, @NonNull MainController mainController) {
         this.mMainActivity = mainActivity;
         this.mainController = mainController;
     }

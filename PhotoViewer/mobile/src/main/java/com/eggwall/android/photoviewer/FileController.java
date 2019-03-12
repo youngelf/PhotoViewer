@@ -114,7 +114,7 @@ class FileController {
      * @param mainController the main orchestrator we can call for UI changes or other behavior
      *                       that we can't do.
      */
-    FileController(Context context, MainController mainController) {
+    FileController(@NonNull Context context, @NonNull MainController mainController) {
         // TODO: These database calls read/write disk so I need to move them to a background thread
         this.albumDb = AlbumDatabase.getDatabase(context);
         this.keyDb = KeyDatabase.getDatabase(context);

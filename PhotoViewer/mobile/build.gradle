@@ -44,6 +44,7 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview-selection:1.1.0-alpha01'
     // Test helpers
     testImplementation 'androidx.room:room-testing:2.1.0-alpha04'
+    implementation 'androidx.exifinterface:exifinterface:1.0.0'
 }
 
 // Need to exclude listenable future. Otherwise something is pulling in the older

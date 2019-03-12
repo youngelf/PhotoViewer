@@ -10,7 +10,6 @@ import java.util.List;
 
 @Dao
 public interface AlbumDao {
-    // TODO: run a process to prune the database when there is no local_location for a week or so.
     /**
      * Returns all the albums in the database that have some local location.
      * @return all the albums that can realistically be displayed.

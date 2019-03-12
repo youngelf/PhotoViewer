@@ -26,12 +26,12 @@ import androidx.drawerlayout.widget.DrawerLayout;
  * TODO: Show the download date of the album alongside the name in the drawer.
  * TODO: Show a demo/intro activity in ImportActivity
  * TODO: Allow multiple links to be imported in ImportActivity.
- * TODO: Background alarm for housekeeping: removing old content, purging and pruning the database.
- * TODO: Background process for keeping disk size within bounds.
- * TODO: Read values from settings rather than hardcoded values.
  * TODO: Better icons than the small and flat set:
  *      http://www.iconarchive.com/show/oxygen-icons-by-oxygen-icons.org.9.html
  *
+ * DONE: Background alarm for housekeeping: removing old content, purging and pruning the database.
+ * DONE: Background process for keeping disk size within bounds.
+ * DONE: Read values from settings rather than hardcoded values.
  * DONE: Settings activity to change slideshow duration, auto-start newest, download frequency, etc
  * DONE: Diagnostics in the app to find what's wrong.
  * DONE: A UI to show all the albums (today only one is shown)
