@@ -22,7 +22,9 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
+import androidx.annotation.WorkerThread;
 
 /**
  * Makes requests to the network to fetch new content.
@@ -50,8 +52,15 @@ class NetworkController {
      * by it. This needs to run in the background since it downloads information and then
      * it reads it, and handles the URI.
      */
+    @MainThread
     void timer() {
-        checkBeacon();
+        // Pop into a background thread to do a network request.
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                checkBeacon();
+            }
+        }).start();
     }
 
     /**
@@ -65,6 +74,7 @@ class NetworkController {
      * if this means that we also get http headers and other information, but I need to check
      * this and see what I receive.
      */
+    @WorkerThread
     private void checkBeacon() {
         // Find out if a beacon URL exists.
         String beacon_pref = mc.pref.getString(Pref.Name.BEACON);

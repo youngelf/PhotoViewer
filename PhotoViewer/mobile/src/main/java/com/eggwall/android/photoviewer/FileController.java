@@ -471,7 +471,8 @@ class FileController {
      * Run routine tasks. Prunes unused albums.
      */
     void timer() {
-        long totalUsage = diskUsage(mPicturesDir);
+        File pictureDir = getPicturesDir();
+        long totalUsage = diskUsage(pictureDir);
         long limit = mc.pref.getInt(Pref.Name.DISK_LIMIT);
         if (totalUsage > limit) {
             Log.d(TAG, "Disk Pruning STARTS: " + totalUsage + " > " + limit);
@@ -496,7 +497,7 @@ class FileController {
                 }
             }
             delete(toDelete);
-            totalUsage = diskUsage(mPicturesDir);
+            totalUsage = diskUsage(pictureDir);
             // This might not have cleared enough disk space. If that is the case, the program
             // needs to tell the user that there weren't enough candidates to delete.
             Log.d(TAG, "Disk Pruning DONE. Usage now = " + totalUsage);
@@ -541,6 +542,9 @@ class FileController {
      * @return bytes of disk utilization
      */
     private long diskUsage (File file) {
+        if (null == file) {
+            return 0;
+        }
         try {
             if (file.isFile()) {
                 return file.length();

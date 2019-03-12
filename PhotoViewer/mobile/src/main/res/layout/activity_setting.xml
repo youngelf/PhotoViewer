@@ -79,8 +79,7 @@ of a drawer layout, even though we don't show the drawer.-->
             app:layout_constraintStart_toEndOf="@id/beacon_label"
             app:layout_constraintTop_toBottomOf="@id/slideshow_unit_label"
             android:id="@+id/beacon"
-            android:inputType="number"
-            android:text="-empty-"
+            android:inputType="text"
             android:textSize="20sp"
             />
 

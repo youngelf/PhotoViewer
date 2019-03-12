@@ -163,7 +163,7 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
             });
         }
         // Also show the message in the logs
-        Log.w(TAG, message, new Error());
+        Log.w("MakeText", message, new Error());
     }
 
     /**

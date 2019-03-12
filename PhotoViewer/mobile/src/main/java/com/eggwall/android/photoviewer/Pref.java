@@ -10,9 +10,11 @@ import androidx.annotation.NonNull;
  *
  * All the methods here require a context object and allow reading and writing to preferences
  * without being aware of where the file is written, and what the keys are called.
- * 
+ *
  */
 class Pref {
+    public static final String TAG = "Pref";
+
     /**
      * Name of the preferences file that we will modify.
      */
@@ -83,6 +85,7 @@ class Pref {
     void modify(Name key, @NonNull String value) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
         prefs.edit().putString(key.keyName, value).apply();
+        AndroidRoutines.logDuringDev(TAG, "Set " + key.keyName + " to " + value);
     }
 
     /**
@@ -93,6 +96,7 @@ class Pref {
     void modify(Name key, int value) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
         prefs.edit().putInt(key.keyName, value).apply();
+        AndroidRoutines.logDuringDev(TAG, "Set " + key.keyName + " to " + value);
     }
 
     /**

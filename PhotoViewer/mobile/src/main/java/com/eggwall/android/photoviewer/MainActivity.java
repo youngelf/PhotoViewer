@@ -169,6 +169,8 @@ public class MainActivity extends AppCompatActivity {
                 // Should never happen since getIntentType only gives known values.
                 Log.wtf(TAG, "Unknown actionType: " + actionType);
                 break;
+            case NetworkRoutines.TYPE_MONITOR:
+                // Fall through!
             case NetworkRoutines.TYPE_DEV_CONTROL:
                 // Fall through!
             case NetworkRoutines.TYPE_DOWNLOAD:
