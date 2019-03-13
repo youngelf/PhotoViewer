@@ -10,6 +10,7 @@ import com.eggwall.android.photoviewer.data.Album;
 import java.util.List;
 
 import androidx.annotation.AnyThread;
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.UiThread;
 import androidx.annotation.WorkerThread;
@@ -76,16 +77,28 @@ class MainController {
      * Call a routine timer. This instructs all the remaining machinery to run any routine
      * tasks they might want to achieve. It is safe to call this on any thread, and as frequently
      * as required.
+     *
+     * This is called on the main thread, so all long-running processing should be performed
+     * in a background thread. In particular network or disk access should be done in a background
+     * thread.
      */
-    @AnyThread
+    @MainThread
     void timer() {
         creationCheck();
-        AndroidRoutines.checkAnyThread();
+        AndroidRoutines.checkMainThread();
 
-        // Go through every controller and see if they have any routine action they want to run.
-        fileC.timer();
+        // Do the UI timer on the main thread.
         uiC.timer();
-        networkC.timer();
+
+        // Pop into a background thread to do a network and file timers.
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // Go through every controller and see if they have any routine action they want to run.
+                fileC.timer();
+                networkC.timer();
+            }
+        }).start();
     }
 
     /**
@@ -237,7 +250,7 @@ class MainController {
 
         // Needs to be done in the background.
         if (AndroidRoutines.isMainThread()) {
-            // Start a background thread to import the actual key.
+            // Start a background thread to refresh the album list.
             new Thread(new Runnable() {
                 @Override
                 public void run() {

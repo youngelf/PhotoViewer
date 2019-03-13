@@ -4,6 +4,8 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+
+import androidx.annotation.MainThread;
 import androidx.exifinterface.media.ExifInterface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -338,7 +340,10 @@ class UiController implements NavigationView.OnNavigationItemSelectedListener,
 
     /**
      * Run routine tasks. This does nothing right now.
+     *
+     * This runs on the main thread.
      */
+    @MainThread
     void timer() {
         // TODO: Show that routine tasks are taking place as an Easter egg.
         MakeText("Thanks for keeping me on so long!");

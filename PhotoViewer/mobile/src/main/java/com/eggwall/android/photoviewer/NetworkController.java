@@ -52,15 +52,9 @@ class NetworkController {
      * by it. This needs to run in the background since it downloads information and then
      * it reads it, and handles the URI.
      */
-    @MainThread
+    @WorkerThread
     void timer() {
-        // Pop into a background thread to do a network request.
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                checkBeacon();
-            }
-        }).start();
+        checkBeacon();
     }
 
     /**

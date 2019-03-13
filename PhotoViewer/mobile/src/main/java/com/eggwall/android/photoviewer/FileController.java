@@ -6,6 +6,8 @@ import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import androidx.annotation.NonNull;
+import androidx.annotation.WorkerThread;
+
 import android.util.Log;
 
 import com.eggwall.android.photoviewer.data.Album;
@@ -469,7 +471,10 @@ class FileController {
 
     /**
      * Run routine tasks. Prunes unused albums.
+     *
+     * This needs to run in the background thread.
      */
+    @WorkerThread
     void timer() {
         File pictureDir = getPicturesDir();
         long totalUsage = diskUsage(pictureDir);
