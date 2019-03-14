@@ -545,13 +545,19 @@ class MainController {
             case NetworkRoutines.TYPE_MONITOR:
                 // Get the URL, then write it to Settings.
                 String beacon = NetworkRoutines.getMonitorUri(in);
+                // Check that it isn't too long
+                if (beacon.length() > NetworkController.MAX_BEACON_SIZE) {
+                    uiC.MakeText("Beacon URI too long. Max length = "
+                            + NetworkController.MAX_BEACON_SIZE);
+                    break;
+                }
                 if (beacon.length() > 0) {
-                    // TODO: Act upon this URI by unpacking it, downloading the
-                    // content, and then adding it to preferences if required.
                     // Some URL needs to be monitored, let's remember it.
                     if (0 != pref.getString(BEACON).compareTo(beacon)) {
-                        // It differs, write the new value to disk.
+                        // It differs, write the new value to disk. The timer() method will pick
+                        // it up in due time.
                         pref.modify(BEACON, beacon);
+                        uiC.MakeText("Stored beacon: " + beacon);
                     }
                 }
                 break;

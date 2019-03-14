@@ -22,7 +22,6 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.WorkerThread;
 
@@ -45,7 +44,7 @@ class NetworkController {
      * @see <a href="https://stackoverflow.com/questions/417142/what-is-the-maximum-length-of-a-url-in-different-browsers">
      *     stack overflow article</a>
      */
-    private final int MAX_BEACON_SIZE = 4 * 1024;
+    final static int MAX_BEACON_SIZE = 4 * 1024;
 
     /**
      * Run routine tasks. This reads the beacon and finds what information is pointed to

@@ -128,6 +128,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+
+        // Called because we have set launchMode="singleTask" which means that one instance is
+        // already running, and we just got delivered a different intent. This should not be
+        // the launch intent, and should purely be a request to handle a URI.
+        if (null == mc) {
+            // This is bad. We expect a fully functioning environment but the MainController hasn't
+            // been created.
+            AndroidRoutines.crashHard("Got new intent on un-created MainController");
+            return;
+        }
+        handleIntent(intent, null);
+    }
+
+    @Override
     protected void onCreate(final Bundle icicle) {
         super.onCreate(icicle);
 
@@ -146,13 +162,24 @@ public class MainActivity extends AppCompatActivity {
         if (!mc.create(this)) {
             // Nothing is going to work without a MainController.
             AndroidRoutines.crashHard("Could not construct a Main Controller");
+            return;
         }
 
         // See if the program was asked to do something specific or was just started from Launcher
         Intent startIntent = getIntent();
-        int actionType = NetworkRoutines.getIntentType(startIntent);
+        handleIntent(startIntent, icicle);
+    }
+
+    private void handleIntent(@NonNull final Intent intent, final Bundle icicle) {
+        int actionType = NetworkRoutines.getIntentType(intent);
         switch (actionType) {
             case NetworkRoutines.TYPE_IGNORE:
+                if (null == icicle) {
+                    // This is bad! We expect a non-null Bundle when called through onCreate()
+                    // which is the only way we can get TYPE_IGNORE.
+                    AndroidRoutines.crashDuringDev("Null icicle for TYPE_IGNORE");
+                    break;
+                }
                 // Launched from launcher or without any specific request. Try to resume showing
                 // the previous album or show the most recently downloaded album.
                 final MainController mainController = mc;
@@ -177,7 +204,7 @@ public class MainActivity extends AppCompatActivity {
                 // Fall through!
             case NetworkRoutines.TYPE_SECRET_KEY:
                 // Get the URI that corresponds to these actions
-                mc.handleUri(NetworkRoutines.getUri(startIntent));
+                mc.handleUri(NetworkRoutines.getUri(intent));
                 break;
         }
     }

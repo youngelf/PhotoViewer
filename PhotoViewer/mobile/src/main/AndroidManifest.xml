@@ -71,10 +71,15 @@
 
         <!--
          The default screen, the PhotoViewer, and also the drawer, etc.
+         launchMode="singleTask" and taskAffinity="" are required to make a single task be
+         around, and for the Activity to get onNewIntent() rather than a new onCreate() method.
         -->
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:clearTaskOnLaunch="true"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>

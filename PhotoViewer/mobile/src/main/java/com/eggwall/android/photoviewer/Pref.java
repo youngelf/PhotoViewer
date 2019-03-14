@@ -42,6 +42,7 @@ class Pref {
         SLIDESHOW_DELAY ("pref-slideshow-delay", 10),
         /**
          * A URL to monitor for new keys or content. STRING: Empty by default.
+         * The URL cannot be more than {@link NetworkController#MAX_BEACON_SIZE} in length.
          */
         BEACON ("pref-beacon", ""),
         /**
