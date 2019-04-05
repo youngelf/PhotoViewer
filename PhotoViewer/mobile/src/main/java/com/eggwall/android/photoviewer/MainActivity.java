@@ -1,6 +1,7 @@
 package com.eggwall.android.photoviewer;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
@@ -141,7 +142,12 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        handleIntent(intent, new Bundle());
+        // An existing activity is handed another intent, and we haven't had a chance to save
+        // our instance state. We should do something better in this case: perhaps save the
+        // state, from which we can 'resume' again.
+        Bundle savedState = new Bundle();
+        onSaveInstanceState(savedState);
+        handleIntent(intent, savedState);
     }
 
     @Override
@@ -169,12 +175,23 @@ public class MainActivity extends AppCompatActivity {
         // See if the program was asked to do something specific or was just started from Launcher
         Intent startIntent = getIntent();
 
-        // onCreate can be called with a null Bundle. If so, send an empty bundle to handleIntent.
-        final Bundle sendBundle = (icicle != null) ? icicle : new Bundle();
-        handleIntent(startIntent, sendBundle);
+        // onCreate() can be called with a null Bundle, but this is fine since handleIntent
+        // can comfortably handle null Bundles now.
+        handleIntent(startIntent, icicle);
     }
 
-    private void handleIntent(@NonNull final Intent intent, @NonNull final Bundle icicle) {
+    /**
+     * Handle a starting intent provided here, along with any Bundle to resume from.
+     * @param intent an intent that was delivered to us either via {@link #onNewIntent(Intent)}
+     *               or through {@link Activity#getIntent()}
+     *               Since we are always created, we are required to have a non-empty Intent.
+     * @param icicle a perhaps null Bundle containing information that we stashed away with
+     *               earlier calls to {@link #onSaveInstanceState(Bundle)}
+     */
+    private void handleIntent(@NonNull final Intent intent, Bundle icicle) {
+        // A null icicle is the same as an icicle with no information
+        final Bundle sendBundle = (icicle != null) ? icicle : new Bundle();
+
         int actionType = NetworkRoutines.getIntentType(intent);
         switch (actionType) {
             case NetworkRoutines.TYPE_IGNORE:
@@ -184,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        if (!mainController.showInitial(icicle)) {
+                        if (!mainController.showInitial(sendBundle)) {
                             mainController.toast("Could not show the first screen");
                         }
                     }
