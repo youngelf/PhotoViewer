@@ -20,8 +20,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 
 /*
  * TODO: Delete oldest file: LRU cache.
- * TODO: Periodically poll the RSS feed for new content.
- * TODO:    GCM cloud messaging to avoid polling.
+ * TODO: GCM cloud messaging to avoid polling.
  * TODO: pinch-zoom on an image.
  * TODO: Show the download date of the album alongside the name in the drawer.
  * TODO: Show a demo/intro activity in ImportActivity
@@ -29,6 +28,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
  * TODO: Better icons than the small and flat set:
  *      http://www.iconarchive.com/show/oxygen-icons-by-oxygen-icons.org.9.html
  *
+ * DONE: Periodically poll the RSS feed for new content.
  * DONE: Background alarm for housekeeping: removing old content, purging and pruning the database.
  * DONE: Background process for keeping disk size within bounds.
  * DONE: Read values from settings rather than hardcoded values.
@@ -140,7 +140,8 @@ public class MainActivity extends AppCompatActivity {
             AndroidRoutines.crashHard("Got new intent on un-created MainController");
             return;
         }
-        handleIntent(intent, null);
+
+        handleIntent(intent, new Bundle());
     }
 
     @Override
@@ -167,19 +168,16 @@ public class MainActivity extends AppCompatActivity {
 
         // See if the program was asked to do something specific or was just started from Launcher
         Intent startIntent = getIntent();
-        handleIntent(startIntent, icicle);
+
+        // onCreate can be called with a null Bundle. If so, send an empty bundle to handleIntent.
+        final Bundle sendBundle = (icicle != null) ? icicle : new Bundle();
+        handleIntent(startIntent, sendBundle);
     }
 
-    private void handleIntent(@NonNull final Intent intent, final Bundle icicle) {
+    private void handleIntent(@NonNull final Intent intent, @NonNull final Bundle icicle) {
         int actionType = NetworkRoutines.getIntentType(intent);
         switch (actionType) {
             case NetworkRoutines.TYPE_IGNORE:
-                if (null == icicle) {
-                    // This is bad! We expect a non-null Bundle when called through onCreate()
-                    // which is the only way we can get TYPE_IGNORE.
-                    AndroidRoutines.crashDuringDev("Null icicle for TYPE_IGNORE");
-                    break;
-                }
                 // Launched from launcher or without any specific request. Try to resume showing
                 // the previous album or show the most recently downloaded album.
                 final MainController mainController = mc;

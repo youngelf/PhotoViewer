@@ -186,7 +186,7 @@ class MainController {
      * @return true if it found an album to show
      */
     @WorkerThread
-    boolean showInitial(Bundle icicle) {
+    boolean showInitial(@NonNull Bundle icicle) {
         creationCheck();
         AndroidRoutines.checkBackgroundThread();
 
