@@ -97,7 +97,6 @@ public class CryptoRoutines {
         // Open the input file
         File cipherFile = new File(cipherPath);
 
-
         Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
         IvParameterSpec ivspec = new IvParameterSpec(iv);
         cipher.init(Cipher.DECRYPT_MODE, key, ivspec);

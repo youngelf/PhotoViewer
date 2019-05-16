@@ -24,6 +24,9 @@ import androidx.drawerlayout.widget.DrawerLayout;
  * TODO: GCM cloud messaging to avoid polling.
  * TODO: pinch-zoom on an image.
  * TODO: Show the download date of the album alongside the name in the drawer.
+ * TODO: Resume unpacking a downloaded file. When the download finishes, our code doesn't
+ *       get called, and we need to start the download handler if there were some files
+ *       that were correctly downloaded but not unpacked.
  * TODO: Show a demo/intro activity in ImportActivity
  * TODO: Allow multiple links to be imported in ImportActivity.
  * TODO: Better icons than the small and flat set:
