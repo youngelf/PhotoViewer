@@ -5,8 +5,6 @@
       <root url="jar://$USER_HOME$/.gradle/caches/transforms-1/files-1.1/room-rxjava2-2.1.0-alpha04.aar/be602d410c08105672be125ba3dd37a5/jars/classes.jar!/" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES>
-      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/androidx.room/room-rxjava2/2.1.0-alpha04/e5eb0e01566b2d490082cff71947214dfb9d0a61/room-rxjava2-2.1.0-alpha04-sources.jar!/" />
-    </SOURCES>
+    <SOURCES />
   </library>
 </component>
